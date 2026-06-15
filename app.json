@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "FogWalk",
+    "slug": "fogwalk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chaddev.fogwalk",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "탐험 중 위치를 사용합니다",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드 이동 기록을 위해 위치를 사용합니다",
+        "NSLocationAlwaysUsageDescription": "백그라운드 탐험 기록을 위해 위치를 사용합니다",
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0D0F1A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bb1583b8-679c-4b44-ae83-7e413744a65d"
+      }
+    }
+  }
+}
