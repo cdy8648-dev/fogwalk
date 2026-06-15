@@ -10,6 +10,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.chaddev.fogwalk",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "탐험 중 위치를 사용합니다",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드 이동 기록을 위해 위치를 사용합니다",
         "NSLocationAlwaysUsageDescription": "백그라운드 탐험 기록을 위해 위치를 사용합니다",
