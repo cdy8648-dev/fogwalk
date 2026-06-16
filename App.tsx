@@ -8,6 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { COLORS } from './src/constants/colors';
 import { initDatabase } from './src/services/db';
+import { useMapStore } from './src/store/mapStore';
 import MapScreen from './src/screens/MapScreen';
 import CollectionScreen from './src/screens/CollectionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -39,7 +40,8 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    initDatabase();
+    initDatabase(); // DB 준비
+    useMapStore.getState().hydrate(); // DB → Set 복원
     setReady(true);
   }, []);
 

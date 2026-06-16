@@ -1,8 +1,38 @@
-/**
- * 현재 위치 마커.
- * Phase 1 에서 Mapbox PointAnnotation / UserLocation 으로 현재 위치를 표시한다.
- * Phase 0 에서는 렌더 없음.
- */
+import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
+
+import { COLORS } from '../../constants/colors';
+import { useMapStore } from '../../store/mapStore';
+
+/** 현재 위치에 라임색 점 + 외곽 헤일로. currentLocation이 없으면 렌더 안 함. */
 export default function LocationMarker() {
-  return null;
+  const currentLocation = useMapStore((s) => s.currentLocation);
+  if (!currentLocation) return null;
+
+  const point = {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: {
+      type: 'Point' as const,
+      coordinates: [currentLocation.lng, currentLocation.lat],
+    },
+  };
+
+  return (
+    <ShapeSource id="me-source" shape={point}>
+      <CircleLayer
+        id="me-halo"
+        style={{ circleRadius: 18, circleColor: COLORS.lime, circleOpacity: 0.25 }}
+      />
+      <CircleLayer
+        id="me-dot"
+        aboveLayerID="me-halo"
+        style={{
+          circleRadius: 6,
+          circleColor: COLORS.lime,
+          circleStrokeColor: '#FFFFFF',
+          circleStrokeWidth: 2,
+        }}
+      />
+    </ShapeSource>
+  );
 }

@@ -72,15 +72,25 @@ export function initDatabase(): void {
 
 // ── visited_tiles ──────────────────────────────────────────────
 
-export function insertOrIgnoreVisitedTile(
-  tileId: string,
-  firstVisitedAt: number
-): void {
-  db.runSync(
-    'INSERT OR IGNORE INTO visited_tiles (tile_id, first_visited_at, visit_count) VALUES (?, ?, 1)',
-    tileId,
-    firstVisitedAt
-  );
+/**
+ * 방문 타일들을 한 트랜잭션으로 INSERT OR IGNORE.
+ * first_visited_at = Date.now(). 새로 들어간(신규) tileId 배열만 반환.
+ */
+export function insertVisitedTiles(tileIds: string[]): string[] {
+  if (tileIds.length === 0) return [];
+  const now = Date.now();
+  const fresh: string[] = [];
+  db.withTransactionSync(() => {
+    for (const tileId of tileIds) {
+      const result = db.runSync(
+        'INSERT OR IGNORE INTO visited_tiles (tile_id, first_visited_at, visit_count) VALUES (?, ?, 1)',
+        tileId,
+        now
+      );
+      if (result.changes > 0) fresh.push(tileId); // 실제 삽입된 것만 신규
+    }
+  });
+  return fresh;
 }
 
 export function getAllVisitedTileIds(): string[] {
