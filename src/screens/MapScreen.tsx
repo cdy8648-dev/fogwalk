@@ -1,4 +1,4 @@
-import { type ComponentRef, useEffect, useMemo, useRef } from 'react';
+import { type ComponentRef, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Linking,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import Mapbox, { Camera, MapView } from '@rnmapbox/maps';
+import { Ionicons } from '@expo/vector-icons';
 
 import FogLayer from '../components/map/FogLayer';
 import LocationMarker from '../components/map/LocationMarker';
@@ -19,25 +20,46 @@ import { coordToTile, tileAreaKm2 } from '../utils/h3';
 // 첫 위치 픽스 전 기본 중심(서울 시청).
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
 
+// 지도 스타일. 밝은 베이스라 밝혀진 영역이 어두운 안개와 대비된다.
+// 대안: Mapbox.StyleURL.Light(미니멀 회백), .Dark(어두움),
+//       또는 Mapbox Studio 커스텀 스타일 URL 문자열('mapbox://styles/<user>/<id>')
+const MAP_STYLE = Mapbox.StyleURL.Street;
+
 export default function MapScreen() {
   const { status } = useTracking();
   const currentLocation = useMapStore((s) => s.currentLocation);
   const fogVersion = useMapStore((s) => s.fogVersion);
 
   const cameraRef = useRef<ComponentRef<typeof Camera>>(null);
-  const didCenter = useRef(false);
+  const didAutoCenter = useRef(false);
 
-  // 첫 위치 픽스 때 한 번만 카메라 이동 (이후엔 유저 드래그를 막지 않음).
-  useEffect(() => {
-    if (currentLocation && !didCenter.current) {
-      cameraRef.current?.setCamera({
-        centerCoordinate: [currentLocation.lng, currentLocation.lat],
+  // 스토어에서 최신 위치를 읽어 카메라 이동(스테일 클로저 방지).
+  const recenter = useCallback((animated: boolean) => {
+    const loc = useMapStore.getState().currentLocation;
+    if (loc && cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: [loc.lng, loc.lat],
         zoomLevel: 15,
-        animationDuration: 600,
+        animationDuration: animated ? 500 : 0,
       });
-      didCenter.current = true;
     }
-  }, [currentLocation]);
+  }, []);
+
+  // 첫 위치 픽스 시 1회 자동 센터. (cameraRef가 준비됐을 때만 완료 처리 → 레이스 방지)
+  useEffect(() => {
+    if (currentLocation && !didAutoCenter.current && cameraRef.current) {
+      recenter(false);
+      didAutoCenter.current = true;
+    }
+  }, [currentLocation, recenter]);
+
+  // 위치가 이미 있는데 지도가 늦게 뜬 경우 보강.
+  const handleMapLoaded = useCallback(() => {
+    if (!didAutoCenter.current && useMapStore.getState().currentLocation) {
+      recenter(false);
+      didAutoCenter.current = true;
+    }
+  }, [recenter]);
 
   // 밝힌 면적 = 타일 수 × 타일당 면적. fogVersion 변경 시 갱신.
   const areaKm2 = useMemo(() => {
@@ -50,7 +72,11 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} styleURL={Mapbox.StyleURL.Dark}>
+      <MapView
+        style={styles.map}
+        styleURL={MAP_STYLE}
+        onDidFinishLoadingMap={handleMapLoaded}
+      >
         <Camera
           ref={cameraRef}
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
@@ -64,6 +90,16 @@ export default function MapScreen() {
         <Text style={styles.statLabel}>내가 밝힌 땅</Text>
         <Text style={styles.statValue}>{areaKm2.toFixed(2)} km²</Text>
       </View>
+
+      {/* 내 위치로 이동 버튼 */}
+      <TouchableOpacity
+        style={styles.locateButton}
+        onPress={() => recenter(true)}
+        activeOpacity={0.85}
+        accessibilityLabel="내 위치로 이동"
+      >
+        <Ionicons name="locate" size={24} color={COLORS.ink} />
+      </TouchableOpacity>
 
       {/* 위치 권한 거부 안내 */}
       {status === 'denied' && (
@@ -102,6 +138,22 @@ const styles = StyleSheet.create({
   },
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
   statValue: { color: COLORS.lime, fontSize: 20, fontWeight: '700' },
+  locateButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 110,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.lime,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
   deniedWrap: {
     position: 'absolute',
     top: 0,

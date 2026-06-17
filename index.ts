@@ -3,6 +3,9 @@ import { registerRootComponent } from 'expo';
 // expo(winter) 초기화 직후, 앱 코드(h3-js 등) 로드 직전에 TextDecoder 폴리필 적용
 import './src/polyfills';
 
+// 백그라운드 위치 태스크를 JS 로드 시 1회 등록 (iOS 백그라운드 재실행 대비, 최상위 필수)
+import './src/tasks/locationTask';
+
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

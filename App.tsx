@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import Mapbox from '@rnmapbox/maps';
@@ -43,6 +43,14 @@ export default function App() {
     initDatabase(); // DB 준비
     useMapStore.getState().hydrate(); // DB → Set 복원
     setReady(true);
+  }, []);
+
+  // 포그라운드 복귀 시, 백그라운드에서 쌓인 타일을 안개에 반영
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') useMapStore.getState().hydrate();
+    });
+    return () => sub.remove();
   }, []);
 
   if (!ready) {
