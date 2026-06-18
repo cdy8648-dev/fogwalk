@@ -1,6 +1,7 @@
 import * as TaskManager from 'expo-task-manager';
 import type { LocationObject } from 'expo-location';
 
+import { CONFIG } from '../constants/config';
 import { insertVisitedTiles } from '../services/db';
 import { useMapStore } from '../store/mapStore';
 import { revealTilesFor } from '../utils/h3';
@@ -24,16 +25,19 @@ TaskManager.defineTask<{ locations: LocationObject[] }>(
     if (!locations || locations.length === 0) return;
 
     const fresh: string[] = [];
+    let lastAccepted: { lat: number; lng: number } | null = null;
     for (const loc of locations) {
-      const { latitude, longitude } = loc.coords;
+      const { latitude, longitude, accuracy } = loc.coords;
+      // 정확도 나쁜(또는 알 수 없는) fix는 무시 — GPS 튐 방지
+      if (accuracy == null || accuracy > CONFIG.GPS_ACCURACY_MAX_M) continue;
+      lastAccepted = { lat: latitude, lng: longitude };
       const newTiles = insertVisitedTiles(revealTilesFor(latitude, longitude));
       if (newTiles.length) fresh.push(...newTiles);
     }
 
     // DB 기록은 위에서 끝. 스토어 갱신은 포그라운드일 때만 화면에 반영된다(백그라운드면 무해).
-    const last = locations[locations.length - 1].coords;
     const store = useMapStore.getState();
-    store.setLocation({ lat: last.latitude, lng: last.longitude });
+    if (lastAccepted) store.setLocation(lastAccepted);
     if (fresh.length) store.addVisitedTiles(fresh);
   }
 );

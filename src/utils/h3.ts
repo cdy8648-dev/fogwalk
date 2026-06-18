@@ -25,18 +25,26 @@ export function revealTilesFor(lat: number, lng: number): string[] {
 }
 
 /**
- * 안개 구멍용 링 배열.
- * cellsToMultiPolygon으로 인접 타일을 매끈한 영역으로 병합한 뒤,
- * 각 폴리곤의 바깥 링만 추출 (내부 도넛 홀은 MVP에서 무시).
- * 반환: [lng, lat] 순서의 링 배열.
+ * 밝힌 타일들을 병합한 GeoJSON MultiPolygon. 각 폴리곤 = [외곽링, ...내부홀].
+ * 내부 홀(도넛 구멍 = 둘러싸였지만 안 간 곳)을 보존한다 — FogLayer에서 다시 안개로 처리.
+ * 좌표는 [lng, lat] 순서.
  */
-export function tilesToFogHoles(tileIds: string[]): number[][][] {
+export function tilesToRevealedPolygons(tileIds: string[]): number[][][][] {
   if (tileIds.length === 0) return [];
-  const multiPolygon = cellsToMultiPolygon(tileIds, true);
-  return multiPolygon.map((polygon) => polygon[0]); // 각 폴리곤의 외곽 링
+  return cellsToMultiPolygon(tileIds, true);
 }
 
 /** 타일 면적 (km²). */
 export function tileAreaKm2(tileId: string): number {
   return cellArea(tileId, 'km2');
+}
+
+/** 타일 집합을 gridDisk(k)로 팽창(dilate)시킨 합집합. 안개 버퍼 영역 계산용. */
+export function dilateTiles(tileIds: string[], k: number): string[] {
+  if (tileIds.length === 0) return [];
+  const out = new Set<string>();
+  for (const id of tileIds) {
+    for (const neighbor of gridDisk(id, k)) out.add(neighbor);
+  }
+  return [...out];
 }

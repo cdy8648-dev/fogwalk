@@ -67,7 +67,11 @@ export async function startWatch(
       distanceInterval: CONFIG.GPS_DISTANCE_INTERVAL_M,
       timeInterval: CONFIG.GPS_TIME_INTERVAL_MS,
     },
-    (pos) => onMove({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      if (accuracy == null || accuracy > CONFIG.GPS_ACCURACY_MAX_M) return; // GPS 튐 무시
+      onMove({ lat: latitude, lng: longitude });
+    }
   );
   return { remove: () => sub.remove() };
 }
