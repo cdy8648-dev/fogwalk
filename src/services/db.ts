@@ -2,6 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 import type {
   Achievement,
+  CountryStat,
   DailyStats,
   Landmark,
   LandmarkCategory,
@@ -82,6 +83,13 @@ CREATE TABLE IF NOT EXISTS photos (
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
+);
+
+CREATE TABLE IF NOT EXISTS country_stats (
+  code TEXT PRIMARY KEY,
+  name TEXT,
+  tiles INTEGER DEFAULT 0,
+  first_visited_at INTEGER
 );
 `;
 
@@ -427,4 +435,37 @@ export function setSetting(key: string, value: string): void {
     key,
     value
   );
+}
+
+// ── country_stats (여권) ───────────────────────────────────────
+
+export function upsertCountryTiles(
+  code: string,
+  name: string,
+  addTiles: number
+): void {
+  db.runSync(
+    `INSERT INTO country_stats (code, name, tiles, first_visited_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(code) DO UPDATE SET tiles = tiles + excluded.tiles, name = excluded.name`,
+    code,
+    name,
+    addTiles,
+    Date.now()
+  );
+}
+
+export function getAllCountryStats(): CountryStat[] {
+  const rows = db.getAllSync<{
+    code: string;
+    name: string | null;
+    tiles: number;
+    first_visited_at: number | null;
+  }>('SELECT code, name, tiles, first_visited_at FROM country_stats ORDER BY tiles DESC');
+  return rows.map((r) => ({
+    code: r.code,
+    name: r.name ?? r.code,
+    tiles: r.tiles,
+    firstVisitedAt: r.first_visited_at ?? 0,
+  }));
 }

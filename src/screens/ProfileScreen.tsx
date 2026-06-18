@@ -12,7 +12,7 @@ import {
 } from '../utils/calendar';
 import { coordToTile, tileAreaKm2 } from '../utils/h3';
 
-const HEATMAP_WEEKS = 13;
+const HEATMAP_WEEKS = 22;
 const CUM_DAYS = 40;
 
 function heatColor(cell?: HeatCell): string {
@@ -86,18 +86,20 @@ export default function ProfileScreen() {
       {/* 활동 히트맵 */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>활동 ({HEATMAP_WEEKS}주)</Text>
-        <View style={styles.heatRow}>
-          {weeks.map((col, wi) => (
-            <View key={wi} style={styles.heatCol}>
-              {Array.from({ length: 7 }).map((_, dow) => (
-                <View
-                  key={dow}
-                  style={[styles.heatCell, { backgroundColor: heatColor(col[dow]) }]}
-                />
-              ))}
-            </View>
-          ))}
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.heatRow}>
+            {weeks.map((col, wi) => (
+              <View key={wi} style={styles.heatCol}>
+                {Array.from({ length: 7 }).map((_, dow) => (
+                  <View
+                    key={dow}
+                    style={[styles.heatCell, { backgroundColor: heatColor(col[dow]) }]}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: COLORS.teal }]} />
           <Text style={styles.legendText}>활동</Text>

@@ -8,6 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import CelebrationOverlay from './src/components/CelebrationOverlay';
 import { COLORS } from './src/constants/colors';
+import { hydrateCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
 import { refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
@@ -46,6 +47,7 @@ export default function App() {
 
   useEffect(() => {
     initDatabase(); // DB 준비
+    hydrateCountry(); // 마지막 국가 복원(즉시 적립 가능)
     useMapStore.getState().hydrate(); // DB → Set 복원
     useAchievementStore.getState().hydrate(); // DB → 해금 뱃지 복원(중복알림 방지)
     refreshProgressStore(); // DB → 진행도 복원 (뱃지 체크 포함)

@@ -31,6 +31,24 @@ export async function getCurrentOnce(): Promise<Coordinate> {
   return { lat: pos.coords.latitude, lng: pos.coords.longitude };
 }
 
+/** 좌표 → 국가 (역지오코딩, 네이티브). 실패 시 null. */
+export async function detectCountry(
+  lat: number,
+  lng: number
+): Promise<{ code: string; name: string } | null> {
+  try {
+    const results = await Location.reverseGeocodeAsync({
+      latitude: lat,
+      longitude: lng,
+    });
+    const r = results[0];
+    if (!r?.isoCountryCode) return null;
+    return { code: r.isoCountryCode, name: r.country ?? r.isoCountryCode };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 백그라운드(+포그라운드) 추적 시작.
  * activityType=Fitness + pausesUpdatesAutomatically → iOS가 정지 감지 시 GPS를

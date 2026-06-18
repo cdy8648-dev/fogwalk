@@ -71,3 +71,10 @@ export interface Photo {
   caption?: string;
   createdAt: number;
 }
+
+export interface CountryStat {
+  code: string; // ISO 2글자 (예: 'KR')
+  name: string;
+  tiles: number;
+  firstVisitedAt: number;
+}

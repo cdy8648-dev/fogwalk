@@ -5,10 +5,12 @@ import { haversineMeters } from '../utils/distance';
 import { modeWeight } from '../utils/mode';
 import { levelProgress, xpForMovement } from '../utils/xp';
 import { checkAchievements } from './achievements';
+import { ensureCountry, getCurrentCountry } from './country';
 import {
   getDailyStatsByDate,
   getProgress,
   updateProgress,
+  upsertCountryTiles,
   upsertDailyStats,
 } from './db';
 
@@ -81,6 +83,13 @@ export function recordMovement(
 
   if (segment > 0 || newTiles > 0) {
     upsertDailyStats(today, segment, newTiles);
+  }
+
+  // 여권: 신규 타일을 현재 국가에 적립 (국가 판별은 비동기로 캐시 갱신)
+  void ensureCountry(lat, lng);
+  if (newTiles > 0) {
+    const country = getCurrentCountry();
+    if (country) upsertCountryTiles(country.code, country.name, newTiles);
   }
 }
 
