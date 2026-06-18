@@ -59,7 +59,7 @@ export async function stopBackgroundTracking(): Promise<void> {
  * distance/time 임계치마다 onMove 콜백.
  */
 export async function startWatch(
-  onMove: (c: Coordinate) => void
+  onMove: (lat: number, lng: number, speed: number | null) => void
 ): Promise<{ remove: () => void }> {
   const sub = await Location.watchPositionAsync(
     {
@@ -68,9 +68,9 @@ export async function startWatch(
       timeInterval: CONFIG.GPS_TIME_INTERVAL_MS,
     },
     (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
+      const { latitude, longitude, accuracy, speed } = pos.coords;
       if (accuracy == null || accuracy > CONFIG.GPS_ACCURACY_MAX_M) return; // GPS 튐 무시
-      onMove({ lat: latitude, lng: longitude });
+      onMove(latitude, longitude, speed ?? null);
     }
   );
   return { remove: () => sub.remove() };

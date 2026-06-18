@@ -8,7 +8,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { COLORS } from './src/constants/colors';
 import { initDatabase } from './src/services/db';
+import { refreshProgressStore } from './src/services/progress';
 import { useMapStore } from './src/store/mapStore';
+import { usePhotoStore } from './src/store/photoStore';
 import MapScreen from './src/screens/MapScreen';
 import CollectionScreen from './src/screens/CollectionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -42,13 +44,18 @@ export default function App() {
   useEffect(() => {
     initDatabase(); // DB 준비
     useMapStore.getState().hydrate(); // DB → Set 복원
+    refreshProgressStore(); // DB → 진행도(거리·스트릭) 복원
+    usePhotoStore.getState().hydrate(); // DB → 사진 복원
     setReady(true);
   }, []);
 
-  // 포그라운드 복귀 시, 백그라운드에서 쌓인 타일을 안개에 반영
+  // 포그라운드 복귀 시, 백그라운드에서 쌓인 타일·진행도를 반영
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') useMapStore.getState().hydrate();
+      if (next === 'active') {
+        useMapStore.getState().hydrate();
+        refreshProgressStore();
+      }
     });
     return () => sub.remove();
   }, []);

@@ -8,17 +8,20 @@ import {
   startBackgroundTracking,
   startWatch,
 } from '../services/gps';
+import { recordMovement, refreshProgressStore } from '../services/progress';
 import { useMapStore } from '../store/mapStore';
 import { revealTilesFor } from '../utils/h3';
 
 type TrackingStatus = 'loading' | 'granted' | 'denied';
 
-/** 좌표 1건 처리: 위치 갱신 + 타일 reveal + 스토어 반영 (포그라운드 경로용). */
-function handle(lat: number, lng: number): void {
+/** 좌표 1건 처리: 위치 갱신 + 타일 reveal + 진행도 기록 + 스토어 반영 (포그라운드 경로용). */
+function handle(lat: number, lng: number, speed: number | null): void {
   const store = useMapStore.getState();
   store.setLocation({ lat, lng });
   const fresh = insertVisitedTiles(revealTilesFor(lat, lng));
+  recordMovement(lat, lng, speed, fresh.length);
   if (fresh.length) store.addVisitedTiles(fresh);
+  refreshProgressStore();
 }
 
 /**
@@ -46,7 +49,7 @@ export function useTracking(): { status: TrackingStatus } {
       try {
         const c = await getCurrentOnce();
         if (cancelled) return;
-        handle(c.lat, c.lng);
+        handle(c.lat, c.lng, null);
       } catch {
         // 초기 위치 실패는 무시 — 추적이 곧 위치를 잡는다.
       }
@@ -63,7 +66,9 @@ export function useTracking(): { status: TrackingStatus } {
         }
       }
       // 폴백: 포그라운드에서만 추적
-      foregroundSub = await startWatch((c) => handle(c.lat, c.lng));
+      foregroundSub = await startWatch((lat, lng, speed) =>
+        handle(lat, lng, speed)
+      );
       if (cancelled) foregroundSub.remove();
     })();
 

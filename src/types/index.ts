@@ -62,3 +62,12 @@ export interface DailyStats {
   distanceM: number;
   newTiles: number;
 }
+
+export interface Photo {
+  id: string;
+  lat: number;
+  lng: number;
+  uri: string;
+  caption?: string;
+  createdAt: number;
+}

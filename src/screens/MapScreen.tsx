@@ -1,6 +1,18 @@
-import { type ComponentRef, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
+  type ComponentRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
   Linking,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,10 +23,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import FogLayer from '../components/map/FogLayer';
 import LocationMarker from '../components/map/LocationMarker';
+import PhotoMarkers from '../components/map/PhotoMarkers';
 import { COLORS } from '../constants/colors';
 import { useTracking } from '../hooks/useTracking';
+import { capturePhotoAt } from '../services/photos';
 import { getTileCount } from '../services/db';
 import { useMapStore } from '../store/mapStore';
+import { useUserStore } from '../store/userStore';
+import type { Photo } from '../types';
 import { coordToTile, tileAreaKm2 } from '../utils/h3';
 
 // 첫 위치 픽스 전 기본 중심(서울 시청).
@@ -29,6 +45,31 @@ export default function MapScreen() {
   const { status } = useTracking();
   const currentLocation = useMapStore((s) => s.currentLocation);
   const fogVersion = useMapStore((s) => s.fogVersion);
+  const todayDistanceM = useUserStore((s) => s.todayDistanceM);
+  const streak = useUserStore((s) => s.streak);
+  const level = useUserStore((s) => s.level);
+  const film = useUserStore((s) => s.film);
+
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [capturing, setCapturing] = useState(false);
+
+  const onCapture = useCallback(async () => {
+    const loc = useMapStore.getState().currentLocation;
+    if (!loc) {
+      Alert.alert('위치 확인 중', '현재 위치를 찾는 중이에요. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    setCapturing(true);
+    const res = await capturePhotoAt(loc.lat, loc.lng);
+    setCapturing(false);
+    if (res === 'no-film') {
+      Alert.alert('필름이 부족해요', '걸어서 필름을 모아야 사진을 남길 수 있어요. (가중 1km당 1장)');
+    } else if (res === 'no-permission') {
+      Alert.alert('카메라 권한 필요', '설정에서 카메라 접근을 허용해주세요.');
+    } else if (res === 'error') {
+      Alert.alert('오류', '사진 저장에 실패했어요.');
+    }
+  }, []);
 
   const cameraRef = useRef<ComponentRef<typeof Camera>>(null);
   const didAutoCenter = useRef(false);
@@ -82,6 +123,7 @@ export default function MapScreen() {
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
         />
         <FogLayer />
+        <PhotoMarkers onSelect={setSelectedPhoto} />
         <LocationMarker />
       </MapView>
 
@@ -89,7 +131,28 @@ export default function MapScreen() {
       <View style={styles.statCard} pointerEvents="none">
         <Text style={styles.statLabel}>내가 밝힌 땅</Text>
         <Text style={styles.statValue}>{areaKm2.toFixed(2)} km²</Text>
+        <Text style={styles.statSub}>
+          Lv {level} · 오늘 {(todayDistanceM / 1000).toFixed(1)}km · 🔥 {streak}일
+        </Text>
       </View>
+
+      {/* 사진 남기기 버튼 (필름 소모) */}
+      <TouchableOpacity
+        style={styles.cameraButton}
+        onPress={onCapture}
+        activeOpacity={0.85}
+        disabled={capturing}
+        accessibilityLabel="사진 남기기"
+      >
+        {capturing ? (
+          <ActivityIndicator color={COLORS.ink} />
+        ) : (
+          <Ionicons name="camera" size={24} color={COLORS.ink} />
+        )}
+        <View style={styles.filmBadge}>
+          <Text style={styles.filmBadgeText}>🎞️{Math.floor(film)}</Text>
+        </View>
+      </TouchableOpacity>
 
       {/* 내 위치로 이동 버튼 */}
       <TouchableOpacity
@@ -100,6 +163,29 @@ export default function MapScreen() {
       >
         <Ionicons name="locate" size={24} color={COLORS.ink} />
       </TouchableOpacity>
+
+      {/* 사진 뷰어 */}
+      <Modal
+        visible={selectedPhoto !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedPhoto(null)}
+      >
+        <Pressable style={styles.viewerOverlay} onPress={() => setSelectedPhoto(null)}>
+          {selectedPhoto && (
+            <>
+              <Image
+                source={{ uri: selectedPhoto.uri }}
+                style={styles.viewerImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.viewerDate}>
+                {new Date(selectedPhoto.createdAt).toLocaleString()}
+              </Text>
+            </>
+          )}
+        </Pressable>
+      </Modal>
 
       {/* 위치 권한 거부 안내 */}
       {status === 'denied' && (
@@ -138,6 +224,7 @@ const styles = StyleSheet.create({
   },
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
   statValue: { color: COLORS.lime, fontSize: 20, fontWeight: '700' },
+  statSub: { color: COLORS.text, fontSize: 12, marginTop: 4 },
   locateButton: {
     position: 'absolute',
     right: 16,
@@ -154,6 +241,41 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
+  cameraButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 174,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.amber,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  filmBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: COLORS.ink,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  filmBadgeText: { color: COLORS.amber, fontSize: 11, fontWeight: '700' },
+  viewerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  viewerImage: { width: '100%', height: '80%' },
+  viewerDate: { color: COLORS.muted, fontSize: 13, marginTop: 12 },
   deniedWrap: {
     position: 'absolute',
     top: 0,

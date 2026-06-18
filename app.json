@@ -11,6 +11,8 @@
       "bundleIdentifier": "com.chaddev.fogwalk",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "탐험한 곳에 사진을 남기기 위해 카메라를 사용합니다.",
+        "NSPhotoLibraryUsageDescription": "남긴 사진을 보기 위해 사진 접근을 사용합니다.",
         "NSLocationWhenInUseUsageDescription": "탐험 중 위치를 사용합니다",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드 이동 기록을 위해 위치를 사용합니다",
         "NSLocationAlwaysUsageDescription": "백그라운드 탐험 기록을 위해 위치를 사용합니다",

@@ -3,6 +3,7 @@ import type { LocationObject } from 'expo-location';
 
 import { CONFIG } from '../constants/config';
 import { insertVisitedTiles } from '../services/db';
+import { recordMovement, refreshProgressStore } from '../services/progress';
 import { useMapStore } from '../store/mapStore';
 import { revealTilesFor } from '../utils/h3';
 
@@ -27,11 +28,12 @@ TaskManager.defineTask<{ locations: LocationObject[] }>(
     const fresh: string[] = [];
     let lastAccepted: { lat: number; lng: number } | null = null;
     for (const loc of locations) {
-      const { latitude, longitude, accuracy } = loc.coords;
+      const { latitude, longitude, accuracy, speed } = loc.coords;
       // 정확도 나쁜(또는 알 수 없는) fix는 무시 — GPS 튐 방지
       if (accuracy == null || accuracy > CONFIG.GPS_ACCURACY_MAX_M) continue;
       lastAccepted = { lat: latitude, lng: longitude };
       const newTiles = insertVisitedTiles(revealTilesFor(latitude, longitude));
+      recordMovement(latitude, longitude, speed ?? null, newTiles.length); // 거리·스트릭·가중
       if (newTiles.length) fresh.push(...newTiles);
     }
 
@@ -39,5 +41,6 @@ TaskManager.defineTask<{ locations: LocationObject[] }>(
     const store = useMapStore.getState();
     if (lastAccepted) store.setLocation(lastAccepted);
     if (fresh.length) store.addVisitedTiles(fresh);
+    refreshProgressStore();
   }
 );

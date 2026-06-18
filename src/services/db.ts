@@ -5,6 +5,7 @@ import type {
   DailyStats,
   Landmark,
   LandmarkCategory,
+  Photo,
   TrackingSession,
 } from '../types';
 
@@ -56,11 +57,33 @@ CREATE TABLE IF NOT EXISTS landmarks (
   lng REAL NOT NULL,
   discovered_at INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS progress (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  total_distance_m REAL DEFAULT 0,
+  walk_distance_m REAL DEFAULT 0,
+  total_xp INTEGER DEFAULT 0,
+  film INTEGER DEFAULT 0,
+  streak INTEGER DEFAULT 0,
+  last_explore_date TEXT,
+  last_lat REAL,
+  last_lng REAL
+);
+
+CREATE TABLE IF NOT EXISTS photos (
+  id TEXT PRIMARY KEY,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  uri TEXT NOT NULL,
+  caption TEXT,
+  created_at INTEGER NOT NULL
+);
 `;
 
-/** 앱 시작 시 1회 호출. 5개 테이블을 생성하고 콘솔에 생성된 테이블 목록을 출력한다. */
+/** 앱 시작 시 1회 호출. 테이블 생성 + 단일 진행도 행 보장, 생성된 테이블 목록 출력. */
 export function initDatabase(): void {
   db.execSync(SCHEMA);
+  db.runSync('INSERT OR IGNORE INTO progress (id) VALUES (1)'); // 진행도 단일 행 보장
 
   const tables = db.getAllSync<{ name: string }>(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
@@ -105,6 +128,63 @@ export function getTileCount(): number {
     'SELECT COUNT(*) AS count FROM visited_tiles'
   );
   return row?.count ?? 0;
+}
+
+// ── progress (단일 행 러닝 합계) ────────────────────────────────
+
+export interface Progress {
+  totalDistanceM: number; // 총 이동거리(무가중)
+  walkDistanceM: number; // 노력 가중 거리(걷기=1, 차량≈0)
+  totalXp: number;
+  film: number;
+  streak: number;
+  lastExploreDate: string | null; // 'YYYY-MM-DD'
+  lastLat: number | null; // 거리 누적 연속용
+  lastLng: number | null;
+}
+
+export function getProgress(): Progress {
+  const row = db.getFirstSync<{
+    total_distance_m: number;
+    walk_distance_m: number;
+    total_xp: number;
+    film: number;
+    streak: number;
+    last_explore_date: string | null;
+    last_lat: number | null;
+    last_lng: number | null;
+  }>('SELECT * FROM progress WHERE id = 1');
+  return {
+    totalDistanceM: row?.total_distance_m ?? 0,
+    walkDistanceM: row?.walk_distance_m ?? 0,
+    totalXp: row?.total_xp ?? 0,
+    film: row?.film ?? 0,
+    streak: row?.streak ?? 0,
+    lastExploreDate: row?.last_explore_date ?? null,
+    lastLat: row?.last_lat ?? null,
+    lastLng: row?.last_lng ?? null,
+  };
+}
+
+export function updateProgress(fields: Partial<Progress>): void {
+  const sets: string[] = [];
+  const params: SQLite.SQLiteBindValue[] = [];
+  const push = (col: string, v: number | string | null | undefined) => {
+    if (v !== undefined) {
+      sets.push(`${col} = ?`);
+      params.push(v);
+    }
+  };
+  push('total_distance_m', fields.totalDistanceM);
+  push('walk_distance_m', fields.walkDistanceM);
+  push('total_xp', fields.totalXp);
+  push('film', fields.film);
+  push('streak', fields.streak);
+  push('last_explore_date', fields.lastExploreDate);
+  push('last_lat', fields.lastLat);
+  push('last_lng', fields.lastLng);
+  if (sets.length === 0) return;
+  db.runSync(`UPDATE progress SET ${sets.join(', ')} WHERE id = 1`, ...params);
 }
 
 // ── sessions ───────────────────────────────────────────────────
@@ -208,6 +288,19 @@ export function getDailyStatsByDate(date: string): DailyStats | null {
   };
 }
 
+export function getAllDailyStats(): DailyStats[] {
+  const rows = db.getAllSync<{
+    date: string;
+    distance_m: number;
+    new_tiles: number;
+  }>('SELECT date, distance_m, new_tiles FROM daily_stats ORDER BY date ASC');
+  return rows.map((r) => ({
+    date: r.date,
+    distanceM: r.distance_m,
+    newTiles: r.new_tiles,
+  }));
+}
+
 // ── landmarks ──────────────────────────────────────────────────
 
 export function upsertLandmark(landmark: Landmark): void {
@@ -278,4 +371,37 @@ export function markLandmarkDiscovered(
     discoveredAt,
     osmId
   );
+}
+
+// ── photos ─────────────────────────────────────────────────────
+
+export function insertPhoto(photo: Photo): void {
+  db.runSync(
+    'INSERT INTO photos (id, lat, lng, uri, caption, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    photo.id,
+    photo.lat,
+    photo.lng,
+    photo.uri,
+    photo.caption ?? null,
+    photo.createdAt
+  );
+}
+
+export function getAllPhotos(): Photo[] {
+  const rows = db.getAllSync<{
+    id: string;
+    lat: number;
+    lng: number;
+    uri: string;
+    caption: string | null;
+    created_at: number;
+  }>('SELECT id, lat, lng, uri, caption, created_at FROM photos ORDER BY created_at DESC');
+  return rows.map((r) => ({
+    id: r.id,
+    lat: r.lat,
+    lng: r.lng,
+    uri: r.uri,
+    caption: r.caption ?? undefined,
+    createdAt: r.created_at,
+  }));
 }
