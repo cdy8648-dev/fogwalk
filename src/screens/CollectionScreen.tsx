@@ -10,7 +10,9 @@ import {
   View,
 } from 'react-native';
 
+import { ACHIEVEMENTS } from '../constants/achievements';
 import { COLORS } from '../constants/colors';
+import { useAchievementStore } from '../store/achievementStore';
 import { usePhotoStore } from '../store/photoStore';
 import type { Photo } from '../types';
 
@@ -18,18 +20,30 @@ const NUM_COLS = 3;
 
 export default function CollectionScreen() {
   const photos = usePhotoStore((s) => s.photos);
+  const unlocked = useAchievementStore((s) => s.unlockedTypes);
   const [selected, setSelected] = useState<Photo | null>(null);
 
-  if (photos.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>아직 남긴 사진이 없어요</Text>
-        <Text style={styles.emptyDesc}>
-          걸어서 필름을 모으고, 지도에서 📷 버튼으로 그 자리에 사진을 남겨보세요.
-        </Text>
+  const header = (
+    <View style={styles.headerWrap}>
+      <Text style={styles.sectionTitle}>뱃지</Text>
+      <View style={styles.badgeGrid}>
+        {ACHIEVEMENTS.map((def) => {
+          const got = unlocked.has(def.type);
+          return (
+            <View key={def.type} style={[styles.badge, !got && styles.badgeLocked]}>
+              <Text style={[styles.badgeEmoji, !got && styles.badgeEmojiLocked]}>
+                {got ? def.emoji : '🔒'}
+              </Text>
+              <Text style={[styles.badgeLabel, !got && styles.badgeLabelLocked]}>
+                {def.label}
+              </Text>
+            </View>
+          );
+        })}
       </View>
-    );
-  }
+      <Text style={styles.sectionTitle}>사진</Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -37,7 +51,13 @@ export default function CollectionScreen() {
         data={photos}
         keyExtractor={(p) => p.id}
         numColumns={NUM_COLS}
-        contentContainerStyle={styles.grid}
+        ListHeaderComponent={header}
+        contentContainerStyle={styles.content}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            아직 남긴 사진이 없어요. 지도에서 📷 버튼으로 그 자리에 남겨보세요.
+          </Text>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.cell}
@@ -76,23 +96,44 @@ export default function CollectionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
-  grid: { padding: 2 },
+  content: { padding: 4 },
+  headerWrap: { paddingHorizontal: 12, paddingTop: 12 },
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  badge: {
+    width: '30%',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.lime,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  badgeLocked: { borderColor: COLORS.border, opacity: 0.6 },
+  badgeEmoji: { fontSize: 28 },
+  badgeEmojiLocked: { fontSize: 22 },
+  badgeLabel: {
+    color: COLORS.text,
+    fontSize: 11,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  badgeLabelLocked: { color: COLORS.muted },
   cell: { flex: 1 / NUM_COLS, aspectRatio: 1, padding: 2 },
   thumb: { width: '100%', height: '100%', borderRadius: 8 },
   empty: {
-    flex: 1,
-    backgroundColor: COLORS.fog,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
+    color: COLORS.muted,
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
-  emptyTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  emptyDesc: { color: COLORS.muted, fontSize: 14, textAlign: 'center' },
   viewerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.92)',

@@ -21,7 +21,7 @@ function handle(lat: number, lng: number, speed: number | null): void {
   const fresh = insertVisitedTiles(revealTilesFor(lat, lng));
   recordMovement(lat, lng, speed, fresh.length);
   if (fresh.length) store.addVisitedTiles(fresh);
-  refreshProgressStore();
+  refreshProgressStore(true);
 }
 
 /**

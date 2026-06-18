@@ -26,4 +26,7 @@ export const CONFIG = {
 
   // 필름 (사진 게시용 소모재) — 노력 가중 거리 기준
   FILM_PER_KM: 1, // 가중 1km당 필름 1장
+
+  // 이 줌 이상에서만 사진 썸네일, 그보다 축소하면 점으로 (성능·가독성)
+  PHOTO_THUMB_MIN_ZOOM: 14,
 } as const;

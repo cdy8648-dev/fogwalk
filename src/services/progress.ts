@@ -1,8 +1,10 @@
 import { CONFIG } from '../constants/config';
+import { useAchievementStore } from '../store/achievementStore';
 import { useUserStore } from '../store/userStore';
 import { haversineMeters } from '../utils/distance';
 import { modeWeight } from '../utils/mode';
 import { levelProgress, xpForMovement } from '../utils/xp';
+import { checkAchievements } from './achievements';
 import {
   getDailyStatsByDate,
   getProgress,
@@ -83,10 +85,17 @@ export function recordMovement(
 }
 
 /** DB의 진행도를 userStore(표시용)로 반영. 앱 시작/포그라운드 복귀/이동 후 호출. */
-export function refreshProgressStore(): void {
+/**
+ * DB 진행도 → userStore 반영 + 뱃지 체크.
+ * celebrateLevelUp=true(이동 컨텍스트)일 때만 레벨업 축하를 띄운다
+ * (앱 시작/동기화 시 1→실제레벨 점프를 축하로 오인하지 않도록).
+ */
+export function refreshProgressStore(celebrateLevelUp = false): void {
   const p = getProgress();
   const today = getDailyStatsByDate(todayStr());
   const prog = levelProgress(p.totalXp);
+  const prevLevel = useUserStore.getState().level;
+
   useUserStore.getState().setProgress({
     totalDistanceM: p.totalDistanceM,
     walkDistanceM: p.walkDistanceM,
@@ -98,6 +107,16 @@ export function refreshProgressStore(): void {
     levelRatio: prog.ratio,
     film: p.film,
   });
+
+  if (celebrateLevelUp && prog.level > prevLevel) {
+    useAchievementStore.getState().celebrate({
+      emoji: '⭐',
+      title: `레벨 ${prog.level} 달성!`,
+      subtitle: '계속 탐험해보세요',
+    });
+  }
+
+  checkAchievements();
 }
 
 /** 필름 1장 소모 시도. 충분하면 차감하고 true. (사진 게시용) */

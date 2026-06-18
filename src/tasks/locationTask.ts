@@ -41,6 +41,6 @@ TaskManager.defineTask<{ locations: LocationObject[] }>(
     const store = useMapStore.getState();
     if (lastAccepted) store.setLocation(lastAccepted);
     if (fresh.length) store.addVisitedTiles(fresh);
-    refreshProgressStore();
+    refreshProgressStore(true);
   }
 );

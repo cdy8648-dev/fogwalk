@@ -6,11 +6,14 @@ import Mapbox from '@rnmapbox/maps';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
+import CelebrationOverlay from './src/components/CelebrationOverlay';
 import { COLORS } from './src/constants/colors';
 import { initDatabase } from './src/services/db';
 import { refreshProgressStore } from './src/services/progress';
+import { useAchievementStore } from './src/store/achievementStore';
 import { useMapStore } from './src/store/mapStore';
 import { usePhotoStore } from './src/store/photoStore';
+import { useSettingsStore } from './src/store/settingsStore';
 import MapScreen from './src/screens/MapScreen';
 import CollectionScreen from './src/screens/CollectionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -44,8 +47,10 @@ export default function App() {
   useEffect(() => {
     initDatabase(); // DB 준비
     useMapStore.getState().hydrate(); // DB → Set 복원
-    refreshProgressStore(); // DB → 진행도(거리·스트릭) 복원
+    useAchievementStore.getState().hydrate(); // DB → 해금 뱃지 복원(중복알림 방지)
+    refreshProgressStore(); // DB → 진행도 복원 (뱃지 체크 포함)
     usePhotoStore.getState().hydrate(); // DB → 사진 복원
+    useSettingsStore.getState().hydrate(); // DB → 설정(지도 스타일) 복원
     setReady(true);
   }, []);
 
@@ -70,22 +75,25 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
-      <StatusBar style="light" />
-      <Tab.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: COLORS.surface },
-          headerTintColor: COLORS.text,
-          tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.border },
-          tabBarActiveTintColor: COLORS.lime,
-          tabBarInactiveTintColor: COLORS.muted,
-        }}
-      >
-        <Tab.Screen name="Map" component={MapScreen} />
-        <Tab.Screen name="Collection" component={CollectionScreen} />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <>
+      <NavigationContainer theme={navTheme}>
+        <StatusBar style="light" />
+        <Tab.Navigator
+          screenOptions={{
+            headerStyle: { backgroundColor: COLORS.surface },
+            headerTintColor: COLORS.text,
+            tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.border },
+            tabBarActiveTintColor: COLORS.lime,
+            tabBarInactiveTintColor: COLORS.muted,
+          }}
+        >
+          <Tab.Screen name="Map" component={MapScreen} />
+          <Tab.Screen name="Collection" component={CollectionScreen} />
+          <Tab.Screen name="Profile" component={ProfileScreen} />
+        </Tab.Navigator>
+      </NavigationContainer>
+      <CelebrationOverlay />
+    </>
   );
 }
 

@@ -18,28 +18,26 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Mapbox, { Camera, MapView } from '@rnmapbox/maps';
+import { Camera, MapView } from '@rnmapbox/maps';
 import { Ionicons } from '@expo/vector-icons';
 
 import FogLayer from '../components/map/FogLayer';
 import LocationMarker from '../components/map/LocationMarker';
 import PhotoMarkers from '../components/map/PhotoMarkers';
 import { COLORS } from '../constants/colors';
+import { CONFIG } from '../constants/config';
+import { getMapStyle } from '../constants/mapStyles';
 import { useTracking } from '../hooks/useTracking';
 import { capturePhotoAt } from '../services/photos';
 import { getTileCount } from '../services/db';
 import { useMapStore } from '../store/mapStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
 import type { Photo } from '../types';
 import { coordToTile, tileAreaKm2 } from '../utils/h3';
 
 // 첫 위치 픽스 전 기본 중심(서울 시청).
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
-
-// 지도 스타일. 밝은 베이스라 밝혀진 영역이 어두운 안개와 대비된다.
-// 대안: Mapbox.StyleURL.Light(미니멀 회백), .Dark(어두움),
-//       또는 Mapbox Studio 커스텀 스타일 URL 문자열('mapbox://styles/<user>/<id>')
-const MAP_STYLE = Mapbox.StyleURL.Street;
 
 export default function MapScreen() {
   const { status } = useTracking();
@@ -49,9 +47,11 @@ export default function MapScreen() {
   const streak = useUserStore((s) => s.streak);
   const level = useUserStore((s) => s.level);
   const film = useUserStore((s) => s.film);
+  const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [capturing, setCapturing] = useState(false);
+  const [photoThumbs, setPhotoThumbs] = useState(true); // 줌 수준에 따라 썸네일/점
 
   const onCapture = useCallback(async () => {
     const loc = useMapStore.getState().currentLocation;
@@ -115,15 +115,19 @@ export default function MapScreen() {
     <View style={styles.container}>
       <MapView
         style={styles.map}
-        styleURL={MAP_STYLE}
+        styleURL={styleURL}
         onDidFinishLoadingMap={handleMapLoaded}
+        onCameraChanged={(e) => {
+          const next = (e.properties?.zoom ?? 15) >= CONFIG.PHOTO_THUMB_MIN_ZOOM;
+          setPhotoThumbs((prev) => (prev === next ? prev : next));
+        }}
       >
         <Camera
           ref={cameraRef}
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
         />
         <FogLayer />
-        <PhotoMarkers onSelect={setSelectedPhoto} />
+        <PhotoMarkers thumbnails={photoThumbs} onSelect={setSelectedPhoto} />
         <LocationMarker />
       </MapView>
 

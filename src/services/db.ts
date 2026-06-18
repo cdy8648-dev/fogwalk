@@ -78,6 +78,11 @@ CREATE TABLE IF NOT EXISTS photos (
   caption TEXT,
   created_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
 `;
 
 /** 앱 시작 시 1회 호출. 테이블 생성 + 단일 진행도 행 보장, 생성된 테이블 목록 출력. */
@@ -404,4 +409,22 @@ export function getAllPhotos(): Photo[] {
     caption: r.caption ?? undefined,
     createdAt: r.created_at,
   }));
+}
+
+// ── settings (키-값) ───────────────────────────────────────────
+
+export function getSetting(key: string): string | null {
+  const row = db.getFirstSync<{ value: string }>(
+    'SELECT value FROM settings WHERE key = ?',
+    key
+  );
+  return row?.value ?? null;
+}
+
+export function setSetting(key: string, value: string): void {
+  db.runSync(
+    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    key,
+    value
+  );
 }
