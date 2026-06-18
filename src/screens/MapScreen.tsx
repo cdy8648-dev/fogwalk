@@ -22,6 +22,7 @@ import { Camera, MapView } from '@rnmapbox/maps';
 import { Ionicons } from '@expo/vector-icons';
 
 import FogLayer from '../components/map/FogLayer';
+import LandmarkMarkers from '../components/map/LandmarkMarkers';
 import LocationMarker from '../components/map/LocationMarker';
 import PhotoMarkers from '../components/map/PhotoMarkers';
 import { COLORS } from '../constants/colors';
@@ -127,6 +128,7 @@ export default function MapScreen() {
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
         />
         <FogLayer />
+        <LandmarkMarkers />
         <PhotoMarkers thumbnails={photoThumbs} onSelect={setSelectedPhoto} />
         <LocationMarker />
       </MapView>

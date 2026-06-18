@@ -12,6 +12,7 @@ import { hydrateCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
 import { refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
+import { useLandmarkStore } from './src/store/landmarkStore';
 import { useMapStore } from './src/store/mapStore';
 import { usePhotoStore } from './src/store/photoStore';
 import { useSettingsStore } from './src/store/settingsStore';
@@ -52,6 +53,7 @@ export default function App() {
     useAchievementStore.getState().hydrate(); // DB → 해금 뱃지 복원(중복알림 방지)
     refreshProgressStore(); // DB → 진행도 복원 (뱃지 체크 포함)
     usePhotoStore.getState().hydrate(); // DB → 사진 복원
+    useLandmarkStore.getState().hydrate(); // DB → 발견 랜드마크 복원
     useSettingsStore.getState().hydrate(); // DB → 설정(지도 스타일) 복원
     setReady(true);
   }, []);

@@ -12,8 +12,10 @@ import {
 
 import { ACHIEVEMENTS } from '../constants/achievements';
 import { COLORS } from '../constants/colors';
+import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
 import { getAllCountryStats } from '../services/db';
 import { useAchievementStore } from '../store/achievementStore';
+import { useLandmarkStore } from '../store/landmarkStore';
 import { useMapStore } from '../store/mapStore';
 import { usePhotoStore } from '../store/photoStore';
 import type { Photo } from '../types';
@@ -24,6 +26,7 @@ const NUM_COLS = 3;
 export default function CollectionScreen() {
   const photos = usePhotoStore((s) => s.photos);
   const unlocked = useAchievementStore((s) => s.unlockedTypes);
+  const landmarks = useLandmarkStore((s) => s.discovered);
   const fogVersion = useMapStore((s) => s.fogVersion);
   const [selected, setSelected] = useState<Photo | null>(null);
 
@@ -70,6 +73,25 @@ export default function CollectionScreen() {
               </View>
             );
           })}
+        </View>
+      )}
+
+      <Text style={styles.sectionTitle}>랜드마크</Text>
+      {landmarks.length === 0 ? (
+        <Text style={styles.passportEmpty}>
+          걷다가 명소 근처에 가면 발견돼요. 안개가 뻥 걷힙니다 🗺️
+        </Text>
+      ) : (
+        <View style={styles.lmList}>
+          {landmarks.map((lm) => (
+            <View key={lm.osmId} style={styles.lmRow}>
+              <Text style={styles.lmEmoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
+              <Text style={styles.lmName} numberOfLines={1}>
+                {lm.name}
+              </Text>
+              <Text style={styles.lmRarity}>{rarityLabel(lm.rarity)}</Text>
+            </View>
+          ))}
         </View>
       )}
 
@@ -171,6 +193,20 @@ const styles = StyleSheet.create({
   countryFlag: { fontSize: 34 },
   countryName: { color: COLORS.text, fontSize: 11, marginTop: 4 },
   countryTiles: { color: COLORS.violetSoft, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  lmList: { gap: 8, marginBottom: 4 },
+  lmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  lmEmoji: { fontSize: 20, marginRight: 10 },
+  lmName: { color: COLORS.text, fontSize: 14, flex: 1 },
+  lmRarity: { color: COLORS.amber, fontSize: 12, fontWeight: '700' },
   cell: { flex: 1 / NUM_COLS, aspectRatio: 1, padding: 2 },
   thumb: { width: '100%', height: '100%', borderRadius: 8 },
   empty: {

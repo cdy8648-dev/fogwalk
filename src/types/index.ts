@@ -35,6 +35,7 @@ export type LandmarkCategory =
   | 'temple'
   | 'museum'
   | 'historic'
+  | 'peak'
   | 'other';
 
 export interface Achievement {

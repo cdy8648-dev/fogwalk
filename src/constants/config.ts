@@ -29,4 +29,13 @@ export const CONFIG = {
 
   // 이 줌 이상에서만 사진 썸네일, 그보다 축소하면 점으로 (성능·가독성)
   PHOTO_THUMB_MIN_ZOOM: 14,
+
+  // 랜드마크 (Phase 3)
+  LANDMARK_FETCH_RADIUS_M: 2000, // 새 지역 진입 시 OSM 조회 반경
+  LANDMARK_FETCH_CELL_RES: 7, // 조회 중복 방지용 H3 해상도(≈1.2km 셀)
+  LANDMARK_DISCOVER_RADIUS_M: 150, // 이 반경 안에 들어오면 발견
+  LANDMARK_BURST_RADIUS_K: 4, // 발견 시 안개 뻥: 중심 gridDisk(k) reveal (≈500m)
+  XP_LANDMARK_COMMON: 80,
+  XP_LANDMARK_RARE: 250,
+  XP_LANDMARK_LEGENDARY: 800,
 } as const;

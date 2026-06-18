@@ -56,7 +56,13 @@ CREATE TABLE IF NOT EXISTS landmarks (
   category TEXT,
   lat REAL NOT NULL,
   lng REAL NOT NULL,
-  discovered_at INTEGER
+  discovered_at INTEGER,
+  rarity TEXT
+);
+
+CREATE TABLE IF NOT EXISTS fetched_areas (
+  cell TEXT PRIMARY KEY,
+  fetched_at INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS progress (
@@ -97,6 +103,12 @@ CREATE TABLE IF NOT EXISTS country_stats (
 export function initDatabase(): void {
   db.execSync(SCHEMA);
   db.runSync('INSERT OR IGNORE INTO progress (id) VALUES (1)'); // 진행도 단일 행 보장
+  // 기존 DB 마이그레이션: landmarks.rarity 컬럼 보강 (이미 있으면 throw → 무시)
+  try {
+    db.execSync('ALTER TABLE landmarks ADD COLUMN rarity TEXT');
+  } catch {
+    /* 컬럼 이미 존재 */
+  }
 
   const tables = db.getAllSync<{ name: string }>(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
@@ -318,19 +330,21 @@ export function getAllDailyStats(): DailyStats[] {
 
 export function upsertLandmark(landmark: Landmark): void {
   db.runSync(
-    `INSERT INTO landmarks (osm_id, name, category, lat, lng, discovered_at)
-     VALUES (?, ?, ?, ?, ?, ?)
+    `INSERT INTO landmarks (osm_id, name, category, lat, lng, discovered_at, rarity)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(osm_id) DO UPDATE SET
        name = excluded.name,
        category = excluded.category,
        lat = excluded.lat,
-       lng = excluded.lng`,
+       lng = excluded.lng,
+       rarity = excluded.rarity`,
     landmark.osmId,
     landmark.name,
     landmark.category,
     landmark.lat,
     landmark.lng,
-    landmark.discoveredAt ?? null
+    landmark.discoveredAt ?? null,
+    landmark.rarity ?? null
   );
 }
 
@@ -353,8 +367,9 @@ export function getUndiscoveredLandmarksNear(
     lat: number;
     lng: number;
     discovered_at: number | null;
+    rarity: string | null;
   }>(
-    `SELECT osm_id, name, category, lat, lng, discovered_at
+    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity
      FROM landmarks
      WHERE discovered_at IS NULL
        AND lat BETWEEN ? AND ?
@@ -372,6 +387,33 @@ export function getUndiscoveredLandmarksNear(
     lat: r.lat,
     lng: r.lng,
     discoveredAt: r.discovered_at ?? undefined,
+    rarity: r.rarity ?? undefined,
+  }));
+}
+
+export function getDiscoveredLandmarks(): Landmark[] {
+  const rows = db.getAllSync<{
+    osm_id: string;
+    name: string;
+    category: string | null;
+    lat: number;
+    lng: number;
+    discovered_at: number | null;
+    rarity: string | null;
+  }>(
+    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity
+     FROM landmarks
+     WHERE discovered_at IS NOT NULL
+     ORDER BY discovered_at DESC`
+  );
+  return rows.map((r) => ({
+    osmId: r.osm_id,
+    name: r.name,
+    category: (r.category ?? 'other') as LandmarkCategory,
+    lat: r.lat,
+    lng: r.lng,
+    discoveredAt: r.discovered_at ?? undefined,
+    rarity: r.rarity ?? undefined,
   }));
 }
 
@@ -383,6 +425,25 @@ export function markLandmarkDiscovered(
     'UPDATE landmarks SET discovered_at = ? WHERE osm_id = ?',
     discoveredAt,
     osmId
+  );
+}
+
+// ── fetched_areas (랜드마크 조회 중복 방지) ────────────────────
+
+export function isAreaFetched(cell: string): boolean {
+  return (
+    db.getFirstSync<{ c: number }>(
+      'SELECT 1 AS c FROM fetched_areas WHERE cell = ?',
+      cell
+    ) != null
+  );
+}
+
+export function markAreaFetched(cell: string): void {
+  db.runSync(
+    'INSERT OR IGNORE INTO fetched_areas (cell, fetched_at) VALUES (?, ?)',
+    cell,
+    Date.now()
   );
 }
 
