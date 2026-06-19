@@ -128,7 +128,7 @@ export default function MapScreen() {
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
         />
         <FogLayer />
-        <LandmarkMarkers />
+        <LandmarkMarkers full={photoThumbs} />
         <PhotoMarkers thumbnails={photoThumbs} onSelect={setSelectedPhoto} />
         <LocationMarker />
       </MapView>
@@ -221,9 +221,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 56,
     left: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 20,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,

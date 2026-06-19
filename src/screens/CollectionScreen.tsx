@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react';
 import {
-  FlatList,
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 
+import Polaroid from '../components/Polaroid';
 import { ACHIEVEMENTS } from '../constants/achievements';
 import { COLORS } from '../constants/colors';
 import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
@@ -21,7 +22,14 @@ import { usePhotoStore } from '../store/photoStore';
 import type { Photo } from '../types';
 import { codeToFlag } from '../utils/flag';
 
-const NUM_COLS = 3;
+// 폴라로이드 높이/기울기 변주 (메이슨리 핀보드 느낌)
+const RATIOS = [1, 0.8, 1.3, 1.15];
+const ROTS = [-2, 1.5, -1.2, 2];
+function variant(id: string): { aspect: number; rot: number } {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i)) % 997;
+  return { aspect: RATIOS[h % RATIOS.length], rot: ROTS[(h >> 1) % ROTS.length] };
+}
 
 export default function CollectionScreen() {
   const photos = usePhotoStore((s) => s.photos);
@@ -30,12 +38,29 @@ export default function CollectionScreen() {
   const fogVersion = useMapStore((s) => s.fogVersion);
   const [selected, setSelected] = useState<Photo | null>(null);
 
-  // 여권: 국가별 탐험 칸수 (탐험할 때마다 갱신)
   const countries = useMemo(() => getAllCountryStats(), [fogVersion]);
-  const maxTiles = countries.length ? countries[0].tiles : 0; // tiles desc 정렬
+  const maxTiles = countries.length ? countries[0].tiles : 0;
 
-  const header = (
-    <View style={styles.headerWrap}>
+  const colA = photos.filter((_, i) => i % 2 === 0);
+  const colB = photos.filter((_, i) => i % 2 === 1);
+
+  const renderPolaroid = (p: Photo) => {
+    const v = variant(p.id);
+    return (
+      <TouchableOpacity
+        key={p.id}
+        activeOpacity={0.9}
+        onPress={() => setSelected(p)}
+        style={styles.polaroidWrap}
+      >
+        <Polaroid uri={p.uri} aspectRatio={v.aspect} rotation={v.rot} />
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* 뱃지 */}
       <Text style={styles.sectionTitle}>뱃지</Text>
       <View style={styles.badgeGrid}>
         {ACHIEVEMENTS.map((def) => {
@@ -53,9 +78,10 @@ export default function CollectionScreen() {
         })}
       </View>
 
+      {/* 여권 */}
       <Text style={styles.sectionTitle}>여권</Text>
       {countries.length === 0 ? (
-        <Text style={styles.passportEmpty}>
+        <Text style={styles.empty}>
           탐험한 나라가 여기 쌓여요. 해외에 가면 국기가 늘어납니다 🛂
         </Text>
       ) : (
@@ -76,9 +102,10 @@ export default function CollectionScreen() {
         </View>
       )}
 
+      {/* 랜드마크 */}
       <Text style={styles.sectionTitle}>랜드마크</Text>
       {landmarks.length === 0 ? (
-        <Text style={styles.passportEmpty}>
+        <Text style={styles.empty}>
           걷다가 명소 근처에 가면 발견돼요. 안개가 뻥 걷힙니다 🗺️
         </Text>
       ) : (
@@ -95,33 +122,18 @@ export default function CollectionScreen() {
         </View>
       )}
 
+      {/* 사진 — 폴라로이드 메이슨리 */}
       <Text style={styles.sectionTitle}>사진</Text>
-    </View>
-  );
-
-  return (
-    <View style={styles.container}>
-      <FlatList
-        data={photos}
-        keyExtractor={(p) => p.id}
-        numColumns={NUM_COLS}
-        ListHeaderComponent={header}
-        contentContainerStyle={styles.content}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            아직 남긴 사진이 없어요. 지도에서 📷 버튼으로 그 자리에 남겨보세요.
-          </Text>
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.cell}
-            activeOpacity={0.8}
-            onPress={() => setSelected(item)}
-          >
-            <Image source={{ uri: item.uri }} style={styles.thumb} />
-          </TouchableOpacity>
-        )}
-      />
+      {photos.length === 0 ? (
+        <Text style={styles.empty}>
+          지도에서 📷 버튼으로 그 자리에 사진을 남겨보세요.
+        </Text>
+      ) : (
+        <View style={styles.masonry}>
+          <View style={styles.masonryCol}>{colA.map(renderPolaroid)}</View>
+          <View style={styles.masonryCol}>{colB.map(renderPolaroid)}</View>
+        </View>
+      )}
 
       <Modal
         visible={selected !== null}
@@ -144,48 +156,42 @@ export default function CollectionScreen() {
           )}
         </Pressable>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
-  content: { padding: 4 },
-  headerWrap: { paddingHorizontal: 12, paddingTop: 12 },
+  content: { padding: 16, paddingBottom: 32 },
   sectionTitle: {
     color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
+    marginTop: 18,
     marginBottom: 12,
-    marginTop: 8,
   },
+  empty: { color: COLORS.muted, fontSize: 13, lineHeight: 19 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badge: {
-    width: '30%',
+    width: '30.5%',
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.lime,
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingVertical: 16,
     alignItems: 'center',
   },
-  badgeLocked: { borderColor: COLORS.border, opacity: 0.6 },
+  badgeLocked: { borderColor: COLORS.border, opacity: 0.55 },
   badgeEmoji: { fontSize: 28 },
   badgeEmojiLocked: { fontSize: 22 },
-  badgeLabel: {
-    color: COLORS.text,
-    fontSize: 11,
-    marginTop: 6,
-    textAlign: 'center',
-  },
+  badgeLabel: { color: COLORS.text, fontSize: 11, marginTop: 6, textAlign: 'center' },
   badgeLabelLocked: { color: COLORS.muted },
-  passportEmpty: { color: COLORS.muted, fontSize: 13, marginBottom: 8 },
-  countryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
+  countryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   countryCard: {
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.violet,
-    borderRadius: 14,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 6,
@@ -193,29 +199,23 @@ const styles = StyleSheet.create({
   countryFlag: { fontSize: 34 },
   countryName: { color: COLORS.text, fontSize: 11, marginTop: 4 },
   countryTiles: { color: COLORS.violetSoft, fontSize: 12, fontWeight: '700', marginTop: 2 },
-  lmList: { gap: 8, marginBottom: 4 },
+  lmList: { gap: 8 },
   lmRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
   lmEmoji: { fontSize: 20, marginRight: 10 },
   lmName: { color: COLORS.text, fontSize: 14, flex: 1 },
   lmRarity: { color: COLORS.amber, fontSize: 12, fontWeight: '700' },
-  cell: { flex: 1 / NUM_COLS, aspectRatio: 1, padding: 2 },
-  thumb: { width: '100%', height: '100%', borderRadius: 8 },
-  empty: {
-    color: COLORS.muted,
-    fontSize: 14,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
+  masonry: { flexDirection: 'row', gap: 14 },
+  masonryCol: { flex: 1, gap: 16 },
+  polaroidWrap: { marginBottom: 2 },
   viewerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.92)',

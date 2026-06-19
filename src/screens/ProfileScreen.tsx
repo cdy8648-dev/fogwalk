@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 14 },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: COLORS.border,
     padding: 16,
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   statTile: {
     flex: 1,
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingVertical: 16,

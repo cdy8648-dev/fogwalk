@@ -1,13 +1,46 @@
+import { useMemo } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { MarkerView } from '@rnmapbox/maps';
+import { CircleLayer, MarkerView, ShapeSource } from '@rnmapbox/maps';
 
 import { COLORS } from '../../constants/colors';
 import { CATEGORY_EMOJI, rarityLabel } from '../../constants/landmarks';
 import { useLandmarkStore } from '../../store/landmarkStore';
 
-/** 발견한 랜드마크를 지도에 카테고리 이모지 핀으로 표시. 탭하면 이름·희귀도. */
-export default function LandmarkMarkers() {
+interface Props {
+  full: boolean; // true=이모지 핀, false=점 (줌아웃)
+}
+
+/** 발견한 랜드마크. 줌인=카테고리 이모지 핀, 줌아웃=점(가벼움). */
+export default function LandmarkMarkers({ full }: Props) {
   const landmarks = useLandmarkStore((s) => s.discovered);
+
+  const dotShape = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: landmarks.map((lm) => ({
+        type: 'Feature' as const,
+        properties: { rarity: lm.rarity ?? 'common' },
+        geometry: { type: 'Point' as const, coordinates: [lm.lng, lm.lat] },
+      })),
+    }),
+    [landmarks]
+  );
+
+  if (!full) {
+    return (
+      <ShapeSource id="lm-dots" shape={dotShape}>
+        <CircleLayer
+          id="lm-dots-layer"
+          style={{
+            circleRadius: 4,
+            circleColor: COLORS.violet,
+            circleStrokeColor: COLORS.ink,
+            circleStrokeWidth: 1,
+          }}
+        />
+      </ShapeSource>
+    );
+  }
 
   return (
     <>
