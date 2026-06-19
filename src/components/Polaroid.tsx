@@ -9,7 +9,7 @@ interface Props {
   rotation?: number; // 살짝 기울여 핀보드 손맛
 }
 
-/** 폴라로이드 카드: 따뜻한 흰 프레임 + 아래 캡션 영역(추후 좋아요/댓글 자리). */
+/** 폴라로이드 카드: 종이 프레임 + 워시테이프 + 아래 캡션. */
 export default function Polaroid({
   uri,
   caption,
@@ -18,10 +18,13 @@ export default function Polaroid({
 }: Props) {
   return (
     <View style={[styles.frame, { transform: [{ rotate: `${rotation}deg` }] }]}>
+      <View style={styles.washi} />
       <Image source={{ uri }} style={[styles.img, { aspectRatio }]} />
-      <Text style={styles.caption} numberOfLines={1}>
-        {caption && caption.length > 0 ? caption : ' '}
-      </Text>
+      {caption ? (
+        <Text style={styles.caption} numberOfLines={1}>
+          {caption}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -30,18 +33,29 @@ const styles = StyleSheet.create({
   frame: {
     backgroundColor: COLORS.paper,
     borderRadius: 6,
-    padding: 6,
-    paddingBottom: 26,
+    padding: 9,
+    paddingBottom: 24,
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
   },
-  img: { width: '100%', borderRadius: 3, backgroundColor: COLORS.fogLight },
+  washi: {
+    position: 'absolute',
+    top: -8,
+    alignSelf: 'center',
+    width: 56,
+    height: 16,
+    backgroundColor: 'rgba(200,245,96,0.55)',
+    transform: [{ rotate: '-4deg' }],
+    zIndex: 2,
+  },
+  img: { width: '100%', borderRadius: 2, backgroundColor: COLORS.fogLight },
   caption: {
     color: COLORS.paperInk,
     fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
+    letterSpacing: 0.5,
+    marginTop: 9,
+    paddingHorizontal: 2,
   },
 });

@@ -1,22 +1,20 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import BadgeStepper from '../components/BadgeStepper';
 import Polaroid from '../components/Polaroid';
 import EmptyHint from '../components/ui/EmptyHint';
 import PhotoViewer from '../components/ui/PhotoViewer';
-import SectionTitle from '../components/ui/SectionTitle';
-import { ACHIEVEMENTS } from '../constants/achievements';
+import SectionPill from '../components/ui/SectionPill';
 import { COLORS } from '../constants/colors';
 import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
 import { getAllCountryStats } from '../services/db';
-import { useAchievementStore } from '../store/achievementStore';
 import { useLandmarkStore } from '../store/landmarkStore';
 import { useMapStore } from '../store/mapStore';
 import { usePhotoStore } from '../store/photoStore';
 import type { Photo } from '../types';
 import { codeToFlag } from '../utils/flag';
 
-// 폴라로이드 높이/기울기 변주 (메이슨리 핀보드 느낌)
 const RATIOS = [1, 0.8, 1.3, 1.15];
 const ROTS = [-2, 1.5, -1.2, 2];
 function variant(id: string): { aspect: number; rot: number } {
@@ -25,19 +23,28 @@ function variant(id: string): { aspect: number; rot: number } {
   return { aspect: RATIOS[h % RATIOS.length], rot: ROTS[(h >> 1) % ROTS.length] };
 }
 
+function photoTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function CollectionScreen() {
   const photos = usePhotoStore((s) => s.photos);
-  const unlocked = useAchievementStore((s) => s.unlockedTypes);
   const landmarks = useLandmarkStore((s) => s.discovered);
   const fogVersion = useMapStore((s) => s.fogVersion);
   const [selected, setSelected] = useState<Photo | null>(null);
 
   const countries = useMemo(() => getAllCountryStats(), [fogVersion]);
-  const maxTiles = countries.length ? countries[0].tiles : 0;
+
+  const parkCount = landmarks.filter((l) => l.category === 'park').length;
+  const peakCount = landmarks.filter((l) => l.category === 'peak').length;
+  const discTiles = [
+    { emoji: '🌳', name: '공원', count: parkCount, rot: -1.5 },
+    { emoji: '🏛️', name: '랜드마크', count: landmarks.length - parkCount - peakCount, rot: 1.5 },
+    { emoji: '⛰️', name: '산', count: peakCount, rot: -1 },
+  ];
 
   const colA = photos.filter((_, i) => i % 2 === 0);
   const colB = photos.filter((_, i) => i % 2 === 1);
-
   const renderPolaroid = (p: Photo) => {
     const v = variant(p.id);
     return (
@@ -47,55 +54,61 @@ export default function CollectionScreen() {
         onPress={() => setSelected(p)}
         style={styles.polaroidWrap}
       >
-        <Polaroid uri={p.uri} aspectRatio={v.aspect} rotation={v.rot} />
+        <Polaroid uri={p.uri} aspectRatio={v.aspect} rotation={v.rot} caption={photoTime(p.createdAt)} />
       </TouchableOpacity>
     );
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionTitle>뱃지</SectionTitle>
-      <View style={styles.badgeGrid}>
-        {ACHIEVEMENTS.map((def) => {
-          const got = unlocked.has(def.type);
-          return (
-            <View key={def.type} style={[styles.badge, !got && styles.badgeLocked]}>
-              <Text style={[styles.badgeEmoji, !got && styles.badgeEmojiLocked]}>
-                {got ? def.emoji : '🔒'}
-              </Text>
-              <Text style={[styles.badgeLabel, !got && styles.badgeLabelLocked]}>
-                {def.label}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
+      <Text style={styles.kicker}>COLLECTION</Text>
+      <Text style={styles.title}>모아둔 것들</Text>
 
-      <SectionTitle>여권</SectionTitle>
+      {/* 뱃지 — 거리 진화 */}
+      <SectionPill label="뱃지" color={COLORS.lime} rotate={-2} hint="거리 진화" />
+      <BadgeStepper />
+
+      {/* 여권 */}
+      <SectionPill label="여권" color={COLORS.violet} rotate={1.5} hint="지역별" />
       {countries.length === 0 ? (
         <EmptyHint>탐험한 나라가 여기 쌓여요. 해외에 가면 국기가 늘어납니다 🛂</EmptyHint>
       ) : (
-        <View style={styles.countryGrid}>
-          {countries.map((c) => {
-            const ratio = maxTiles > 0 ? c.tiles / maxTiles : 0;
-            const side = 84 + 66 * Math.sqrt(ratio);
-            return (
-              <View key={c.code} style={[styles.countryCard, { width: side, height: side }]}>
-                <Text style={styles.countryFlag}>{codeToFlag(c.code)}</Text>
-                <Text style={styles.countryName} numberOfLines={1}>
-                  {c.name}
-                </Text>
-                <Text style={styles.countryTiles}>{c.tiles}칸</Text>
+        <View style={styles.passportList}>
+          {countries.map((c) => (
+            <View key={c.code} style={styles.passportCard}>
+              <View>
+                <Text style={styles.flag}>{codeToFlag(c.code)}</Text>
+                <Text style={styles.countryName}>{c.name}</Text>
+                <Text style={styles.countrySub}>탐험 중 🛂</Text>
               </View>
-            );
-          })}
+              <View style={styles.countryRight}>
+                <Text style={styles.countryNum}>{c.tiles}</Text>
+                <Text style={styles.countryUnit}>칸 밝힘</Text>
+              </View>
+            </View>
+          ))}
         </View>
       )}
 
-      <SectionTitle>랜드마크</SectionTitle>
-      {landmarks.length === 0 ? (
-        <EmptyHint>걷다가 명소 근처에 가면 발견돼요. 안개가 뻥 걷힙니다 🗺️</EmptyHint>
-      ) : (
+      {/* 새로운 발견 */}
+      <SectionPill label="새로운 발견" color={COLORS.amber} rotate={-1.5} hint="카테고리별" />
+      <View style={styles.discRow}>
+        {discTiles.map((t) => (
+          <View
+            key={t.name}
+            style={[
+              styles.discTile,
+              { transform: [{ rotate: `${t.rot}deg` }] },
+              t.count === 0 && styles.dim,
+            ]}
+          >
+            <Text style={styles.discEmoji}>{t.emoji}</Text>
+            <Text style={styles.discName}>{t.name}</Text>
+            <Text style={styles.discCount}>{t.count}</Text>
+          </View>
+        ))}
+      </View>
+      {landmarks.length > 0 && (
         <View style={styles.lmList}>
           {landmarks.map((lm) => (
             <View key={lm.osmId} style={styles.lmRow}>
@@ -109,7 +122,8 @@ export default function CollectionScreen() {
         </View>
       )}
 
-      <SectionTitle>사진</SectionTitle>
+      {/* 사진 */}
+      <SectionPill label="사진" color={COLORS.teal} rotate={1.5} />
       {photos.length === 0 ? (
         <EmptyHint>지도에서 📷 버튼으로 그 자리에 사진을 남겨보세요.</EmptyHint>
       ) : (
@@ -127,35 +141,45 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   content: { padding: 16, paddingBottom: 32 },
-  badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  badge: {
-    width: '30.5%',
+  kicker: { color: COLORS.muted, fontSize: 12, letterSpacing: 2, marginTop: 2 },
+  title: { color: COLORS.text, fontSize: 25, fontWeight: '800', marginTop: 2 },
+
+  passportList: { gap: 12 },
+  passportCard: {
     backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.lime,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  badgeLocked: { borderColor: COLORS.border, opacity: 0.55 },
-  badgeEmoji: { fontSize: 28 },
-  badgeEmojiLocked: { fontSize: 22 },
-  badgeLabel: { color: COLORS.text, fontSize: 11, marginTop: 6, textAlign: 'center' },
-  badgeLabelLocked: { color: COLORS.muted },
-  countryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  countryCard: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: COLORS.violet,
-    borderRadius: 20,
+    borderRadius: 18,
+    padding: 18,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 6,
+    justifyContent: 'space-between',
+    transform: [{ rotate: '-1deg' }],
   },
-  countryFlag: { fontSize: 34 },
-  countryName: { color: COLORS.text, fontSize: 11, marginTop: 4 },
-  countryTiles: { color: COLORS.violetSoft, fontSize: 12, fontWeight: '700', marginTop: 2 },
-  lmList: { gap: 8 },
+  flag: { fontSize: 40 },
+  countryName: { color: COLORS.text, fontSize: 15, fontWeight: '700', marginTop: 6 },
+  countrySub: { color: COLORS.muted, fontSize: 11, marginTop: 1 },
+  countryRight: { alignItems: 'flex-end' },
+  countryNum: { color: COLORS.violetSoft, fontSize: 42, fontWeight: '800' },
+  countryUnit: { color: COLORS.violet, fontSize: 12, fontWeight: '700', marginTop: 2 },
+
+  discRow: { flexDirection: 'row', gap: 10 },
+  discTile: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  dim: { opacity: 0.55 },
+  discEmoji: { fontSize: 30 },
+  discName: { color: COLORS.text, fontSize: 12, fontWeight: '700', marginTop: 6 },
+  discCount: { color: COLORS.amber, fontSize: 14, fontWeight: '800', marginTop: 2 },
+
+  lmList: { gap: 8, marginTop: 12 },
   lmRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -169,6 +193,7 @@ const styles = StyleSheet.create({
   lmEmoji: { fontSize: 20, marginRight: 10 },
   lmName: { color: COLORS.text, fontSize: 14, flex: 1 },
   lmRarity: { color: COLORS.amber, fontSize: 12, fontWeight: '700' },
+
   masonry: { flexDirection: 'row', gap: 14 },
   masonryCol: { flex: 1, gap: 16 },
   polaroidWrap: { marginBottom: 2 },
