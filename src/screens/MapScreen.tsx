@@ -9,10 +9,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Linking,
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,6 +22,8 @@ import FogLayer from '../components/map/FogLayer';
 import LandmarkMarkers from '../components/map/LandmarkMarkers';
 import LocationMarker from '../components/map/LocationMarker';
 import PhotoMarkers from '../components/map/PhotoMarkers';
+import Fab from '../components/ui/Fab';
+import PhotoViewer from '../components/ui/PhotoViewer';
 import { COLORS } from '../constants/colors';
 import { CONFIG } from '../constants/config';
 import { getMapStyle } from '../constants/mapStyles';
@@ -143,10 +142,10 @@ export default function MapScreen() {
       </View>
 
       {/* 사진 남기기 버튼 (필름 소모) */}
-      <TouchableOpacity
-        style={styles.cameraButton}
+      <Fab
+        color={COLORS.amber}
+        bottom={174}
         onPress={onCapture}
-        activeOpacity={0.85}
         disabled={capturing}
         accessibilityLabel="사진 남기기"
       >
@@ -158,40 +157,20 @@ export default function MapScreen() {
         <View style={styles.filmBadge}>
           <Text style={styles.filmBadgeText}>🎞️{Math.floor(film)}</Text>
         </View>
-      </TouchableOpacity>
+      </Fab>
 
       {/* 내 위치로 이동 버튼 */}
-      <TouchableOpacity
-        style={styles.locateButton}
+      <Fab
+        color={COLORS.lime}
+        bottom={110}
         onPress={() => recenter(true)}
-        activeOpacity={0.85}
         accessibilityLabel="내 위치로 이동"
       >
         <Ionicons name="locate" size={24} color={COLORS.ink} />
-      </TouchableOpacity>
+      </Fab>
 
       {/* 사진 뷰어 */}
-      <Modal
-        visible={selectedPhoto !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedPhoto(null)}
-      >
-        <Pressable style={styles.viewerOverlay} onPress={() => setSelectedPhoto(null)}>
-          {selectedPhoto && (
-            <>
-              <Image
-                source={{ uri: selectedPhoto.uri }}
-                style={styles.viewerImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.viewerDate}>
-                {new Date(selectedPhoto.createdAt).toLocaleString()}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </Modal>
+      <PhotoViewer photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
 
       {/* 위치 권한 거부 안내 */}
       {status === 'denied' && (
@@ -231,38 +210,6 @@ const styles = StyleSheet.create({
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
   statValue: { color: COLORS.lime, fontSize: 20, fontWeight: '700' },
   statSub: { color: COLORS.text, fontSize: 12, marginTop: 4 },
-  locateButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 110,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.lime,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  cameraButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 174,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.amber,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
   filmBadge: {
     position: 'absolute',
     top: -6,
@@ -273,15 +220,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   filmBadgeText: { color: COLORS.amber, fontSize: 11, fontWeight: '700' },
-  viewerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  viewerImage: { width: '100%', height: '80%' },
-  viewerDate: { color: COLORS.muted, fontSize: 13, marginTop: 12 },
   deniedWrap: {
     position: 'absolute',
     top: 0,

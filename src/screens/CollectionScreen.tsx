@@ -1,16 +1,10 @@
 import { useMemo, useState } from 'react';
-import {
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import Polaroid from '../components/Polaroid';
+import EmptyHint from '../components/ui/EmptyHint';
+import PhotoViewer from '../components/ui/PhotoViewer';
+import SectionTitle from '../components/ui/SectionTitle';
 import { ACHIEVEMENTS } from '../constants/achievements';
 import { COLORS } from '../constants/colors';
 import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
@@ -60,8 +54,7 @@ export default function CollectionScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* 뱃지 */}
-      <Text style={styles.sectionTitle}>뱃지</Text>
+      <SectionTitle>뱃지</SectionTitle>
       <View style={styles.badgeGrid}>
         {ACHIEVEMENTS.map((def) => {
           const got = unlocked.has(def.type);
@@ -78,12 +71,9 @@ export default function CollectionScreen() {
         })}
       </View>
 
-      {/* 여권 */}
-      <Text style={styles.sectionTitle}>여권</Text>
+      <SectionTitle>여권</SectionTitle>
       {countries.length === 0 ? (
-        <Text style={styles.empty}>
-          탐험한 나라가 여기 쌓여요. 해외에 가면 국기가 늘어납니다 🛂
-        </Text>
+        <EmptyHint>탐험한 나라가 여기 쌓여요. 해외에 가면 국기가 늘어납니다 🛂</EmptyHint>
       ) : (
         <View style={styles.countryGrid}>
           {countries.map((c) => {
@@ -102,12 +92,9 @@ export default function CollectionScreen() {
         </View>
       )}
 
-      {/* 랜드마크 */}
-      <Text style={styles.sectionTitle}>랜드마크</Text>
+      <SectionTitle>랜드마크</SectionTitle>
       {landmarks.length === 0 ? (
-        <Text style={styles.empty}>
-          걷다가 명소 근처에 가면 발견돼요. 안개가 뻥 걷힙니다 🗺️
-        </Text>
+        <EmptyHint>걷다가 명소 근처에 가면 발견돼요. 안개가 뻥 걷힙니다 🗺️</EmptyHint>
       ) : (
         <View style={styles.lmList}>
           {landmarks.map((lm) => (
@@ -122,12 +109,9 @@ export default function CollectionScreen() {
         </View>
       )}
 
-      {/* 사진 — 폴라로이드 메이슨리 */}
-      <Text style={styles.sectionTitle}>사진</Text>
+      <SectionTitle>사진</SectionTitle>
       {photos.length === 0 ? (
-        <Text style={styles.empty}>
-          지도에서 📷 버튼으로 그 자리에 사진을 남겨보세요.
-        </Text>
+        <EmptyHint>지도에서 📷 버튼으로 그 자리에 사진을 남겨보세요.</EmptyHint>
       ) : (
         <View style={styles.masonry}>
           <View style={styles.masonryCol}>{colA.map(renderPolaroid)}</View>
@@ -135,27 +119,7 @@ export default function CollectionScreen() {
         </View>
       )}
 
-      <Modal
-        visible={selected !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelected(null)}
-      >
-        <Pressable style={styles.viewerOverlay} onPress={() => setSelected(null)}>
-          {selected && (
-            <>
-              <Image
-                source={{ uri: selected.uri }}
-                style={styles.viewerImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.viewerDate}>
-                {new Date(selected.createdAt).toLocaleString()}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </Modal>
+      <PhotoViewer photo={selected} onClose={() => setSelected(null)} />
     </ScrollView>
   );
 }
@@ -163,14 +127,6 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   content: { padding: 16, paddingBottom: 32 },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 17,
-    fontWeight: '800',
-    marginTop: 18,
-    marginBottom: 12,
-  },
-  empty: { color: COLORS.muted, fontSize: 13, lineHeight: 19 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badge: {
     width: '30.5%',
@@ -216,13 +172,4 @@ const styles = StyleSheet.create({
   masonry: { flexDirection: 'row', gap: 14 },
   masonryCol: { flex: 1, gap: 16 },
   polaroidWrap: { marginBottom: 2 },
-  viewerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  viewerImage: { width: '100%', height: '80%' },
-  viewerDate: { color: COLORS.muted, fontSize: 13, marginTop: 12 },
 });

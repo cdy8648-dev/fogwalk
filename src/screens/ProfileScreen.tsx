@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import Card from '../components/ui/Card';
+import StatTile from '../components/ui/StatTile';
 import { COLORS } from '../constants/colors';
 import { getAllDailyStats, getTileCount } from '../services/db';
 import { useMapStore } from '../store/mapStore';
@@ -17,8 +19,8 @@ const CUM_DAYS = 40;
 
 function heatColor(cell?: HeatCell): string {
   if (!cell || (cell.distanceM <= 0 && cell.newTiles <= 0)) return COLORS.border;
-  if (cell.newTiles > 0) return cell.newTiles >= 30 ? COLORS.lime : COLORS.limeDeep; // 발견
-  return COLORS.teal; // 활동했지만 새 땅 없음
+  if (cell.newTiles > 0) return cell.newTiles >= 30 ? COLORS.lime : COLORS.limeDeep;
+  return COLORS.teal;
 }
 
 export default function ProfileScreen() {
@@ -41,8 +43,10 @@ export default function ProfileScreen() {
 
   const { weeks, cum } = useMemo(() => {
     const stats = getAllDailyStats();
-    const cumSeries = buildCumulativeTiles(stats).slice(-CUM_DAYS);
-    return { weeks: buildHeatmapWeeks(stats, HEATMAP_WEEKS), cum: cumSeries };
+    return {
+      weeks: buildHeatmapWeeks(stats, HEATMAP_WEEKS),
+      cum: buildCumulativeTiles(stats).slice(-CUM_DAYS),
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fogVersion]);
 
@@ -50,8 +54,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* 레벨 + XP 게이지 */}
-      <View style={styles.card}>
+      <Card>
         <View style={styles.levelRow}>
           <Text style={styles.levelText}>Lv {level}</Text>
           <Text style={styles.xpText}>{Math.floor(totalXp)} XP</Text>
@@ -65,26 +68,15 @@ export default function ProfileScreen() {
           />
         </View>
         <Text style={styles.filmText}>🎞️ 필름 {Math.floor(film)}장</Text>
-      </View>
+      </Card>
 
-      {/* 핵심 통계 */}
       <View style={styles.statsRow}>
-        <View style={styles.statTile}>
-          <Text style={styles.statNum}>{areaKm2.toFixed(2)}</Text>
-          <Text style={styles.statCap}>밝힌 땅 km²</Text>
-        </View>
-        <View style={styles.statTile}>
-          <Text style={styles.statNum}>{(totalDistanceM / 1000).toFixed(1)}</Text>
-          <Text style={styles.statCap}>총 거리 km</Text>
-        </View>
-        <View style={styles.statTile}>
-          <Text style={styles.statNum}>🔥 {streak}</Text>
-          <Text style={styles.statCap}>연속일</Text>
-        </View>
+        <StatTile value={areaKm2.toFixed(2)} label="밝힌 땅 km²" />
+        <StatTile value={(totalDistanceM / 1000).toFixed(1)} label="총 거리 km" />
+        <StatTile value={`🔥 ${streak}`} label="연속일" />
       </View>
 
-      {/* 활동 히트맵 */}
-      <View style={styles.card}>
+      <Card>
         <Text style={styles.cardTitle}>활동 ({HEATMAP_WEEKS}주)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.heatRow}>
@@ -106,27 +98,23 @@ export default function ProfileScreen() {
           <View style={[styles.legendDot, { backgroundColor: COLORS.lime }]} />
           <Text style={styles.legendText}>새 땅 발견</Text>
         </View>
-      </View>
+      </Card>
 
-      {/* 누적 성장 (우상향) */}
-      <View style={styles.card}>
+      <Card>
         <Text style={styles.cardTitle}>누적 탐험 성장</Text>
         {maxCum > 0 ? (
           <View style={styles.cumRow}>
             {cum.map((p, i) => (
               <View
                 key={i}
-                style={[
-                  styles.cumBar,
-                  { height: `${Math.max(2, (p.cum / maxCum) * 100)}%` },
-                ]}
+                style={[styles.cumBar, { height: `${Math.max(2, (p.cum / maxCum) * 100)}%` }]}
               />
             ))}
           </View>
         ) : (
           <Text style={styles.empty}>아직 데이터가 없어요. 걸으면 채워집니다.</Text>
         )}
-      </View>
+      </Card>
     </ScrollView>
   );
 }
@@ -134,14 +122,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   content: { padding: 16, gap: 14 },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 16,
-  },
-  cardTitle: { color: COLORS.muted, fontSize: 13, marginBottom: 12 },
   levelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -159,29 +139,14 @@ const styles = StyleSheet.create({
   gaugeFill: { height: '100%', borderRadius: 5, backgroundColor: COLORS.lime },
   filmText: { color: COLORS.amber, fontSize: 13, marginTop: 10, fontWeight: '600' },
   statsRow: { flexDirection: 'row', gap: 10 },
-  statTile: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  statNum: { color: COLORS.lime, fontSize: 20, fontWeight: '800' },
-  statCap: { color: COLORS.muted, fontSize: 11, marginTop: 4 },
+  cardTitle: { color: COLORS.muted, fontSize: 13, marginBottom: 12 },
   heatRow: { flexDirection: 'row' },
   heatCol: { flexDirection: 'column' },
   heatCell: { width: 13, height: 13, margin: 1.5, borderRadius: 3 },
   legendRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   legendDot: { width: 10, height: 10, borderRadius: 3, marginRight: 5 },
   legendText: { color: COLORS.muted, fontSize: 11, marginRight: 14 },
-  cumRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 70,
-    gap: 1,
-  },
+  cumRow: { flexDirection: 'row', alignItems: 'flex-end', height: 70, gap: 1 },
   cumBar: {
     flex: 1,
     backgroundColor: COLORS.limeDeep,
