@@ -47,40 +47,23 @@ export function buildHeatmapWeeks(
   return cols;
 }
 
-/**
- * 특정 연도(year) 전체 히트맵. 열 = 주(일요일 시작), 행 = 요일(0=일~6=토).
- * 해당 연도 밖의 칸(첫/마지막 주의 패딩 날짜)은 undefined → 빈 칸으로 렌더.
- */
-export function buildYearHeatmapWeeks(
-  stats: DailyStats[],
-  year: number
-): (HeatCell | undefined)[][] {
-  const map = new Map(stats.map((s) => [s.date, s]));
+export interface MonthStat {
+  ym: string; // 'YYYY-MM'
+  distanceM: number;
+  newTiles: number;
+}
 
-  const start = new Date(year, 0, 1); // 1월 1일
-  start.setDate(start.getDate() - start.getDay()); // 직전 일요일로 정렬
-  const yearEnd = new Date(year, 11, 31); // 12월 31일
-  const end = new Date(yearEnd);
-  end.setDate(end.getDate() + (6 - end.getDay())); // 다음 토요일까지
-
-  const cols: (HeatCell | undefined)[][] = [];
-  const cursor = new Date(start);
-  let wk = 0;
-  while (cursor <= end) {
-    const dow = cursor.getDay();
-    if (!cols[wk]) cols[wk] = new Array<HeatCell | undefined>(7).fill(undefined);
-    if (cursor.getFullYear() === year) {
-      const s = map.get(localDateStr(cursor));
-      cols[wk][dow] = {
-        date: localDateStr(cursor),
-        distanceM: s?.distanceM ?? 0,
-        newTiles: s?.newTiles ?? 0,
-      };
-    }
-    if (dow === 6) wk += 1; // 토요일이면 다음 주 열로
-    cursor.setDate(cursor.getDate() + 1);
+/** 일별 통계를 월별로 합산. 최신 월이 먼저(내림차순). */
+export function buildMonthlyHistory(stats: DailyStats[]): MonthStat[] {
+  const map = new Map<string, MonthStat>();
+  for (const s of stats) {
+    const ym = s.date.slice(0, 7);
+    const cur = map.get(ym) ?? { ym, distanceM: 0, newTiles: 0 };
+    cur.distanceM += s.distanceM;
+    cur.newTiles += s.newTiles;
+    map.set(ym, cur);
   }
-  return cols;
+  return [...map.values()].sort((a, b) => (a.ym < b.ym ? 1 : -1));
 }
 
 /** 누적 신규타일 시계열 (항상 우상향). */

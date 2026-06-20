@@ -100,7 +100,7 @@ export default function CollectionScreen() {
         label="뱃지"
         color={COLORS.lime}
         rotate={-2}
-        hint="거리 진화"
+        hint="칸 발견"
         onPress={() => nav.navigate('BadgeDetail')}
       />
       <BadgeStepper />
