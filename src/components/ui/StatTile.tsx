@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { COLORS } from '../../constants/colors';
+import { FONT } from '../../constants/fonts';
 
 interface Props {
   value: string;
@@ -27,6 +28,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
-  value: { color: COLORS.lime, fontSize: 20, fontWeight: '800' },
+  value: { color: COLORS.lime, fontSize: 22, fontFamily: FONT.display },
   label: { color: COLORS.muted, fontSize: 11, marginTop: 4 },
 });

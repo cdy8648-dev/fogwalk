@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Card from '../components/ui/Card';
 import StatTile from '../components/ui/StatTile';
 import { COLORS } from '../constants/colors';
+import { FONT } from '../constants/fonts';
 import { getAllDailyStats, getTileCount } from '../services/db';
 import { useMapStore } from '../store/mapStore';
 import { useUserStore } from '../store/userStore';
@@ -128,8 +129,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginBottom: 10,
   },
-  levelText: { color: COLORS.text, fontSize: 24, fontWeight: '800' },
-  xpText: { color: COLORS.muted, fontSize: 13 },
+  levelText: { color: COLORS.text, fontSize: 28, fontFamily: FONT.display },
+  xpText: { color: COLORS.muted, fontSize: 14, fontFamily: FONT.display },
   gaugeTrack: {
     height: 10,
     borderRadius: 5,

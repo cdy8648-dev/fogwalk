@@ -7,6 +7,7 @@ import EmptyHint from '../components/ui/EmptyHint';
 import PhotoViewer from '../components/ui/PhotoViewer';
 import SectionPill from '../components/ui/SectionPill';
 import { COLORS } from '../constants/colors';
+import { FONT } from '../constants/fonts';
 import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
 import { getAllCountryStats } from '../services/db';
 import { useLandmarkStore } from '../store/landmarkStore';
@@ -31,7 +32,8 @@ export default function CollectionScreen() {
   const photos = usePhotoStore((s) => s.photos);
   const landmarks = useLandmarkStore((s) => s.discovered);
   const fogVersion = useMapStore((s) => s.fogVersion);
-  const [selected, setSelected] = useState<Photo | null>(null);
+  const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const countries = useMemo(() => getAllCountryStats(), [fogVersion]);
 
@@ -51,7 +53,10 @@ export default function CollectionScreen() {
       <TouchableOpacity
         key={p.id}
         activeOpacity={0.9}
-        onPress={() => setSelected(p)}
+        onPress={() => {
+          setViewerPhotos(photos);
+          setViewerIndex(photos.indexOf(p));
+        }}
         style={styles.polaroidWrap}
       >
         <Polaroid uri={p.uri} aspectRatio={v.aspect} rotation={v.rot} caption={photoTime(p.createdAt)} />
@@ -133,7 +138,11 @@ export default function CollectionScreen() {
         </View>
       )}
 
-      <PhotoViewer photo={selected} onClose={() => setSelected(null)} />
+      <PhotoViewer
+        photos={viewerPhotos}
+        initialIndex={viewerIndex}
+        onClose={() => setViewerPhotos([])}
+      />
     </ScrollView>
   );
 }
@@ -141,7 +150,7 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   content: { padding: 16, paddingBottom: 32 },
-  kicker: { color: COLORS.muted, fontSize: 12, letterSpacing: 2, marginTop: 2 },
+  kicker: { color: COLORS.muted, fontSize: 12, letterSpacing: 2, marginTop: 2, fontFamily: FONT.mono },
   title: { color: COLORS.text, fontSize: 25, fontWeight: '800', marginTop: 2 },
 
   passportList: { gap: 12 },
@@ -160,7 +169,7 @@ const styles = StyleSheet.create({
   countryName: { color: COLORS.text, fontSize: 15, fontWeight: '700', marginTop: 6 },
   countrySub: { color: COLORS.muted, fontSize: 11, marginTop: 1 },
   countryRight: { alignItems: 'flex-end' },
-  countryNum: { color: COLORS.violetSoft, fontSize: 42, fontWeight: '800' },
+  countryNum: { color: COLORS.violetSoft, fontSize: 42, fontFamily: FONT.display },
   countryUnit: { color: COLORS.violet, fontSize: 12, fontWeight: '700', marginTop: 2 },
 
   discRow: { flexDirection: 'row', gap: 10 },
@@ -177,7 +186,7 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.55 },
   discEmoji: { fontSize: 30 },
   discName: { color: COLORS.text, fontSize: 12, fontWeight: '700', marginTop: 6 },
-  discCount: { color: COLORS.amber, fontSize: 14, fontWeight: '800', marginTop: 2 },
+  discCount: { color: COLORS.amber, fontSize: 16, fontFamily: FONT.display, marginTop: 2 },
 
   lmList: { gap: 8, marginTop: 12 },
   lmRow: {

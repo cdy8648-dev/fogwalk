@@ -29,6 +29,7 @@ export const CONFIG = {
 
   // 이 줌 이상에서만 사진 썸네일, 그보다 축소하면 점으로 (성능·가독성)
   PHOTO_THUMB_MIN_ZOOM: 14,
+  PHOTO_GROUP_RES: 11, // 사진 묶음용 H3 해상도 (≈같은 자리, ~50m)
 
   // 랜드마크 (Phase 3)
   LANDMARK_FETCH_RADIUS_M: 2000, // 새 지역 진입 시 OSM 조회 반경

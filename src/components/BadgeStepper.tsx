@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { COLORS } from '../constants/colors';
+import { FONT } from '../constants/fonts';
 import { useUserStore } from '../store/userStore';
 import Card from './ui/Card';
 
@@ -99,8 +100,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   emoji: { fontSize: 22 },
-  label: { fontSize: 10, marginTop: 5, textAlign: 'center' },
-  labelActive: { color: COLORS.lime, fontWeight: '800' },
+  label: { fontSize: 10, marginTop: 5, textAlign: 'center', fontFamily: FONT.mono },
+  labelActive: { color: COLORS.lime },
   labelLocked: { color: COLORS.muted },
   progressBox: {
     marginTop: 14,
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   },
   progressTop: { flexDirection: 'row', justifyContent: 'space-between' },
   progressLabel: { color: COLORS.muted, fontSize: 11 },
-  progressVal: { color: COLORS.text, fontSize: 11, fontWeight: '700' },
+  progressVal: { color: COLORS.text, fontSize: 12, fontFamily: FONT.display },
   track: {
     height: 7,
     backgroundColor: COLORS.fogLight,

@@ -26,6 +26,7 @@ import Fab from '../components/ui/Fab';
 import PhotoViewer from '../components/ui/PhotoViewer';
 import { COLORS } from '../constants/colors';
 import { CONFIG } from '../constants/config';
+import { FONT } from '../constants/fonts';
 import { getMapStyle } from '../constants/mapStyles';
 import { useTracking } from '../hooks/useTracking';
 import { capturePhotoAt } from '../services/photos';
@@ -49,7 +50,7 @@ export default function MapScreen() {
   const film = useUserStore((s) => s.film);
   const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [photoThumbs, setPhotoThumbs] = useState(true); // 줌 수준에 따라 썸네일/점
 
@@ -128,7 +129,7 @@ export default function MapScreen() {
         />
         <FogLayer />
         <LandmarkMarkers full={photoThumbs} />
-        <PhotoMarkers thumbnails={photoThumbs} onSelect={setSelectedPhoto} />
+        <PhotoMarkers thumbnails={photoThumbs} onSelect={setViewerPhotos} />
         <LocationMarker />
       </MapView>
 
@@ -169,8 +170,8 @@ export default function MapScreen() {
         <Ionicons name="locate" size={24} color={COLORS.ink} />
       </Fab>
 
-      {/* 사진 뷰어 */}
-      <PhotoViewer photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
+      {/* 사진 뷰어 (묶음 스와이프) */}
+      <PhotoViewer photos={viewerPhotos} onClose={() => setViewerPhotos([])} />
 
       {/* 위치 권한 거부 안내 */}
       {status === 'denied' && (
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
-  statValue: { color: COLORS.lime, fontSize: 20, fontWeight: '700' },
+  statValue: { color: COLORS.lime, fontSize: 22, fontFamily: FONT.display },
   statSub: { color: COLORS.text, fontSize: 12, marginTop: 4 },
   filmBadge: {
     position: 'absolute',

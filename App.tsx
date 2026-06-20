@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
+import { useFonts } from 'expo-font';
+import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import Mapbox from '@rnmapbox/maps';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -45,6 +48,11 @@ const navTheme = {
 
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_700Bold,
+    DMMono_400Regular,
+    DMMono_500Medium,
+  });
 
   useEffect(() => {
     initDatabase(); // DB 준비
@@ -69,7 +77,7 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  if (!ready) {
+  if (!ready || !fontsLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={COLORS.lime} />

@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { COLORS } from '../constants/colors';
+import { FONT } from '../constants/fonts';
 
 interface Props {
   uri: string;
@@ -57,5 +58,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 9,
     paddingHorizontal: 2,
+    fontFamily: FONT.mono,
   },
 });
