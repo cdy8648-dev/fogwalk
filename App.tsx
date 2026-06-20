@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import Mapbox from '@rnmapbox/maps';
+import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -20,7 +21,7 @@ import { useMapStore } from './src/store/mapStore';
 import { usePhotoStore } from './src/store/photoStore';
 import { useSettingsStore } from './src/store/settingsStore';
 import MapScreen from './src/screens/MapScreen';
-import CollectionScreen from './src/screens/CollectionScreen';
+import CollectionStack from './src/navigation/CollectionStack';
 import ProfileScreen from './src/screens/ProfileScreen';
 
 // app.json 의 extra 에서 Mapbox 퍼블릭 토큰을 읽어 1회 설정.
@@ -94,14 +95,44 @@ export default function App() {
           screenOptions={{
             headerStyle: { backgroundColor: COLORS.surface },
             headerTintColor: COLORS.text,
+            tabBarShowLabel: false,
             tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.border },
             tabBarActiveTintColor: COLORS.lime,
             tabBarInactiveTintColor: COLORS.muted,
           }}
         >
-          <Tab.Screen name="Map" component={MapScreen} />
-          <Tab.Screen name="Collection" component={CollectionScreen} />
-          <Tab.Screen name="Profile" component={ProfileScreen} />
+          <Tab.Screen
+            name="Map"
+            component={MapScreen}
+            options={{
+              tabBarIcon: ({ color, size, focused }) => (
+                <Ionicons name={focused ? 'map' : 'map-outline'} size={size} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Collection"
+            component={CollectionStack}
+            options={{
+              headerShown: false, // 스택이 헤더를 관리(상세 페이지 헤더와 중복 방지)
+              tabBarIcon: ({ color, size, focused }) => (
+                <Ionicons name={focused ? 'albums' : 'albums-outline'} size={size} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={{
+              tabBarIcon: ({ color, size, focused }) => (
+                <Ionicons
+                  name={focused ? 'person-circle' : 'person-circle-outline'}
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
         </Tab.Navigator>
       </NavigationContainer>
       <CelebrationOverlay />

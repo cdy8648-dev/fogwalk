@@ -10,16 +10,17 @@ import { useMapStore } from '../store/mapStore';
 import { useUserStore } from '../store/userStore';
 import {
   buildCumulativeTiles,
-  buildHeatmapWeeks,
+  buildYearHeatmapWeeks,
   type HeatCell,
 } from '../utils/calendar';
 import { coordToTile, tileAreaKm2 } from '../utils/h3';
 
-const HEATMAP_WEEKS = 22;
+const YEAR = new Date().getFullYear();
 const CUM_DAYS = 40;
 
 function heatColor(cell?: HeatCell): string {
-  if (!cell || (cell.distanceM <= 0 && cell.newTiles <= 0)) return COLORS.border;
+  if (!cell) return 'transparent'; // 연도 밖 패딩 칸
+  if (cell.distanceM <= 0 && cell.newTiles <= 0) return COLORS.border;
   if (cell.newTiles > 0) return cell.newTiles >= 30 ? COLORS.lime : COLORS.limeDeep;
   return COLORS.teal;
 }
@@ -45,11 +46,25 @@ export default function ProfileScreen() {
   const { weeks, cum } = useMemo(() => {
     const stats = getAllDailyStats();
     return {
-      weeks: buildHeatmapWeeks(stats, HEATMAP_WEEKS),
+      weeks: buildYearHeatmapWeeks(stats, YEAR),
       cum: buildCumulativeTiles(stats).slice(-CUM_DAYS),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fogVersion]);
+
+  // 월이 바뀌는 첫 주 열에만 '5월' 같은 라벨. 나머지는 빈 문자열.
+  const monthLabels = useMemo(
+    () =>
+      weeks.map((col, i) => {
+        const cell = col.find((c) => c);
+        if (!cell) return '';
+        const m = new Date(cell.date).getMonth();
+        const prev = weeks[i - 1]?.find((c) => c);
+        const prevM = prev ? new Date(prev.date).getMonth() : -1;
+        return m !== prevM ? `${m + 1}월` : '';
+      }),
+    [weeks]
+  );
 
   const maxCum = cum.length ? cum[cum.length - 1].cum : 0;
 
@@ -78,19 +93,30 @@ export default function ProfileScreen() {
       </View>
 
       <Card>
-        <Text style={styles.cardTitle}>활동 ({HEATMAP_WEEKS}주)</Text>
+        <Text style={styles.yearTitle}>{YEAR}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.heatRow}>
-            {weeks.map((col, wi) => (
-              <View key={wi} style={styles.heatCol}>
-                {Array.from({ length: 7 }).map((_, dow) => (
-                  <View
-                    key={dow}
-                    style={[styles.heatCell, { backgroundColor: heatColor(col[dow]) }]}
-                  />
-                ))}
-              </View>
-            ))}
+          <View>
+            <View style={styles.monthRow}>
+              {monthLabels.map((label, wi) => (
+                <View key={wi} style={styles.monthSlot}>
+                  <Text style={styles.monthLabel} numberOfLines={1}>
+                    {label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.heatRow}>
+              {weeks.map((col, wi) => (
+                <View key={wi} style={styles.heatCol}>
+                  {Array.from({ length: 7 }).map((_, dow) => (
+                    <View
+                      key={dow}
+                      style={[styles.heatCell, { backgroundColor: heatColor(col[dow]) }]}
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
           </View>
         </ScrollView>
         <View style={styles.legendRow}>
@@ -141,6 +167,10 @@ const styles = StyleSheet.create({
   filmText: { color: COLORS.amber, fontSize: 13, marginTop: 10, fontWeight: '600' },
   statsRow: { flexDirection: 'row', gap: 10 },
   cardTitle: { color: COLORS.muted, fontSize: 13, marginBottom: 12 },
+  yearTitle: { color: COLORS.text, fontSize: 22, fontFamily: FONT.display, marginBottom: 10 },
+  monthRow: { flexDirection: 'row', marginBottom: 3 },
+  monthSlot: { width: 16, overflow: 'visible' },
+  monthLabel: { color: COLORS.muted, fontSize: 9, width: 36, fontFamily: FONT.mono },
   heatRow: { flexDirection: 'row' },
   heatCol: { flexDirection: 'column' },
   heatCell: { width: 13, height: 13, margin: 1.5, borderRadius: 3 },

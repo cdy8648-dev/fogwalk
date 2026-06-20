@@ -117,6 +117,9 @@ export default function MapScreen() {
       <MapView
         style={styles.map}
         styleURL={styleURL}
+        scaleBarEnabled={false}
+        logoEnabled={false}
+        attributionEnabled={false}
         onDidFinishLoadingMap={handleMapLoaded}
         onCameraChanged={(e) => {
           const next = (e.properties?.zoom ?? 15) >= CONFIG.PHOTO_THUMB_MIN_ZOOM;
@@ -133,8 +136,9 @@ export default function MapScreen() {
         <LocationMarker />
       </MapView>
 
-      {/* 상단 탐험 통계 오버레이 */}
+      {/* 상단 탐험 통계 오버레이 (폴라로이드 무드: 테잎 + 살짝 기울임) */}
       <View style={styles.statCard} pointerEvents="none">
+        <View style={styles.statTape} />
         <Text style={styles.statLabel}>내가 밝힌 땅</Text>
         <Text style={styles.statValue}>{areaKm2.toFixed(2)} km²</Text>
         <Text style={styles.statSub}>
@@ -145,7 +149,7 @@ export default function MapScreen() {
       {/* 사진 남기기 버튼 (필름 소모) */}
       <Fab
         color={COLORS.amber}
-        bottom={174}
+        bottom={104}
         onPress={onCapture}
         disabled={capturing}
         accessibilityLabel="사진 남기기"
@@ -163,7 +167,7 @@ export default function MapScreen() {
       {/* 내 위치로 이동 버튼 */}
       <Fab
         color={COLORS.lime}
-        bottom={110}
+        bottom={40}
         onPress={() => recenter(true)}
         accessibilityLabel="내 위치로 이동"
       >
@@ -199,14 +203,30 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   statCard: {
     position: 'absolute',
-    top: 56,
+    top: 64,
     left: 16,
     paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderRadius: 16,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
+    transform: [{ rotate: '-2.5deg' }],
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  statTape: {
+    position: 'absolute',
+    top: -9,
+    alignSelf: 'center',
+    width: 58,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: 'rgba(200,245,96,0.5)',
+    transform: [{ rotate: '-4deg' }],
   },
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
   statValue: { color: COLORS.lime, fontSize: 22, fontFamily: FONT.display },

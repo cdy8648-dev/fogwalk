@@ -6,13 +6,14 @@ import { FONT } from '../../constants/fonts';
 interface Props {
   value: string;
   label: string;
+  accent?: string; // 큰 숫자 색 (기본 라임). 의미에 맞춰 보라/앰버 등으로.
 }
 
 /** 큰 숫자 + 작은 라벨 통계 타일. */
-export default function StatTile({ value, label }: Props) {
+export default function StatTile({ value, label, accent }: Props) {
   return (
     <View style={styles.tile}>
-      <Text style={styles.value}>{value}</Text>
+      <Text style={[styles.value, accent ? { color: accent } : null]}>{value}</Text>
       <Text style={styles.label}>{label}</Text>
     </View>
   );

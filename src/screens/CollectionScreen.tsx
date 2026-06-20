@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import BadgeStepper from '../components/BadgeStepper';
 import Polaroid from '../components/Polaroid';
@@ -9,12 +11,17 @@ import SectionPill from '../components/ui/SectionPill';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
 import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
+import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { getAllCountryStats } from '../services/db';
 import { useLandmarkStore } from '../store/landmarkStore';
 import { useMapStore } from '../store/mapStore';
 import { usePhotoStore } from '../store/photoStore';
 import type { Photo } from '../types';
 import { codeToFlag } from '../utils/flag';
+
+type Nav = NativeStackNavigationProp<CollectionStackParamList>;
+const PASSPORT_TEASER = 3;
+const LANDMARK_TEASER = 5;
 
 const RATIOS = [1, 0.8, 1.3, 1.15];
 const ROTS = [-2, 1.5, -1.2, 2];
@@ -28,7 +35,26 @@ function photoTime(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// 섹션 라벨 pill + (있으면) "전체보기 ›" 링크. 탭하면 상세로.
+function SectionHead(props: {
+  label: string;
+  color: string;
+  rotate?: number;
+  hint?: string;
+  onPress?: () => void;
+}) {
+  const { onPress, ...pill } = props;
+  if (!onPress) return <SectionPill {...pill} />;
+  return (
+    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={styles.secHead}>
+      <SectionPill {...pill} />
+      <Text style={styles.more}>전체보기 ›</Text>
+    </TouchableOpacity>
+  );
+}
+
 export default function CollectionScreen() {
+  const nav = useNavigation<Nav>();
   const photos = usePhotoStore((s) => s.photos);
   const landmarks = useLandmarkStore((s) => s.discovered);
   const fogVersion = useMapStore((s) => s.fogVersion);
@@ -39,10 +65,10 @@ export default function CollectionScreen() {
 
   const parkCount = landmarks.filter((l) => l.category === 'park').length;
   const peakCount = landmarks.filter((l) => l.category === 'peak').length;
-  const discTiles = [
-    { emoji: '🌳', name: '공원', count: parkCount, rot: -1.5 },
-    { emoji: '🏛️', name: '랜드마크', count: landmarks.length - parkCount - peakCount, rot: 1.5 },
-    { emoji: '⛰️', name: '산', count: peakCount, rot: -1 },
+  const discTiles: { emoji: string; name: string; count: number; rot: number; filter: DiscoveryFilter }[] = [
+    { emoji: '🌳', name: '공원', count: parkCount, rot: -1.5, filter: 'park' },
+    { emoji: '🏛️', name: '랜드마크', count: landmarks.length - parkCount - peakCount, rot: 1.5, filter: 'landmark' },
+    { emoji: '⛰️', name: '산', count: peakCount, rot: -1, filter: 'peak' },
   ];
 
   const colA = photos.filter((_, i) => i % 2 === 0);
@@ -70,37 +96,62 @@ export default function CollectionScreen() {
       <Text style={styles.title}>모아둔 것들</Text>
 
       {/* 뱃지 — 거리 진화 */}
-      <SectionPill label="뱃지" color={COLORS.lime} rotate={-2} hint="거리 진화" />
+      <SectionHead
+        label="뱃지"
+        color={COLORS.lime}
+        rotate={-2}
+        hint="거리 진화"
+        onPress={() => nav.navigate('BadgeDetail')}
+      />
       <BadgeStepper />
 
       {/* 여권 */}
-      <SectionPill label="여권" color={COLORS.violet} rotate={1.5} hint="지역별" />
+      <SectionHead
+        label="여권"
+        color={COLORS.violet}
+        rotate={1.5}
+        hint="지역별"
+        onPress={countries.length > 0 ? () => nav.navigate('PassportDetail') : undefined}
+      />
       {countries.length === 0 ? (
         <EmptyHint>탐험한 나라가 여기 쌓여요. 해외에 가면 국기가 늘어납니다 🛂</EmptyHint>
       ) : (
         <View style={styles.passportList}>
-          {countries.map((c) => (
-            <View key={c.code} style={styles.passportCard}>
-              <View>
-                <Text style={styles.flag}>{codeToFlag(c.code)}</Text>
-                <Text style={styles.countryName}>{c.name}</Text>
-                <Text style={styles.countrySub}>탐험 중 🛂</Text>
-              </View>
-              <View style={styles.countryRight}>
-                <Text style={styles.countryNum}>{c.tiles}</Text>
-                <Text style={styles.countryUnit}>칸 밝힘</Text>
-              </View>
+          {countries.slice(0, PASSPORT_TEASER).map((c) => (
+            <View key={c.code} style={styles.ppCard}>
+              <Text style={styles.ppFlag}>{codeToFlag(c.code)}</Text>
+              <View style={styles.ppSpacer} />
+              <Text style={styles.ppNum}>{c.tiles}</Text>
+              <Text style={styles.ppUnit}>칸 밝힘</Text>
+              <Text style={styles.ppName} numberOfLines={1}>
+                {c.name}
+              </Text>
             </View>
           ))}
+          {countries.length === 1 && (
+            <View style={[styles.ppCard, styles.ppCardEmpty]}>
+              <Text style={styles.ppFlag}>✈️</Text>
+              <View style={styles.ppSpacer} />
+              <Text style={styles.ppHint}>다른 나라도{'\n'}탐험해보세요</Text>
+            </View>
+          )}
         </View>
       )}
 
       {/* 새로운 발견 */}
-      <SectionPill label="새로운 발견" color={COLORS.amber} rotate={-1.5} hint="카테고리별" />
+      <SectionHead
+        label="새로운 발견"
+        color={COLORS.amber}
+        rotate={-1.5}
+        hint="카테고리별"
+        onPress={landmarks.length > 0 ? () => nav.navigate('DiscoveryDetail') : undefined}
+      />
       <View style={styles.discRow}>
         {discTiles.map((t) => (
-          <View
+          <TouchableOpacity
             key={t.name}
+            activeOpacity={0.85}
+            onPress={() => nav.navigate('DiscoveryDetail', { filter: t.filter })}
             style={[
               styles.discTile,
               { transform: [{ rotate: `${t.rot}deg` }] },
@@ -110,12 +161,12 @@ export default function CollectionScreen() {
             <Text style={styles.discEmoji}>{t.emoji}</Text>
             <Text style={styles.discName}>{t.name}</Text>
             <Text style={styles.discCount}>{t.count}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
       {landmarks.length > 0 && (
         <View style={styles.lmList}>
-          {landmarks.map((lm) => (
+          {landmarks.slice(0, LANDMARK_TEASER).map((lm) => (
             <View key={lm.osmId} style={styles.lmRow}>
               <Text style={styles.lmEmoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
               <Text style={styles.lmName} numberOfLines={1}>
@@ -153,24 +204,31 @@ const styles = StyleSheet.create({
   kicker: { color: COLORS.muted, fontSize: 12, letterSpacing: 2, marginTop: 2, fontFamily: FONT.mono },
   title: { color: COLORS.text, fontSize: 25, fontWeight: '800', marginTop: 2 },
 
-  passportList: { gap: 12 },
-  passportCard: {
+  secHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  more: { color: COLORS.muted, fontSize: 12, fontWeight: '700' },
+
+  passportList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  ppCard: {
+    width: 100,
+    height: 124,
     backgroundColor: COLORS.surface,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: COLORS.violet,
-    borderRadius: 18,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    transform: [{ rotate: '-1deg' }],
+    borderRadius: 14,
+    padding: 11,
+    transform: [{ rotate: '-1.5deg' }],
   },
-  flag: { fontSize: 40 },
-  countryName: { color: COLORS.text, fontSize: 15, fontWeight: '700', marginTop: 6 },
-  countrySub: { color: COLORS.muted, fontSize: 11, marginTop: 1 },
-  countryRight: { alignItems: 'flex-end' },
-  countryNum: { color: COLORS.violetSoft, fontSize: 42, fontFamily: FONT.display },
-  countryUnit: { color: COLORS.violet, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  ppCardEmpty: {
+    borderStyle: 'dashed',
+    borderColor: COLORS.border,
+    transform: [{ rotate: '1.5deg' }],
+  },
+  ppFlag: { fontSize: 24 },
+  ppSpacer: { flex: 1 },
+  ppNum: { color: COLORS.violetSoft, fontSize: 30, fontFamily: FONT.display },
+  ppUnit: { color: COLORS.violet, fontSize: 10, fontWeight: '700', marginTop: -2 },
+  ppName: { color: COLORS.muted, fontSize: 11, marginTop: 4 },
+  ppHint: { color: COLORS.muted, fontSize: 11, fontWeight: '600', lineHeight: 15 },
 
   discRow: { flexDirection: 'row', gap: 10 },
   discTile: {
