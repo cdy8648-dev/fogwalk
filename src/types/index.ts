@@ -29,13 +29,16 @@ export interface Landmark {
 
 export type LandmarkCategory =
   | 'tower'
-  | 'monument'
-  | 'park'
-  | 'fountain'
+  | 'palace'
   | 'temple'
-  | 'museum'
+  | 'monument'
   | 'historic'
+  | 'museum'
+  | 'park'
   | 'peak'
+  | 'attraction'
+  | 'bridge'
+  | 'subway'
   | 'other';
 
 export interface Achievement {

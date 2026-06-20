@@ -1,3 +1,5 @@
+import { CONFIG } from '../constants/config';
+import { isLegendaryName, isSubwayHub } from '../constants/curatedLandmarks';
 import type { Landmark, LandmarkCategory } from '../types';
 
 /**
@@ -17,28 +19,43 @@ const USER_AGENT = 'FogWalk/1.0 (exploration app; cdy8648@naver.com)';
 type Tags = Record<string, string | undefined>;
 
 function categorize(tags: Tags): LandmarkCategory {
+  if (tags.railway === 'station' && (tags.station === 'subway' || tags.subway === 'yes')) {
+    return 'subway';
+  }
   if (tags.man_made === 'tower') return 'tower';
+  if (tags.man_made === 'bridge') return 'bridge';
   if (tags.natural === 'peak') return 'peak';
   if (tags.tourism === 'museum') return 'museum';
-  if (tags.leisure === 'park') return 'park';
-  if (tags.amenity === 'fountain') return 'fountain';
-  if (tags.amenity === 'place_of_worship') return 'temple';
-  if (tags.historic === 'monument' || tags.historic === 'memorial') {
-    return 'monument';
+  if (tags.leisure === 'park' || tags.boundary === 'national_park') return 'park';
+  const h = tags.historic;
+  if (h === 'palace' || h === 'castle' || h === 'fort' || h === 'fortress' || h === 'city_gate') {
+    return 'palace';
   }
-  if (tags.historic) return 'historic';
+  if (h === 'monument' || h === 'memorial') return 'monument';
+  if (tags.amenity === 'place_of_worship') {
+    // 사찰만 temple, 그 외(성당·교회 등)는 historic 로 (⛩️ 오용 방지)
+    return tags.religion === 'buddhist' ? 'temple' : 'historic';
+  }
+  if (h) return 'historic';
+  if (tags.tourism === 'attraction') return 'attraction';
   return 'other';
 }
 
-/** OSM 태그 신호로 희귀도 산정. wikidata/attraction/height 가 강할수록 희귀. */
-function rarityOf(tags: Tags): string {
+/**
+ * 희귀도 산정. 큐레이션 이름 = 전설, 지하철 = 거점만 희귀.
+ * 그 외는 신호 점수: wikidata/문화재(+2) · attraction(+1) · height≥100(+1).
+ */
+function rarityOf(tags: Tags, name: string, category: LandmarkCategory): string {
+  if (category === 'subway') return isSubwayHub(name) ? 'rare' : 'common';
+  if (isLegendaryName(name)) return 'legendary';
   let score = 0;
   if (tags.wikidata || tags.wikipedia) score += 2;
+  if (tags.heritage || tags['heritage:operator']) score += 2;
   if (tags.tourism === 'attraction') score += 1;
   const h = parseFloat(tags.height ?? '');
   if (!Number.isNaN(h) && h >= 100) score += 1;
-  if (score >= 3) return 'legendary';
-  if (score >= 1) return 'rare';
+  if (score >= 4) return 'legendary';
+  if (score >= 2) return 'rare';
   return 'common';
 }
 
@@ -57,16 +74,26 @@ export async function fetchLandmarksAround(
   radiusM: number
 ): Promise<Landmark[] | null> {
   const a = `around:${radiusM},${lat},${lng}`;
+  // 강한 신호(wikidata/문화재/관광/규모)가 있는 것만 — 동네 교회·급수탑·작은 공원 제외.
   const query = `[out:json][timeout:25];
 (
-  nwr(${a})[tourism~"^(attraction|museum|artwork|viewpoint)$"][name];
-  nwr(${a})[historic][name];
-  nwr(${a})[man_made=tower][name];
-  nwr(${a})[natural=peak][name];
-  nwr(${a})[leisure=park][name];
-  nwr(${a})[amenity~"^(fountain|place_of_worship)$"][name];
+  nwr(${a})[historic~"^(castle|palace|fort|fortress|city_gate|monument|memorial|archaeological_site)$"][name];
+  nwr(${a})[historic][wikidata][name];
+  nwr(${a})[tourism=attraction][wikidata][name];
+  nwr(${a})[tourism~"^(museum|viewpoint|artwork)$"][name];
+  nwr(${a})[man_made=tower][name][height];
+  nwr(${a})[man_made=tower][tourism][name];
+  nwr(${a})[man_made=bridge][wikidata][name];
+  nwr(${a})[natural=peak][name][wikidata];
+  nwr(${a})[natural=peak][name][ele];
+  nwr(${a})[leisure=park][wikidata][name];
+  nwr(${a})[boundary=national_park][name];
+  nwr(${a})[amenity=place_of_worship][wikidata][name];
+  nwr(${a})[amenity=place_of_worship][heritage][name];
+  nwr(${a})[railway=station][station=subway][name];
+  nwr(${a})[railway=station][subway=yes][name];
 );
-out center 120;`;
+out center 200;`;
 
   for (const url of OVERPASS_ENDPOINTS) {
     try {
@@ -97,13 +124,19 @@ function parseElements(elements: OverpassElement[]): Landmark[] {
     const elLat = el.lat ?? el.center?.lat;
     const elLng = el.lon ?? el.center?.lon;
     if (!name || elLat == null || elLng == null) continue;
+    const category = categorize(tags);
+    // wikidata 없는 봉우리는 낮은 동산 제외 (고도 기준)
+    if (category === 'peak' && !tags.wikidata && !tags.wikipedia) {
+      const ele = parseFloat(tags.ele ?? '');
+      if (Number.isNaN(ele) || ele < CONFIG.PEAK_MIN_ELE_M) continue;
+    }
     out.push({
       osmId: `${el.type}/${el.id}`,
       name,
-      category: categorize(tags),
+      category,
       lat: elLat,
       lng: elLng,
-      rarity: rarityOf(tags),
+      rarity: rarityOf(tags, name, category),
     });
   }
   return out;

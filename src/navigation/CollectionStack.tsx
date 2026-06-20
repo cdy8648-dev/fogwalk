@@ -7,7 +7,7 @@ import PassportDetailScreen from '../screens/PassportDetailScreen';
 import DiscoveryDetailScreen from '../screens/DiscoveryDetailScreen';
 
 // 발견 상세에서 처음 선택할 카테고리 필터 (콜라주 타일 탭 시 전달).
-export type DiscoveryFilter = 'all' | 'park' | 'landmark' | 'peak';
+export type DiscoveryFilter = 'all' | 'park' | 'landmark' | 'peak' | 'subway';
 
 export type CollectionStackParamList = {
   CollectionHome: undefined;

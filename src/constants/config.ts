@@ -39,4 +39,6 @@ export const CONFIG = {
   XP_LANDMARK_COMMON: 80,
   XP_LANDMARK_RARE: 250,
   XP_LANDMARK_LEGENDARY: 800,
+  XP_SUBWAY: 40, // 지하철역 발견 (수가 많으니 낮게)
+  PEAK_MIN_ELE_M: 500, // wikidata 없는 봉우리는 이 고도(m) 이상만 인정
 } as const;

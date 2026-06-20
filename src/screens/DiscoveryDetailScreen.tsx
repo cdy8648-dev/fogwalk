@@ -16,13 +16,16 @@ const FILTERS: { key: DiscoveryFilter; label: string; emoji: string }[] = [
   { key: 'park', label: '공원', emoji: '🌳' },
   { key: 'landmark', label: '랜드마크', emoji: '🏛️' },
   { key: 'peak', label: '산', emoji: '⛰️' },
+  { key: 'subway', label: '지하철', emoji: '🚇' },
 ];
 
 function matches(lm: Landmark, f: DiscoveryFilter): boolean {
   if (f === 'all') return true;
   if (f === 'park') return lm.category === 'park';
   if (f === 'peak') return lm.category === 'peak';
-  return lm.category !== 'park' && lm.category !== 'peak'; // 'landmark' = 나머지
+  if (f === 'subway') return lm.category === 'subway';
+  // 'landmark' = 공원·산·지하철 외 나머지
+  return lm.category !== 'park' && lm.category !== 'peak' && lm.category !== 'subway';
 }
 
 type Props = NativeStackScreenProps<CollectionStackParamList, 'DiscoveryDetail'>;

@@ -16,10 +16,17 @@ import {
   upsertCountryTiles,
 } from './db';
 
-function landmarkXp(rarity?: string): number {
-  if (rarity === 'legendary') return CONFIG.XP_LANDMARK_LEGENDARY;
-  if (rarity === 'rare') return CONFIG.XP_LANDMARK_RARE;
+function landmarkXp(lm: Landmark): number {
+  if (lm.category === 'subway') return CONFIG.XP_SUBWAY;
+  if (lm.rarity === 'legendary') return CONFIG.XP_LANDMARK_LEGENDARY;
+  if (lm.rarity === 'rare') return CONFIG.XP_LANDMARK_RARE;
   return CONFIG.XP_LANDMARK_COMMON;
+}
+
+function discoverTitle(lm: Landmark): string {
+  if (lm.category === 'subway') return '🚇 지하철역 발견!';
+  if (lm.rarity === 'legendary') return '⭐ 전설의 랜드마크 발견!';
+  return '랜드마크 발견!';
 }
 
 /**
@@ -57,9 +64,9 @@ function discover(lm: Landmark, now: number): void {
     if (country) upsertCountryTiles(country.code, country.name, fresh.length);
   }
 
-  // 보상: 희귀도 XP
+  // 보상: 희귀도/유형 XP
   const p = getProgress();
-  updateProgress({ totalXp: p.totalXp + landmarkXp(lm.rarity) });
+  updateProgress({ totalXp: p.totalXp + landmarkXp(lm) });
 
   // 발견 목록(마커·도감용) 갱신
   useLandmarkStore.getState().add({ ...lm, discoveredAt: now });
@@ -67,7 +74,7 @@ function discover(lm: Landmark, now: number): void {
   // 축하 연출
   useAchievementStore.getState().celebrate({
     emoji: CATEGORY_EMOJI[lm.category] ?? '📍',
-    title: lm.rarity === 'legendary' ? '⭐ 전설의 랜드마크 발견!' : '랜드마크 발견!',
+    title: discoverTitle(lm),
     subtitle: lm.name,
   });
 }

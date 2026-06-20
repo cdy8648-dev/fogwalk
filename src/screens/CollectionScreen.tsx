@@ -65,10 +65,18 @@ export default function CollectionScreen() {
 
   const parkCount = landmarks.filter((l) => l.category === 'park').length;
   const peakCount = landmarks.filter((l) => l.category === 'peak').length;
+  const subwayCount = landmarks.filter((l) => l.category === 'subway').length;
   const discTiles: { emoji: string; name: string; count: number; rot: number; filter: DiscoveryFilter }[] = [
     { emoji: '🌳', name: '공원', count: parkCount, rot: -1.5, filter: 'park' },
-    { emoji: '🏛️', name: '랜드마크', count: landmarks.length - parkCount - peakCount, rot: 1.5, filter: 'landmark' },
+    {
+      emoji: '🏛️',
+      name: '랜드마크',
+      count: landmarks.length - parkCount - peakCount - subwayCount,
+      rot: 1.5,
+      filter: 'landmark',
+    },
     { emoji: '⛰️', name: '산', count: peakCount, rot: -1, filter: 'peak' },
+    { emoji: '🚇', name: '지하철', count: subwayCount, rot: 1, filter: 'subway' },
   ];
 
   const colA = photos.filter((_, i) => i % 2 === 0);

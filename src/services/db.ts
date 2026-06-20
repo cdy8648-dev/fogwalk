@@ -110,6 +110,14 @@ export function initDatabase(): void {
     /* 컬럼 이미 존재 */
   }
 
+  // 발견 시스템 v2: 느슨한 규칙으로 등록된 미발견 랜드마크 + 조회기록 정리 → 새 규칙으로 재수집.
+  // (발견 기록 discovered_at 은 보존: upsertLandmark 가 충돌 시 카테고리/희귀도만 갱신)
+  if (getSetting('discovery_v2') !== '1') {
+    db.runSync('DELETE FROM landmarks WHERE discovered_at IS NULL');
+    db.runSync('DELETE FROM fetched_areas');
+    setSetting('discovery_v2', '1');
+  }
+
   const tables = db.getAllSync<{ name: string }>(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
   );

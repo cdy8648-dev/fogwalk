@@ -2,13 +2,16 @@ import type { LandmarkCategory } from '../types';
 
 export const CATEGORY_EMOJI: Record<LandmarkCategory, string> = {
   tower: '🗼',
-  monument: '🗿',
-  park: '🌳',
-  fountain: '⛲',
+  palace: '🏯',
   temple: '⛩️',
-  museum: '🏛️',
-  historic: '🏯',
+  monument: '🗿',
+  historic: '🏛️',
+  museum: '🖼️',
+  park: '🌳',
   peak: '⛰️',
+  attraction: '📸',
+  bridge: '🌉',
+  subway: '🚇',
   other: '📍',
 };
 
