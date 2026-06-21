@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import AboutModal from '../components/AboutModal';
 import EmptyHint from '../components/ui/EmptyHint';
 import SectionPill from '../components/ui/SectionPill';
 import { COLORS } from '../constants/colors';
@@ -67,6 +68,8 @@ export default function ProfileScreen() {
   const areaKm2 = tiles * perTileKm2;
   const goal = milestoneState(tiles);
   const goalPct = goal.maxed ? 100 : Math.round(goal.ratio * 100);
+
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   // 캘린더로 보는 달 (기본 = 이번 달).
   const now = new Date();
@@ -263,6 +266,13 @@ export default function ProfileScreen() {
 
       {/* 전체 밝힌 땅(누계) 참고 */}
       <Text style={styles.totalNote}>지금까지 밝힌 땅 {areaKm2.toFixed(2)} km²</Text>
+
+      <TouchableOpacity style={styles.aboutBtn} onPress={() => setAboutOpen(true)}>
+        <Ionicons name="information-circle-outline" size={15} color={COLORS.muted} />
+        <Text style={styles.aboutText}>정보 · 저작권</Text>
+      </TouchableOpacity>
+
+      <AboutModal visible={aboutOpen} onClose={() => setAboutOpen(false)} />
     </ScrollView>
   );
 }
@@ -397,4 +407,13 @@ const styles = StyleSheet.create({
   histDivider: { width: 1, alignSelf: 'stretch', backgroundColor: COLORS.border },
 
   totalNote: { color: COLORS.muted, fontSize: 12, textAlign: 'center', marginTop: 18, fontFamily: FONT.mono },
+  aboutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginTop: 12,
+    paddingVertical: 8,
+  },
+  aboutText: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
 });
