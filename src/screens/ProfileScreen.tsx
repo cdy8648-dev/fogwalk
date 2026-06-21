@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import EmptyHint from '../components/ui/EmptyHint';
 import SectionPill from '../components/ui/SectionPill';
@@ -10,23 +11,27 @@ import { getAllDailyStats } from '../services/db';
 import { useMapStore } from '../store/mapStore';
 import { useUserStore } from '../store/userStore';
 import {
-  buildHeatmapWeeks,
+  buildMonthCalendar,
   buildMonthlyHistory,
-  type HeatCell,
+  localDateStr,
+  type CalCell,
 } from '../utils/calendar';
 import { comma } from '../utils/format';
 import { coordToTile, tileAreaKm2 } from '../utils/h3';
 
-const HEATMAP_WEEKS = 13; // 이번 시즌(약 3개월)
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTH_ABBR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const MEDALS = ['🥇', '🥈', '🥉'];
+const TODAY_STR = localDateStr(new Date());
 
-function heatColor(cell?: HeatCell): string {
-  if (!cell) return 'transparent'; // 오늘 이후(미래) 칸
-  if (cell.distanceM <= 0 && cell.newTiles <= 0) return COLORS.fogLight;
+// 캘린더 한 칸 배경색: 새 땅 발견=라임, 활동만=틸, 무활동=어두운 면.
+function calBg(cell: CalCell): string {
   if (cell.newTiles > 0) return cell.newTiles >= 30 ? COLORS.lime : COLORS.limeDeep;
-  return COLORS.teal;
+  if (cell.distanceM > 0) return COLORS.teal;
+  return COLORS.inset;
+}
+function calInk(cell: CalCell): string {
+  return cell.newTiles > 0 || cell.distanceM > 0 ? COLORS.ink : COLORS.muted;
 }
 
 // 레벨에 따른 칭호 (정체성 카드).
@@ -63,28 +68,29 @@ export default function ProfileScreen() {
   const goal = milestoneState(tiles);
   const goalPct = goal.maxed ? 100 : Math.round(goal.ratio * 100);
 
-  const { weeks, months, activeDays } = useMemo(() => {
+  // 캘린더로 보는 달 (기본 = 이번 달).
+  const now = new Date();
+  const [cal, setCal] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const canNext = cal.y < now.getFullYear() || (cal.y === now.getFullYear() && cal.m < now.getMonth());
+  const shiftMonth = (delta: number) =>
+    setCal((c) => {
+      const d = new Date(c.y, c.m + delta, 1);
+      return { y: d.getFullYear(), m: d.getMonth() };
+    });
+
+  const { months, activeDays } = useMemo(() => {
     const stats = getAllDailyStats();
     return {
-      weeks: buildHeatmapWeeks(stats, HEATMAP_WEEKS),
       months: buildMonthlyHistory(stats),
       activeDays: stats.filter((s) => s.distanceM > 0).length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fogVersion]);
 
-  // 월이 바뀌는 첫 주 열에만 '5월' 라벨.
-  const monthLabels = useMemo(
-    () =>
-      weeks.map((col, i) => {
-        const cell = col.find((c) => c);
-        if (!cell) return '';
-        const m = new Date(cell.date).getMonth();
-        const prev = weeks[i - 1]?.find((c) => c);
-        const prevM = prev ? new Date(prev.date).getMonth() : -1;
-        return m !== prevM ? `${m + 1}월` : '';
-      }),
-    [weeks]
+  const calWeeks = useMemo(
+    () => buildMonthCalendar(getAllDailyStats(), cal.y, cal.m),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fogVersion, cal.y, cal.m]
   );
 
   // 월별 메달: 총 거리 상위 3개월.
@@ -124,7 +130,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* 활동 */}
-      <SectionPill label="활동" color={COLORS.lime} rotate={-2} hint="이번 시즌" />
+      <SectionPill label="활동" color={COLORS.lime} rotate={-2} hint="월별 활동" />
       <View style={styles.actCard}>
         <View style={styles.actHead}>
           <View style={styles.actAvatar}>
@@ -159,40 +165,56 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 히트맵 (요일행 × 주) */}
-        <View style={styles.heatWrap}>
-          <View style={styles.dowCol}>
-            <View style={styles.monthSpacer} />
-            {DOW.map((d) => (
-              <Text key={d} style={styles.dowLabel}>
-                {d}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.heatBody}>
-            <View style={styles.monthRow}>
-              {monthLabels.map((label, wi) => (
-                <View key={wi} style={styles.monthSlot}>
-                  <Text style={styles.monthText} numberOfLines={1}>
-                    {label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <View style={styles.heatRow}>
-              {weeks.map((col, wi) => (
-                <View key={wi} style={styles.heatCol}>
-                  {Array.from({ length: 7 }).map((_, dow) => (
-                    <View
-                      key={dow}
-                      style={[styles.heatCell, { backgroundColor: heatColor(col[dow]) }]}
-                    />
-                  ))}
-                </View>
-              ))}
-            </View>
-          </View>
+        {/* 월 캘린더 */}
+        <View style={styles.calHeader}>
+          <TouchableOpacity onPress={() => shiftMonth(-1)} hitSlop={10} style={styles.calArrow}>
+            <Ionicons name="chevron-back" size={18} color={COLORS.muted} />
+          </TouchableOpacity>
+          <Text style={styles.calTitle}>
+            {cal.y}년 {cal.m + 1}월
+          </Text>
+          <TouchableOpacity
+            onPress={() => canNext && shiftMonth(1)}
+            hitSlop={10}
+            style={styles.calArrow}
+            disabled={!canNext}
+          >
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={canNext ? COLORS.muted : COLORS.border}
+            />
+          </TouchableOpacity>
         </View>
+
+        <View style={styles.calDowRow}>
+          {DOW.map((d) => (
+            <Text key={d} style={styles.calDow}>
+              {d}
+            </Text>
+          ))}
+        </View>
+
+        {calWeeks.map((week, wi) => (
+          <View key={wi} style={styles.calWeek}>
+            {week.map((cell, di) => {
+              if (!cell) return <View key={di} style={styles.calCellEmpty} />;
+              const isToday = cell.date === TODAY_STR;
+              return (
+                <View
+                  key={di}
+                  style={[
+                    styles.calCell,
+                    { backgroundColor: calBg(cell) },
+                    isToday && styles.calCellToday,
+                  ]}
+                >
+                  <Text style={[styles.calDay, { color: calInk(cell) }]}>{cell.day}</Text>
+                </View>
+              );
+            })}
+          </View>
+        ))}
 
         <View style={styles.legendRow}>
           <View style={[styles.legendDot, { backgroundColor: COLORS.teal }]} />
@@ -323,25 +345,30 @@ const styles = StyleSheet.create({
   actUnit: { color: COLORS.muted, fontSize: 13, fontFamily: FONT.mono },
   actLabel: { color: COLORS.muted, fontSize: 11, marginTop: 3 },
 
-  // 히트맵
-  heatWrap: { flexDirection: 'row', marginTop: 18 },
-  dowCol: { marginRight: 6 },
-  monthSpacer: { height: 16 },
-  dowLabel: {
-    height: 14,
-    lineHeight: 14,
-    marginVertical: 2,
-    color: COLORS.muted,
-    fontSize: 9,
-    fontFamily: FONT.mono,
+  // 월 캘린더
+  calHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 18,
+    marginBottom: 10,
   },
-  heatBody: { flex: 1 },
-  monthRow: { flexDirection: 'row', height: 12, marginBottom: 4 },
-  monthSlot: { width: 18, overflow: 'visible' },
-  monthText: { color: COLORS.muted, fontSize: 9, width: 40, fontFamily: FONT.mono },
-  heatRow: { flexDirection: 'row' },
-  heatCol: { flexDirection: 'column' },
-  heatCell: { width: 14, height: 14, margin: 2, borderRadius: 4 },
+  calArrow: { padding: 4 },
+  calTitle: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
+  calDowRow: { flexDirection: 'row', marginBottom: 6 },
+  calDow: { flex: 1, textAlign: 'center', color: COLORS.muted, fontSize: 11, fontFamily: FONT.mono },
+  calWeek: { flexDirection: 'row' },
+  calCell: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 2.5,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calCellEmpty: { flex: 1, aspectRatio: 1, margin: 2.5 },
+  calCellToday: { borderWidth: 2, borderColor: COLORS.amber },
+  calDay: { fontSize: 13, fontWeight: '700' },
   legendRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
   legendDot: { width: 10, height: 10, borderRadius: 3, marginRight: 5 },
   legendText: { color: COLORS.muted, fontSize: 11, marginRight: 14 },

@@ -1,11 +1,5 @@
 import type { DailyStats } from '../types';
 
-export interface HeatCell {
-  date: string;
-  distanceM: number;
-  newTiles: number;
-}
-
 /** 로컬 'YYYY-MM-DD'. */
 export function localDateStr(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -13,38 +7,41 @@ export function localDateStr(d: Date): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+export interface CalCell {
+  day: number;
+  date: string; // 'YYYY-MM-DD'
+  distanceM: number;
+  newTiles: number;
+}
+
 /**
- * 최근 `weeks`주 히트맵. 열 = 주(일요일 시작), 행 = 요일(0=일~6=토).
- * 마지막 주는 오늘까지만 채워지므로 일부 칸은 undefined일 수 있다.
+ * 특정 월(month: 0~11) 캘린더 그리드. 주(일요일 시작) × 요일. 빈 칸은 null.
  */
-export function buildHeatmapWeeks(
+export function buildMonthCalendar(
   stats: DailyStats[],
-  weeks: number
-): (HeatCell | undefined)[][] {
+  year: number,
+  month: number
+): (CalCell | null)[][] {
   const map = new Map(stats.map((s) => [s.date, s]));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const startDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const start = new Date(today);
-  start.setDate(start.getDate() - (weeks * 7 - 1));
-  start.setDate(start.getDate() - start.getDay()); // 일요일로 정렬
-
-  const cols: (HeatCell | undefined)[][] = [];
-  const cursor = new Date(start);
-  while (cursor <= today) {
-    const idx = Math.round((cursor.getTime() - start.getTime()) / 86_400_000);
-    const wk = Math.floor(idx / 7);
-    const dow = cursor.getDay();
-    if (!cols[wk]) cols[wk] = new Array<HeatCell | undefined>(7).fill(undefined);
-    const s = map.get(localDateStr(cursor));
-    cols[wk][dow] = {
-      date: localDateStr(cursor),
-      distanceM: s?.distanceM ?? 0,
-      newTiles: s?.newTiles ?? 0,
-    };
-    cursor.setDate(cursor.getDate() + 1);
+  const weeks: (CalCell | null)[][] = [];
+  let week: (CalCell | null)[] = new Array<CalCell | null>(startDow).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const s = map.get(date);
+    week.push({ day: d, date, distanceM: s?.distanceM ?? 0, newTiles: s?.newTiles ?? 0 });
+    if (week.length === 7) {
+      weeks.push(week);
+      week = [];
+    }
   }
-  return cols;
+  if (week.length > 0) {
+    while (week.length < 7) week.push(null);
+    weeks.push(week);
+  }
+  return weeks;
 }
 
 export interface MonthStat {

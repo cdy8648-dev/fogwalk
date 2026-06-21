@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Camera, MapView } from '@rnmapbox/maps';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import FogLayer from '../components/map/FogLayer';
 import LandmarkMarkers from '../components/map/LandmarkMarkers';
@@ -41,6 +42,7 @@ import { coordToTile, tileAreaKm2 } from '../utils/h3';
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
 
 export default function MapScreen() {
+  const insets = useSafeAreaInsets();
   const { status } = useTracking();
   const currentLocation = useMapStore((s) => s.currentLocation);
   const fogVersion = useMapStore((s) => s.fogVersion);
@@ -137,7 +139,7 @@ export default function MapScreen() {
       </MapView>
 
       {/* 상단 탐험 통계 오버레이 (폴라로이드 무드: 테잎 + 살짝 기울임) */}
-      <View style={styles.statCard} pointerEvents="none">
+      <View style={[styles.statCard, { top: insets.top + 6 }]} pointerEvents="none">
         <View style={styles.statTape} />
         <Text style={styles.statLabel}>내가 밝힌 땅</Text>
         <Text style={styles.statValue}>{areaKm2.toFixed(2)} km²</Text>
@@ -203,7 +205,6 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   statCard: {
     position: 'absolute',
-    top: 64,
     left: 16,
     paddingHorizontal: 18,
     paddingTop: 16,

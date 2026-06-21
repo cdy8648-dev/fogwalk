@@ -105,6 +105,7 @@ export default function App() {
             name="Map"
             component={MapScreen}
             options={{
+              headerShown: false, // 풀블리드 지도 (카드는 safe-area 기준 오버레이)
               tabBarIcon: ({ color, size, focused }) => (
                 <Ionicons name={focused ? 'map' : 'map-outline'} size={size} color={color} />
               ),
