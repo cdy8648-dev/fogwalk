@@ -117,6 +117,12 @@ export function initDatabase(): void {
     db.runSync('DELETE FROM fetched_areas');
     setSetting('discovery_v2', '1');
   }
+  // v3: 이전 빌드의 Overpass 타임아웃으로 '랜드마크 없음'이 잘못 캐시된 영역 초기화 → 재수집.
+  if (getSetting('discovery_v3') !== '1') {
+    db.runSync('DELETE FROM landmarks WHERE discovered_at IS NULL');
+    db.runSync('DELETE FROM fetched_areas');
+    setSetting('discovery_v3', '1');
+  }
 
   const tables = db.getAllSync<{ name: string }>(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"

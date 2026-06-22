@@ -74,24 +74,18 @@ export async function fetchLandmarksAround(
   radiusM: number
 ): Promise<Landmark[] | null> {
   const a = `around:${radiusM},${lat},${lng}`;
-  // 강한 신호(wikidata/문화재/관광/규모)가 있는 것만 — 동네 교회·급수탑·작은 공원 제외.
+  // 가벼운 단일키 조회 — 의미 필터(wikidata/문화재 등)는 parseElements 에서 JS로.
+  // (조건을 쿼리에 많이 넣으면 dense 지역에서 Overpass 가 타임아웃 → 전부 0건이 됨)
   const query = `[out:json][timeout:25];
 (
-  nwr(${a})[historic~"^(castle|palace|fort|fortress|city_gate|monument|memorial|archaeological_site)$"][name];
-  nwr(${a})[historic][wikidata][name];
-  nwr(${a})[tourism=attraction][wikidata][name];
-  nwr(${a})[tourism~"^(museum|viewpoint|artwork)$"][name];
-  nwr(${a})[man_made=tower][name][height];
-  nwr(${a})[man_made=tower][tourism][name];
-  nwr(${a})[man_made=bridge][wikidata][name];
-  nwr(${a})[natural=peak][name][wikidata];
-  nwr(${a})[natural=peak][name][ele];
-  nwr(${a})[leisure=park][wikidata][name];
+  nwr(${a})[tourism~"^(attraction|museum|viewpoint|artwork|gallery|theme_park|zoo|aquarium)$"][name];
+  nwr(${a})[historic][name];
+  nwr(${a})[man_made~"^(tower|bridge)$"][name];
+  nwr(${a})[natural=peak][name];
+  nwr(${a})[leisure=park][name];
   nwr(${a})[boundary=national_park][name];
-  nwr(${a})[amenity=place_of_worship][wikidata][name];
-  nwr(${a})[amenity=place_of_worship][heritage][name];
+  nwr(${a})[amenity=place_of_worship][name];
   nwr(${a})[railway=station][station=subway][name];
-  nwr(${a})[railway=station][subway=yes][name];
 );
 out center 200;`;
 
@@ -107,13 +101,52 @@ out center 200;`;
       });
       const ct = res.headers.get('content-type') ?? '';
       if (!res.ok || !ct.includes('json')) continue; // 다음 엔드포인트
-      const json = (await res.json()) as { elements?: OverpassElement[] };
+      const json = (await res.json()) as {
+        elements?: OverpassElement[];
+        remark?: string;
+      };
+      // remark + 빈 결과 = 타임아웃/런타임 에러 → 실패로 보고 다음 엔드포인트 (잘못된 빈 캐시 방지)
+      if (json.remark && (json.elements?.length ?? 0) === 0) continue;
       return parseElements(json.elements ?? []);
     } catch {
       continue;
     }
   }
   return null; // 모든 엔드포인트 실패 → 재시도 가능하도록 null
+}
+
+/**
+ * "랜드마크라 부를 만한가" 판정 (의미 필터). 동네 교회·급수탑·작은 공원·잡관광지 제외.
+ * 강한 신호 = wikidata/wikipedia, 문화재(heritage), 큐레이션 이름.
+ */
+function qualifies(tags: Tags, name: string, category: LandmarkCategory): boolean {
+  const hasWiki = !!(tags.wikidata || tags.wikipedia);
+  const hasHeritage = !!(tags.heritage || tags['heritage:operator']);
+  switch (category) {
+    case 'subway':
+    case 'museum':
+    case 'palace': // historic=castle/palace/fort/fortress/city_gate (본래 상징적)
+      return true;
+    case 'attraction':
+      return hasWiki || isLegendaryName(name);
+    case 'tower':
+      return !!tags.height || !!tags.tourism || hasWiki;
+    case 'bridge':
+      return hasWiki;
+    case 'park':
+      return hasWiki || tags.boundary === 'national_park';
+    case 'peak': {
+      if (hasWiki) return true;
+      const ele = parseFloat(tags.ele ?? '');
+      return !Number.isNaN(ele) && ele >= CONFIG.PEAK_MIN_ELE_M;
+    }
+    // 사찰/성당·교회/기념물/일반유적: 위키 또는 문화재 등재가 있어야 인정
+    case 'temple':
+    case 'monument':
+    case 'historic':
+    default:
+      return hasWiki || hasHeritage;
+  }
 }
 
 function parseElements(elements: OverpassElement[]): Landmark[] {
@@ -125,11 +158,7 @@ function parseElements(elements: OverpassElement[]): Landmark[] {
     const elLng = el.lon ?? el.center?.lon;
     if (!name || elLat == null || elLng == null) continue;
     const category = categorize(tags);
-    // wikidata 없는 봉우리는 낮은 동산 제외 (고도 기준)
-    if (category === 'peak' && !tags.wikidata && !tags.wikipedia) {
-      const ele = parseFloat(tags.ele ?? '');
-      if (Number.isNaN(ele) || ele < CONFIG.PEAK_MIN_ELE_M) continue;
-    }
+    if (!qualifies(tags, name, category)) continue;
     out.push({
       osmId: `${el.type}/${el.id}`,
       name,

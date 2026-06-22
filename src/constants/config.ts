@@ -32,8 +32,8 @@ export const CONFIG = {
   PHOTO_GROUP_RES: 11, // 사진 묶음용 H3 해상도 (≈같은 자리, ~50m)
 
   // 랜드마크 (Phase 3)
-  LANDMARK_FETCH_RADIUS_M: 2000, // 새 지역 진입 시 OSM 조회 반경
-  LANDMARK_FETCH_CELL_RES: 7, // 조회 중복 방지용 H3 해상도(≈1.2km 셀)
+  LANDMARK_FETCH_RADIUS_M: 1000, // 새 지역 진입 시 OSM 조회 반경 (작게 — Overpass 타임아웃 방지)
+  LANDMARK_FETCH_CELL_RES: 8, // 조회 중복 방지용 H3 해상도(≈0.9km 셀, 반경 1km가 충분히 덮음)
   LANDMARK_DISCOVER_RADIUS_M: 150, // 이 반경 안에 들어오면 발견
   LANDMARK_BURST_RADIUS_K: 4, // 발견 시 안개 뻥: 중심 gridDisk(k) reveal (≈500m)
   XP_LANDMARK_COMMON: 80,
