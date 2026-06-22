@@ -12,7 +12,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import CelebrationOverlay from './src/components/CelebrationOverlay';
 import { COLORS } from './src/constants/colors';
-import { hydrateCountry } from './src/services/country';
+import { hydrateCountry, refreshCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
 import { refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
@@ -73,6 +73,7 @@ export default function App() {
       if (next === 'active') {
         useMapStore.getState().hydrate();
         refreshProgressStore();
+        void refreshCountry(); // 해외 도착 등 먼 이동 시 국가 선제 감지
       }
     });
     return () => sub.remove();

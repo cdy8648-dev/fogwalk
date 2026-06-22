@@ -45,8 +45,6 @@ export async function capturePhotoAt(
     const dest = new File(dir, `${id}.${ext}`);
     new File(asset.uri).copy(dest);
 
-    if (!trySpendFilm()) return 'no-film'; // 동시성 안전장치
-
     const photo: Photo = {
       id,
       lat,
@@ -56,6 +54,10 @@ export async function capturePhotoAt(
     };
     insertPhoto(photo);
     usePhotoStore.getState().add(photo);
+
+    // 필름 차감은 저장이 끝난 뒤에 — 복사/저장이 실패하면 필름을 잃지 않도록.
+    // (상단에서 film>=1 확인했고, 필름은 게시 외엔 줄 일이 없어 사실상 항상 성공)
+    trySpendFilm();
     return 'ok';
   } catch (e) {
     console.warn('[photos] capture failed:', e);

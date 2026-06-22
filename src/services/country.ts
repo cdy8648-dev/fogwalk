@@ -6,7 +6,7 @@ import {
   setSetting,
   upsertCountryTiles,
 } from './db';
-import { detectCountry } from './gps';
+import { detectCountry, getCurrentOnce } from './gps';
 
 /**
  * 현재 국가 캐싱. 역지오코딩 호출을 아끼려고 멀리(>REDETECT_M) 이동했을 때만 재판별.
@@ -26,6 +26,19 @@ export function getCurrentCountry(): { code: string; name: string } | null {
 export function hydrateCountry(): void {
   const code = getSetting('countryCode');
   if (code) current = { code, name: getSetting('countryName') ?? code };
+}
+
+/**
+ * 포그라운드 복귀 시 선제 국가 감지. 신선한 위치 1회로 ensureCountry 를 앞당겨,
+ * 해외 도착 직후 첫 칸들이 직전 국가로 잘못 적립되는 지연을 줄인다.
+ */
+export async function refreshCountry(): Promise<void> {
+  try {
+    const c = await getCurrentOnce();
+    await ensureCountry(c.lat, c.lng);
+  } catch {
+    /* 위치 못 잡으면 다음 이동에서 자연 보정 */
+  }
 }
 
 /** 필요 시(미설정 또는 먼 이동) 국가 재판별. fire-and-forget로 호출. */
