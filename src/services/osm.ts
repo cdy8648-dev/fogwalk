@@ -7,9 +7,10 @@ import type { Landmark, LandmarkCategory } from '../types';
  * 네트워크 실패 시 null (재시도 가능하도록 빈 배열과 구분).
  */
 
-// 안정성을 위해 여러 Overpass 엔드포인트를 순서대로 시도 (앞쪽이 우선).
+// 여러 Overpass 엔드포인트를 순서대로 시도 (앞쪽이 우선).
+// 프라이버시: 사용자 좌표가 전송되므로 EU 운영 미러만 사용(러시아 mail.ru 미러 제거).
+// 조회 반경을 1km로 줄인 뒤 overpass-api.de 가 빠르고 안정적(≈2.5s).
 const OVERPASS_ENDPOINTS = [
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ];
