@@ -10,7 +10,6 @@ export interface ProgressSnapshot {
   totalXp: number;
   level: number;
   levelRatio: number; // 현재 레벨 내 진행도 0..1 (게이지용)
-  film: number; // 소수점 누적, 표시는 floor
 }
 
 interface UserState extends ProgressSnapshot {
@@ -26,6 +25,5 @@ export const useUserStore = create<UserState>((set) => ({
   totalXp: 0,
   level: 1,
   levelRatio: 0,
-  film: 0,
   setProgress: (snapshot) => set(snapshot),
 }));

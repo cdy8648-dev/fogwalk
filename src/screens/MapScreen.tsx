@@ -48,7 +48,6 @@ export default function MapScreen() {
   const todayNewTiles = useUserStore((s) => s.todayNewTiles);
   const streak = useUserStore((s) => s.streak);
   const level = useUserStore((s) => s.level);
-  const film = useUserStore((s) => s.film);
   const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
@@ -65,9 +64,7 @@ export default function MapScreen() {
     setCapturing(true);
     const res = await capturePhotoAt(loc.lat, loc.lng);
     setCapturing(false);
-    if (res === 'no-film') {
-      Alert.alert('필름이 부족해요', '걸어서 필름을 모아야 사진을 남길 수 있어요. (가중 1km당 1장)');
-    } else if (res === 'no-permission') {
+    if (res === 'no-permission') {
       Alert.alert('카메라 권한 필요', '설정에서 카메라 접근을 허용해주세요.');
     } else if (res === 'error') {
       Alert.alert('오류', '사진 저장에 실패했어요.');
@@ -142,7 +139,7 @@ export default function MapScreen() {
         </Text>
       </View>
 
-      {/* 사진 남기기 버튼 (필름 소모) */}
+      {/* 사진 남기기 버튼 */}
       <Fab
         color={COLORS.amber}
         bottom={104}
@@ -155,9 +152,6 @@ export default function MapScreen() {
         ) : (
           <Ionicons name="camera" size={24} color={COLORS.ink} />
         )}
-        <View style={styles.filmBadge}>
-          <Text style={styles.filmBadgeText}>🎞️{Math.floor(film)}</Text>
-        </View>
       </Fab>
 
       {/* 내 위치로 이동 버튼 */}
@@ -217,16 +211,6 @@ const styles = StyleSheet.create({
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
   statValue: { color: COLORS.lime, fontSize: 22, fontFamily: FONT.display },
   statSub: { color: COLORS.text, fontSize: 12, marginTop: 4 },
-  filmBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -8,
-    backgroundColor: COLORS.ink,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  filmBadgeText: { color: COLORS.amber, fontSize: 11, fontWeight: '700' },
   deniedWrap: {
     position: 'absolute',
     top: 0,

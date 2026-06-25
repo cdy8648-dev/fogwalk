@@ -10,7 +10,7 @@ export function classifyMode(speedMps: number | null | undefined): TravelMode {
   return 'vehicle';
 }
 
-/** 이동수단별 XP/필름 가중치. (안개 reveal에는 적용하지 않음) */
+/** 이동수단별 XP 가중치. (안개 reveal에는 적용하지 않음) */
 export function modeWeight(speedMps: number | null | undefined): number {
   switch (classifyMode(speedMps)) {
     case 'walk':

@@ -18,7 +18,7 @@ import {
 
 /**
  * 진행도(거리·스트릭) 도메인 로직. db(영속) + 순수 유틸 위에서 동작.
- * XP/필름 계산은 Phase 2B/2D에서 여기에 추가한다.
+ * XP 계산은 utils/xp.ts 의 순수 함수로 위임한다.
  */
 
 /** 로컬 'YYYY-MM-DD'. */
@@ -69,14 +69,10 @@ export function recordMovement(
   // XP: 가중 거리 + 가중 신규타일 (+ 스트릭 보너스). 차량은 가중이 낮아 XP도 적게.
   const xpGain = xpForMovement(weighted, newTiles * w, streak);
 
-  // 필름: 가중 거리 기준 적립 (소수점 누적, 사용 시 1장 단위)
-  const filmGain = (weighted / 1000) * CONFIG.FILM_PER_KM;
-
   updateProgress({
     totalDistanceM: p.totalDistanceM + segment,
     walkDistanceM: p.walkDistanceM + weighted,
     totalXp: p.totalXp + xpGain,
-    film: p.film + filmGain,
     streak,
     lastExploreDate: lastDate,
     lastLat: lat,
@@ -122,7 +118,6 @@ export function refreshProgressStore(celebrateLevelUp = false): void {
     totalXp: p.totalXp,
     level: prog.level,
     levelRatio: prog.ratio,
-    film: p.film,
   });
 
   if (celebrateLevelUp && prog.level > prevLevel) {
@@ -134,13 +129,4 @@ export function refreshProgressStore(celebrateLevelUp = false): void {
   }
 
   checkAchievements();
-}
-
-/** 필름 1장 소모 시도. 충분하면 차감하고 true. (사진 게시용) */
-export function trySpendFilm(): boolean {
-  const p = getProgress();
-  if (p.film < 1) return false;
-  updateProgress({ film: p.film - 1 });
-  refreshProgressStore();
-  return true;
 }

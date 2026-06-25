@@ -61,7 +61,6 @@ CREATE TABLE IF NOT EXISTS progress (
   total_distance_m REAL DEFAULT 0,
   walk_distance_m REAL DEFAULT 0,
   total_xp INTEGER DEFAULT 0,
-  film INTEGER DEFAULT 0,
   streak INTEGER DEFAULT 0,
   last_explore_date TEXT,
   last_lat REAL,
@@ -166,7 +165,6 @@ export interface Progress {
   totalDistanceM: number; // 총 이동거리(무가중)
   walkDistanceM: number; // 노력 가중 거리(걷기=1, 차량≈0)
   totalXp: number;
-  film: number;
   streak: number;
   lastExploreDate: string | null; // 'YYYY-MM-DD'
   lastLat: number | null; // 거리 누적 연속용
@@ -178,7 +176,6 @@ export function getProgress(): Progress {
     total_distance_m: number;
     walk_distance_m: number;
     total_xp: number;
-    film: number;
     streak: number;
     last_explore_date: string | null;
     last_lat: number | null;
@@ -188,7 +185,6 @@ export function getProgress(): Progress {
     totalDistanceM: row?.total_distance_m ?? 0,
     walkDistanceM: row?.walk_distance_m ?? 0,
     totalXp: row?.total_xp ?? 0,
-    film: row?.film ?? 0,
     streak: row?.streak ?? 0,
     lastExploreDate: row?.last_explore_date ?? null,
     lastLat: row?.last_lat ?? null,
@@ -208,7 +204,6 @@ export function updateProgress(fields: Partial<Progress>): void {
   push('total_distance_m', fields.totalDistanceM);
   push('walk_distance_m', fields.walkDistanceM);
   push('total_xp', fields.totalXp);
-  push('film', fields.film);
   push('streak', fields.streak);
   push('last_explore_date', fields.lastExploreDate);
   push('last_lat', fields.lastLat);

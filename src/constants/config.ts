@@ -10,7 +10,7 @@ export const CONFIG = {
   FOG_NEAR_OPACITY: 0.6, // 옅은 안개(버퍼) — 지도 희미하게 보임
   FOG_FAR_OPACITY: 0.92, // 어두운 안개(미지) — 옅은 층과 겹쳐 거의 안 보임
 
-  // 이동수단 속도 가중 (XP/필름은 노력 기준; 안개 reveal은 무가중)
+  // 이동수단 속도 가중 (XP는 노력 기준; 안개 reveal은 무가중)
   MODE_WALK_MAX_MPS: 2.5, // 이하 = 걷기/달리기 (≈9km/h)
   MODE_CYCLE_MAX_MPS: 7, // 이하 = 자전거 (≈25km/h), 초과 = 차량
   MODE_WEIGHT_WALK: 1.0,
@@ -23,9 +23,6 @@ export const CONFIG = {
   XP_PER_TILE: 10,
   XP_STREAK_BONUS_PER_DAY: 0.02, // 스트릭 1일당 +2%
   XP_STREAK_BONUS_MAX: 0.3, // 최대 +30%
-
-  // 필름 (사진 게시용 소모재) — 노력 가중 거리 기준
-  FILM_PER_KM: 1, // 가중 1km당 필름 1장
 
   // 이 줌 이상에서만 사진 썸네일, 그보다 축소하면 점으로 (성능·가독성)
   PHOTO_THUMB_MIN_ZOOM: 14,
