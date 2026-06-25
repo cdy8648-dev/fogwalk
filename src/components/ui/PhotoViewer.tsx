@@ -13,6 +13,7 @@ import {
 import { COLORS } from '../../constants/colors';
 import { FONT } from '../../constants/fonts';
 import type { Photo } from '../../types';
+import Tape from './Tape';
 
 interface Props {
   photos: Photo[]; // 빈 배열 = 닫힘
@@ -60,7 +61,7 @@ export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props
             renderItem={({ item }) => (
               <Pressable style={[styles.page, { width }]} onPress={onClose}>
                 <View style={styles.frame}>
-                  <View style={styles.washi} />
+                  <Tape width={84} height={22} rotate={-3} style={styles.washiPos} />
                   <Image
                     source={{ uri: item.uri }}
                     style={[styles.image, { width: imgW, height: imgW }]}
@@ -100,17 +101,7 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 12 },
   },
-  washi: {
-    position: 'absolute',
-    top: -11,
-    alignSelf: 'center',
-    width: 84,
-    height: 22,
-    borderRadius: 2,
-    backgroundColor: 'rgba(200,245,96,0.55)',
-    transform: [{ rotate: '-3deg' }],
-    zIndex: 2,
-  },
+  washiPos: { position: 'absolute', top: -11, alignSelf: 'center', zIndex: 2 },
   image: { borderRadius: 3, backgroundColor: COLORS.fogLight },
   caption: {
     color: COLORS.paperInk,

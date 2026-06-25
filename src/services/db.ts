@@ -7,7 +7,6 @@ import type {
   Landmark,
   LandmarkCategory,
   Photo,
-  TrackingSession,
 } from '../types';
 
 /**
@@ -27,14 +26,6 @@ CREATE TABLE IF NOT EXISTS visited_tiles (
   tile_id TEXT PRIMARY KEY,
   first_visited_at INTEGER NOT NULL,
   visit_count INTEGER DEFAULT 1
-);
-
-CREATE TABLE IF NOT EXISTS sessions (
-  id TEXT PRIMARY KEY,
-  started_at INTEGER NOT NULL,
-  ended_at INTEGER,
-  distance_m REAL DEFAULT 0,
-  points TEXT DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS achievements (
@@ -224,44 +215,6 @@ export function updateProgress(fields: Partial<Progress>): void {
   push('last_lng', fields.lastLng);
   if (sets.length === 0) return;
   db.runSync(`UPDATE progress SET ${sets.join(', ')} WHERE id = 1`, ...params);
-}
-
-// ── sessions ───────────────────────────────────────────────────
-
-export function insertSession(session: TrackingSession): void {
-  db.runSync(
-    'INSERT INTO sessions (id, started_at, ended_at, distance_m, points) VALUES (?, ?, ?, ?, ?)',
-    session.id,
-    session.startedAt,
-    session.endedAt ?? null,
-    session.distanceM,
-    JSON.stringify(session.points)
-  );
-}
-
-export function updateSession(
-  id: string,
-  fields: Partial<Pick<TrackingSession, 'endedAt' | 'distanceM' | 'points'>>
-): void {
-  const sets: string[] = [];
-  const params: SQLite.SQLiteBindValue[] = [];
-
-  if (fields.endedAt !== undefined) {
-    sets.push('ended_at = ?');
-    params.push(fields.endedAt);
-  }
-  if (fields.distanceM !== undefined) {
-    sets.push('distance_m = ?');
-    params.push(fields.distanceM);
-  }
-  if (fields.points !== undefined) {
-    sets.push('points = ?');
-    params.push(JSON.stringify(fields.points));
-  }
-  if (sets.length === 0) return;
-
-  params.push(id);
-  db.runSync(`UPDATE sessions SET ${sets.join(', ')} WHERE id = ?`, ...params);
 }
 
 // ── achievements ───────────────────────────────────────────────

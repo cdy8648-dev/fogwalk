@@ -3,20 +3,6 @@ export interface Coordinate {
   lng: number;
 }
 
-export interface TrackingSession {
-  id: string;
-  startedAt: number;
-  endedAt?: number;
-  distanceM: number;
-  points: Coordinate[];
-}
-
-export interface VisitedTile {
-  tileId: string;
-  firstVisitedAt: number;
-  visitCount: number;
-}
-
 export interface Landmark {
   osmId: string;
   name: string;

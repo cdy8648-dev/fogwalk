@@ -24,6 +24,7 @@ import LocationMarker from '../components/map/LocationMarker';
 import PhotoMarkers from '../components/map/PhotoMarkers';
 import Fab from '../components/ui/Fab';
 import PhotoViewer from '../components/ui/PhotoViewer';
+import Tape from '../components/ui/Tape';
 import { COLORS } from '../constants/colors';
 import { CONFIG } from '../constants/config';
 import { FONT } from '../constants/fonts';
@@ -133,7 +134,7 @@ export default function MapScreen() {
 
       {/* 상단 탐험 통계 오버레이 (폴라로이드 무드: 테잎 + 살짝 기울임) */}
       <View style={[styles.statCard, { top: insets.top + 6 }]} pointerEvents="none">
-        <View style={styles.statTape} />
+        <Tape width={58} height={18} color="rgba(200,245,96,0.5)" style={styles.statTapePos} />
         <Text style={styles.statLabel}>내가 밝힌 땅</Text>
         <Text style={styles.statValue}>{abbrev(tiles)} 칸</Text>
         <Text style={styles.statSub}>
@@ -212,16 +213,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
   },
-  statTape: {
-    position: 'absolute',
-    top: -9,
-    alignSelf: 'center',
-    width: 58,
-    height: 18,
-    borderRadius: 2,
-    backgroundColor: 'rgba(200,245,96,0.5)',
-    transform: [{ rotate: '-4deg' }],
-  },
+  statTapePos: { position: 'absolute', top: -9, alignSelf: 'center' },
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
   statValue: { color: COLORS.lime, fontSize: 22, fontFamily: FONT.display },
   statSub: { color: COLORS.text, fontSize: 12, marginTop: 4 },

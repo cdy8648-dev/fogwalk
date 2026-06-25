@@ -1,21 +1,10 @@
-import {
-  cellArea,
-  cellToBoundary,
-  cellsToMultiPolygon,
-  gridDisk,
-  latLngToCell,
-} from 'h3-js';
+import { cellsToMultiPolygon, gridDisk, latLngToCell } from 'h3-js';
 
 import { CONFIG } from '../constants/config';
 
 /** 좌표 → H3 타일 ID (기본 해상도). */
 export function coordToTile(lat: number, lng: number): string {
   return latLngToCell(lat, lng, CONFIG.H3_RESOLUTION);
-}
-
-/** 타일 경계 폴리곤. [lng, lat] 순서 (GeoJSON용). */
-export function tileToPolygon(tileId: string): number[][] {
-  return cellToBoundary(tileId, true);
 }
 
 /** 현재 위치에서 밝힐 타일들 (현재 타일 + gridDisk(k)). */
@@ -32,11 +21,6 @@ export function revealTilesFor(lat: number, lng: number): string[] {
 export function tilesToRevealedPolygons(tileIds: string[]): number[][][][] {
   if (tileIds.length === 0) return [];
   return cellsToMultiPolygon(tileIds, true);
-}
-
-/** 타일 면적 (km²). */
-export function tileAreaKm2(tileId: string): number {
-  return cellArea(tileId, 'km2');
 }
 
 /** 타일 집합을 gridDisk(k)로 팽창(dilate)시킨 합집합. 안개 버퍼 영역 계산용. */

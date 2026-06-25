@@ -2,6 +2,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
+import Tape from './ui/Tape';
 
 interface Props {
   uri: string;
@@ -19,7 +20,7 @@ export default function Polaroid({
 }: Props) {
   return (
     <View style={[styles.frame, { transform: [{ rotate: `${rotation}deg` }] }]}>
-      <View style={styles.washi} />
+      <Tape style={styles.washiPos} />
       <Image source={{ uri }} style={[styles.img, { aspectRatio }]} />
       {caption ? (
         <Text style={styles.caption} numberOfLines={1}>
@@ -41,16 +42,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
   },
-  washi: {
-    position: 'absolute',
-    top: -8,
-    alignSelf: 'center',
-    width: 56,
-    height: 16,
-    backgroundColor: 'rgba(200,245,96,0.55)',
-    transform: [{ rotate: '-4deg' }],
-    zIndex: 2,
-  },
+  washiPos: { position: 'absolute', top: -8, alignSelf: 'center', zIndex: 2 },
   img: { width: '100%', borderRadius: 2, backgroundColor: COLORS.fogLight },
   caption: {
     color: COLORS.paperInk,

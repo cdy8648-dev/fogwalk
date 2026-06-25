@@ -18,12 +18,3 @@ export function haversineMeters(a: Coordinate, b: Coordinate): number {
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
-
-/** 경로(좌표 배열)의 총 이동 거리(미터). */
-export function pathLengthMeters(points: Coordinate[]): number {
-  let total = 0;
-  for (let i = 1; i < points.length; i++) {
-    total += haversineMeters(points[i - 1], points[i]);
-  }
-  return total;
-}

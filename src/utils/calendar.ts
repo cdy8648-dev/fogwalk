@@ -63,13 +63,3 @@ export function buildMonthlyHistory(stats: DailyStats[]): MonthStat[] {
   return [...map.values()].sort((a, b) => (a.ym < b.ym ? 1 : -1));
 }
 
-/** 누적 신규타일 시계열 (항상 우상향). */
-export function buildCumulativeTiles(
-  stats: DailyStats[]
-): { date: string; cum: number }[] {
-  let sum = 0;
-  return stats.map((s) => {
-    sum += s.newTiles;
-    return { date: s.date, cum: sum };
-  });
-}

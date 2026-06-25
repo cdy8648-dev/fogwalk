@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AboutModal from '../components/AboutModal';
 import EmptyHint from '../components/ui/EmptyHint';
 import SectionPill from '../components/ui/SectionPill';
+import Tape from '../components/ui/Tape';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
 import { milestoneState } from '../constants/milestones';
@@ -102,7 +103,7 @@ export default function ProfileScreen() {
 
       {/* 정체성 카드 */}
       <View style={styles.idCard}>
-        <View style={styles.idTape} />
+        <Tape width={54} height={18} rotate={5} color="rgba(255,184,48,0.5)" style={styles.idTapePos} />
         <View style={styles.avatar}>
           <Text style={styles.avatarEmoji}>🧭</Text>
         </View>
@@ -290,16 +291,7 @@ const styles = StyleSheet.create({
     shadowRadius: 11,
     shadowOffset: { width: 0, height: 10 },
   },
-  idTape: {
-    position: 'absolute',
-    top: -9,
-    right: 24,
-    width: 54,
-    height: 18,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,184,48,0.5)',
-    transform: [{ rotate: '5deg' }],
-  },
+  idTapePos: { position: 'absolute', top: -9, right: 24 },
   avatar: {
     width: 58,
     height: 58,
