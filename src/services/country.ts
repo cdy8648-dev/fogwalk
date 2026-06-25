@@ -6,7 +6,7 @@ import {
   setSetting,
   upsertCountryTiles,
 } from './db';
-import { detectCountry, getCurrentOnce } from './gps';
+import { detectCountry, getCurrentCoarse } from './gps';
 
 /**
  * 현재 국가 캐싱. 역지오코딩 호출을 아끼려고 멀리(>REDETECT_M) 이동했을 때만 재판별.
@@ -34,7 +34,7 @@ export function hydrateCountry(): void {
  */
 export async function refreshCountry(): Promise<void> {
   try {
-    const c = await getCurrentOnce();
+    const c = await getCurrentCoarse(); // 국가 판별엔 저정밀로 충분(배터리 절약)
     await ensureCountry(c.lat, c.lng);
   } catch {
     /* 위치 못 잡으면 다음 이동에서 자연 보정 */

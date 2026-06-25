@@ -1,7 +1,8 @@
 import { ACHIEVEMENTS } from '../constants/achievements';
 import { useAchievementStore } from '../store/achievementStore';
+import { useMapStore } from '../store/mapStore';
 import type { Achievement } from '../types';
-import { getProgress, getTileCount, insertAchievement } from './db';
+import { getProgress, insertAchievement } from './db';
 
 /**
  * 현재 지표를 보고 새로 달성한 뱃지를 해금(DB + 스토어 + 축하 큐).
@@ -13,7 +14,7 @@ export function checkAchievements(): void {
   const metrics: Record<'streak' | 'distanceKm' | 'tiles', number> = {
     streak: p.streak,
     distanceKm: p.totalDistanceM / 1000,
-    tiles: getTileCount(),
+    tiles: useMapStore.getState().visitedTileIds.size, // 메모리 캐시(매 측위 COUNT(*) 회피)
   };
   const now = Date.now();
 

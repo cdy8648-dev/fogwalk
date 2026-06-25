@@ -23,10 +23,18 @@ export async function requestBackgroundPermission(): Promise<boolean> {
   return bg.status === 'granted';
 }
 
-/** 현재 위치 1회 조회 (고정밀). */
+/** 현재 위치 1회 조회 (고정밀). 첫 reveal·카메라 센터용. */
 export async function getCurrentOnce(): Promise<Coordinate> {
   const pos = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.High,
+  });
+  return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+}
+
+/** 현재 위치 1회 조회 (저정밀, 배터리 절약). 국가 판별처럼 대략 위치면 충분할 때. */
+export async function getCurrentCoarse(): Promise<Coordinate> {
+  const pos = await Location.getCurrentPositionAsync({
+    accuracy: Location.Accuracy.Low, // ≈1km — 국가/도시 판별에 충분, GPS 풀가동 회피
   });
   return { lat: pos.coords.latitude, lng: pos.coords.longitude };
 }
