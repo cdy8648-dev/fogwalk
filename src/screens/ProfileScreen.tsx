@@ -17,8 +17,7 @@ import {
   localDateStr,
   type CalCell,
 } from '../utils/calendar';
-import { comma } from '../utils/format';
-import { coordToTile, tileAreaKm2 } from '../utils/h3';
+import { abbrev, comma } from '../utils/format';
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTH_ABBR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -56,16 +55,8 @@ export default function ProfileScreen() {
   const totalXp = useUserStore((s) => s.totalXp);
   const streak = useUserStore((s) => s.streak);
   const fogVersion = useMapStore((s) => s.fogVersion);
-  const currentLocation = useMapStore((s) => s.currentLocation);
   const tiles = useMapStore((s) => s.visitedTileIds.size);
 
-  const perTileKm2 = useMemo(() => {
-    const lat = currentLocation?.lat ?? 37.5665;
-    const lng = currentLocation?.lng ?? 126.978;
-    return tileAreaKm2(coordToTile(lat, lng));
-  }, [currentLocation]);
-
-  const areaKm2 = tiles * perTileKm2;
   const goal = milestoneState(tiles);
   const goalPct = goal.maxed ? 100 : Math.round(goal.ratio * 100);
 
@@ -253,8 +244,8 @@ export default function ProfileScreen() {
                 <View style={styles.histDivider} />
                 <View>
                   <Text style={[styles.histNum, { color: COLORS.teal }]}>
-                    {(m.newTiles * perTileKm2).toFixed(2)}
-                    <Text style={styles.histUnit}> km²</Text>
+                    {abbrev(m.newTiles)}
+                    <Text style={styles.histUnit}> 칸</Text>
                   </Text>
                   <Text style={styles.histLabel}>밝힌 땅</Text>
                 </View>
@@ -265,7 +256,7 @@ export default function ProfileScreen() {
       )}
 
       {/* 전체 밝힌 땅(누계) 참고 */}
-      <Text style={styles.totalNote}>지금까지 밝힌 땅 {areaKm2.toFixed(2)} km²</Text>
+      <Text style={styles.totalNote}>지금까지 밝힌 땅 {abbrev(tiles)}칸</Text>
 
       <TouchableOpacity style={styles.aboutBtn} onPress={() => setAboutOpen(true)}>
         <Ionicons name="information-circle-outline" size={15} color={COLORS.muted} />

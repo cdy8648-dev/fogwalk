@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { COLORS } from '../../constants/colors';
+import { FONT } from '../../constants/fonts';
 import type { Photo } from '../../types';
 
 interface Props {
@@ -19,17 +20,26 @@ interface Props {
   onClose: () => void;
 }
 
-/** 사진 전체보기 (Map·Collection 공용). 여러 장이면 좌우 스와이프 + 페이지 닷. */
+function caption(ts: number): string {
+  return new Date(ts).toLocaleString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** 사진 전체보기 (Map·Collection 공용). 폴라로이드 확대 + 좌우 스와이프 + 페이지 닷. */
 export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props) {
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(initialIndex);
+  const imgW = Math.min(width * 0.72, 300);
 
   useEffect(() => {
     setIndex(initialIndex);
   }, [initialIndex, photos]);
 
   const open = photos.length > 0;
-  const current = open ? photos[Math.min(index, photos.length - 1)] : null;
 
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
@@ -49,24 +59,27 @@ export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props
             }
             renderItem={({ item }) => (
               <Pressable style={[styles.page, { width }]} onPress={onClose}>
-                <Image source={{ uri: item.uri }} style={styles.image} resizeMode="contain" />
+                <View style={styles.frame}>
+                  <View style={styles.washi} />
+                  <Image
+                    source={{ uri: item.uri }}
+                    style={[styles.image, { width: imgW, height: imgW }]}
+                    resizeMode="cover"
+                  />
+                  <Text style={styles.caption} numberOfLines={1}>
+                    📍 {caption(item.createdAt)}
+                  </Text>
+                </View>
               </Pressable>
             )}
           />
-          <View style={styles.footer} pointerEvents="none">
-            {current && (
-              <Text style={styles.date}>
-                {new Date(current.createdAt).toLocaleString()}
-              </Text>
-            )}
-            {photos.length > 1 && (
-              <View style={styles.dots}>
-                {photos.map((p, i) => (
-                  <View key={p.id} style={[styles.dot, i === index && styles.dotActive]} />
-                ))}
-              </View>
-            )}
-          </View>
+          {photos.length > 1 && (
+            <View style={styles.dots} pointerEvents="none">
+              {photos.map((p, i) => (
+                <View key={p.id} style={[styles.dot, i === index && styles.dotActive]} />
+              ))}
+            </View>
+          )}
         </View>
       )}
     </Modal>
@@ -76,21 +89,46 @@ export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(5,6,12,0.94)' },
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  image: { width: '100%', height: '78%' },
-  footer: {
+  frame: {
+    backgroundColor: COLORS.paper,
+    borderRadius: 8,
+    padding: 12,
+    paddingBottom: 18,
+    transform: [{ rotate: '-2deg' }],
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  washi: {
     position: 'absolute',
+    top: -11,
+    alignSelf: 'center',
+    width: 84,
+    height: 22,
+    borderRadius: 2,
+    backgroundColor: 'rgba(200,245,96,0.55)',
+    transform: [{ rotate: '-3deg' }],
+    zIndex: 2,
+  },
+  image: { borderRadius: 3, backgroundColor: COLORS.fogLight },
+  caption: {
+    color: COLORS.paperInk,
+    fontSize: 13,
+    letterSpacing: 0.5,
+    marginTop: 12,
+    paddingHorizontal: 2,
+    fontFamily: FONT.mono,
+  },
+  dots: {
+    position: 'absolute',
+    bottom: 44,
     left: 0,
     right: 0,
-    bottom: 40,
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
-  date: { color: COLORS.muted, fontSize: 13, marginBottom: 12 },
-  dots: { flexDirection: 'row', gap: 6 },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: COLORS.border,
-  },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.border },
   dotActive: { backgroundColor: COLORS.lime },
 });

@@ -8,6 +8,7 @@ import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
 import { getAllCountryStats } from '../services/db';
 import { useMapStore } from '../store/mapStore';
+import { abbrev } from '../utils/format';
 import { codeToFlag } from '../utils/flag';
 import { formatDate } from '../utils/date';
 
@@ -26,7 +27,7 @@ export default function PassportDetailScreen() {
         <>
           <View style={styles.summary}>
             <StatTile value={String(countries.length)} label="나라" accent={COLORS.violetSoft} />
-            <StatTile value={String(totalTiles)} label="총 밝힌 칸" accent={COLORS.violetSoft} />
+            <StatTile value={abbrev(totalTiles)} label="총 밝힌 칸" accent={COLORS.violetSoft} />
           </View>
 
           <View style={styles.list}>
@@ -40,7 +41,9 @@ export default function PassportDetailScreen() {
                   )}
                 </View>
                 <View style={styles.right}>
-                  <Text style={styles.num}>{c.tiles}</Text>
+                  <Text style={styles.num} numberOfLines={1}>
+                    {abbrev(c.tiles)}
+                  </Text>
                   <Text style={styles.unit}>칸</Text>
                 </View>
               </View>

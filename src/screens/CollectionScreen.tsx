@@ -17,6 +17,7 @@ import { useLandmarkStore } from '../store/landmarkStore';
 import { useMapStore } from '../store/mapStore';
 import { usePhotoStore } from '../store/photoStore';
 import type { Photo } from '../types';
+import { abbrev } from '../utils/format';
 import { codeToFlag } from '../utils/flag';
 
 type Nav = NativeStackNavigationProp<CollectionStackParamList>;
@@ -129,7 +130,9 @@ export default function CollectionScreen() {
             <View key={c.code} style={styles.ppCard}>
               <Text style={styles.ppFlag}>{codeToFlag(c.code)}</Text>
               <View style={styles.ppSpacer} />
-              <Text style={styles.ppNum}>{c.tiles}</Text>
+              <Text style={styles.ppNum} numberOfLines={1}>
+                {abbrev(c.tiles)}
+              </Text>
               <Text style={styles.ppUnit}>칸 밝힘</Text>
               <Text style={styles.ppName} numberOfLines={1}>
                 {c.name}

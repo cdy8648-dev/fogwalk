@@ -2,7 +2,6 @@ import {
   type ComponentRef,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -31,12 +30,11 @@ import { FONT } from '../constants/fonts';
 import { getMapStyle } from '../constants/mapStyles';
 import { useTracking } from '../hooks/useTracking';
 import { capturePhotoAt } from '../services/photos';
-import { getTileCount } from '../services/db';
 import { useMapStore } from '../store/mapStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
 import type { Photo } from '../types';
-import { coordToTile, tileAreaKm2 } from '../utils/h3';
+import { abbrev } from '../utils/format';
 
 // 첫 위치 픽스 전 기본 중심(서울 시청).
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
@@ -45,8 +43,8 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const { status } = useTracking();
   const currentLocation = useMapStore((s) => s.currentLocation);
-  const fogVersion = useMapStore((s) => s.fogVersion);
-  const todayDistanceM = useUserStore((s) => s.todayDistanceM);
+  const tiles = useMapStore((s) => s.visitedTileIds.size);
+  const todayNewTiles = useUserStore((s) => s.todayNewTiles);
   const streak = useUserStore((s) => s.streak);
   const level = useUserStore((s) => s.level);
   const film = useUserStore((s) => s.film);
@@ -55,6 +53,7 @@ export default function MapScreen() {
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [photoThumbs, setPhotoThumbs] = useState(true); // 줌 수준에 따라 썸네일/점
+  const [showSubway, setShowSubway] = useState(true); // 줌아웃 시 지하철 마커 숨김
 
   const onCapture = useCallback(async () => {
     const loc = useMapStore.getState().currentLocation;
@@ -105,15 +104,6 @@ export default function MapScreen() {
     }
   }, [recenter]);
 
-  // 밝힌 면적 = 타일 수 × 타일당 면적. fogVersion 변경 시 갱신.
-  const areaKm2 = useMemo(() => {
-    const count = getTileCount();
-    if (count === 0) return 0;
-    const sampleLat = currentLocation?.lat ?? DEFAULT_CENTER[1];
-    const sampleLng = currentLocation?.lng ?? DEFAULT_CENTER[0];
-    return count * tileAreaKm2(coordToTile(sampleLat, sampleLng));
-  }, [fogVersion, currentLocation]);
-
   return (
     <View style={styles.container}>
       <MapView
@@ -124,8 +114,11 @@ export default function MapScreen() {
         attributionEnabled={false}
         onDidFinishLoadingMap={handleMapLoaded}
         onCameraChanged={(e) => {
-          const next = (e.properties?.zoom ?? 15) >= CONFIG.PHOTO_THUMB_MIN_ZOOM;
-          setPhotoThumbs((prev) => (prev === next ? prev : next));
+          const zoom = e.properties?.zoom ?? 15;
+          const thumbs = zoom >= CONFIG.PHOTO_THUMB_MIN_ZOOM;
+          const subway = zoom >= CONFIG.SUBWAY_MIN_ZOOM;
+          setPhotoThumbs((prev) => (prev === thumbs ? prev : thumbs));
+          setShowSubway((prev) => (prev === subway ? prev : subway));
         }}
       >
         <Camera
@@ -133,7 +126,7 @@ export default function MapScreen() {
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
         />
         <FogLayer />
-        <LandmarkMarkers full={photoThumbs} />
+        <LandmarkMarkers full={photoThumbs} showSubway={showSubway} />
         <PhotoMarkers thumbnails={photoThumbs} onSelect={setViewerPhotos} />
         <LocationMarker />
       </MapView>
@@ -142,9 +135,9 @@ export default function MapScreen() {
       <View style={[styles.statCard, { top: insets.top + 6 }]} pointerEvents="none">
         <View style={styles.statTape} />
         <Text style={styles.statLabel}>내가 밝힌 땅</Text>
-        <Text style={styles.statValue}>{areaKm2.toFixed(2)} km²</Text>
+        <Text style={styles.statValue}>{abbrev(tiles)} 칸</Text>
         <Text style={styles.statSub}>
-          Lv {level} · 오늘 {(todayDistanceM / 1000).toFixed(1)}km · 🔥 {streak}일
+          Lv {level} · 오늘 {abbrev(todayNewTiles)}칸 · 🔥 {streak}일
         </Text>
       </View>
 

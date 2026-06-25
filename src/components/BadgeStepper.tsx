@@ -5,7 +5,7 @@ import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
 import { TILE_MILESTONES, milestoneState } from '../constants/milestones';
 import { useMapStore } from '../store/mapStore';
-import { comma } from '../utils/format';
+import { abbrev } from '../utils/format';
 import Card from './ui/Card';
 
 const VISIBLE = 4; // 한 번에 보여줄 단계 수 (가로 스테퍼)
@@ -63,7 +63,7 @@ export default function BadgeStepper() {
         <View style={styles.progressTop}>
           <Text style={styles.progressLabel}>{maxed ? '모든 목표 달성!' : '다음 목표까지'}</Text>
           <Text style={styles.progressVal}>
-            {comma(tiles)} / {comma(target)} 칸
+            {abbrev(tiles)} / {abbrev(target)} 칸
           </Text>
         </View>
         <View style={styles.track}>

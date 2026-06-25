@@ -3,16 +3,21 @@ import { Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { CircleLayer, MarkerView, ShapeSource } from '@rnmapbox/maps';
 
 import { COLORS } from '../../constants/colors';
-import { CATEGORY_EMOJI, rarityLabel } from '../../constants/landmarks';
+import { CATEGORY_EMOJI, rarityColor, rarityLabel } from '../../constants/landmarks';
 import { useLandmarkStore } from '../../store/landmarkStore';
 
 interface Props {
   full: boolean; // true=이모지 핀, false=점 (줌아웃)
+  showSubway: boolean; // false면 지하철 마커 숨김 (줌아웃 시 클러터 방지)
 }
 
-/** 발견한 랜드마크. 줌인=카테고리 이모지 핀, 줌아웃=점(가벼움). */
-export default function LandmarkMarkers({ full }: Props) {
-  const landmarks = useLandmarkStore((s) => s.discovered);
+/** 발견한 랜드마크. 줌인=카테고리 이모지 핀, 줌아웃=점(가벼움). 색은 희귀도별. */
+export default function LandmarkMarkers({ full, showSubway }: Props) {
+  const discovered = useLandmarkStore((s) => s.discovered);
+  const landmarks = useMemo(
+    () => (showSubway ? discovered : discovered.filter((l) => l.category !== 'subway')),
+    [discovered, showSubway]
+  );
 
   const dotShape = useMemo(
     () => ({
@@ -33,7 +38,15 @@ export default function LandmarkMarkers({ full }: Props) {
           id="lm-dots-layer"
           style={{
             circleRadius: 4,
-            circleColor: COLORS.violet,
+            circleColor: [
+              'match',
+              ['get', 'rarity'],
+              'legendary',
+              COLORS.amber,
+              'rare',
+              COLORS.hotpink,
+              COLORS.violet,
+            ],
             circleStrokeColor: COLORS.ink,
             circleStrokeWidth: 1,
           }}
@@ -54,7 +67,11 @@ export default function LandmarkMarkers({ full }: Props) {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => Alert.alert(lm.name, rarityLabel(lm.rarity))}
-            style={[styles.pin, lm.rarity === 'legendary' && styles.legendary]}
+            style={[
+              styles.pin,
+              { borderColor: rarityColor(lm.rarity) },
+              lm.rarity === 'legendary' && styles.legendary,
+            ]}
           >
             <Text style={styles.emoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
           </TouchableOpacity>
@@ -71,10 +88,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: COLORS.surface,
     borderWidth: 2,
-    borderColor: COLORS.violet,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  legendary: { borderColor: COLORS.amber, borderWidth: 3 },
+  legendary: { borderWidth: 3 }, // 전설은 테두리 더 두껍게(색은 rarityColor=앰버)
   emoji: { fontSize: 16 },
 });

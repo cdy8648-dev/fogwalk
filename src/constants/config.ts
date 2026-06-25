@@ -29,6 +29,7 @@ export const CONFIG = {
 
   // 이 줌 이상에서만 사진 썸네일, 그보다 축소하면 점으로 (성능·가독성)
   PHOTO_THUMB_MIN_ZOOM: 14,
+  SUBWAY_MIN_ZOOM: 13, // 이 줌 미만이면 지하철 마커 숨김 (수가 많아 클러터 방지)
   PHOTO_GROUP_RES: 11, // 사진 묶음용 H3 해상도 (≈같은 자리, ~50m)
 
   // 랜드마크 (Phase 3)
