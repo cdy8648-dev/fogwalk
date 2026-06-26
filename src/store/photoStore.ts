@@ -8,6 +8,7 @@ interface PhotoState {
   photos: Photo[];
   hydrate: () => void;
   add: (photo: Photo) => void;
+  remove: (id: string) => void;
 }
 
 export const usePhotoStore = create<PhotoState>((set) => ({
@@ -16,4 +17,5 @@ export const usePhotoStore = create<PhotoState>((set) => ({
   hydrate: () =>
     set({ photos: getAllPhotos().map((p) => ({ ...p, uri: resolvePhotoUri(p.uri) })) }),
   add: (photo) => set((state) => ({ photos: [photo, ...state.photos] })),
+  remove: (id) => set((state) => ({ photos: state.photos.filter((p) => p.id !== id) })),
 }));

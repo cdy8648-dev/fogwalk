@@ -18,3 +18,10 @@ export function resolvePhotoUri(stored: string): string {
   const name = stored.split('/').pop() ?? stored;
   return new File(photoDir(), name).uri;
 }
+
+/** 저장된 값(파일명/절대경로)에 해당하는 사진 파일 삭제. */
+export function deletePhotoFile(stored: string): void {
+  const name = stored.split('/').pop() ?? stored;
+  const f = new File(photoDir(), name);
+  if (f.exists) f.delete();
+}

@@ -423,6 +423,10 @@ export function insertPhoto(photo: Photo): void {
   );
 }
 
+export function deletePhoto(id: string): void {
+  db.runSync('DELETE FROM photos WHERE id = ?', id);
+}
+
 export function getAllPhotos(): Photo[] {
   const rows = db.getAllSync<{
     id: string;

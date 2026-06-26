@@ -2,8 +2,8 @@ import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
 import { usePhotoStore } from '../store/photoStore';
-import { insertPhoto } from './db';
-import { photoDir } from './photoFiles';
+import { deletePhoto, insertPhoto } from './db';
+import { deletePhotoFile, photoDir } from './photoFiles';
 
 export type CaptureResult = 'ok' | 'no-permission' | 'canceled' | 'error';
 
@@ -47,4 +47,11 @@ export async function capturePhotoAt(
     console.warn('[photos] capture failed:', e);
     return 'error';
   }
+}
+
+/** 사진 삭제: 파일 + DB 행 + 스토어에서 제거. */
+export function removePhoto(id: string, uri: string): void {
+  deletePhotoFile(uri);
+  deletePhoto(id);
+  usePhotoStore.getState().remove(id);
 }

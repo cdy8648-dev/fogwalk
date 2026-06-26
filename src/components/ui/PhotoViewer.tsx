@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   Modal,
   Pressable,
   StyleSheet,
   Text,
+  TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as MediaLibrary from 'expo-media-library';
 
 import { COLORS } from '../../constants/colors';
 import { FONT } from '../../constants/fonts';
+import { removePhoto } from '../../services/photos';
 import type { Photo } from '../../types';
 import Tape from './Tape';
 
@@ -30,7 +35,7 @@ function caption(ts: number): string {
   });
 }
 
-/** 사진 전체보기 (Map·Collection 공용). 폴라로이드 확대 + 좌우 스와이프 + 페이지 닷. */
+/** 사진 전체보기 (Map·Collection 공용). 폴라로이드 확대 + 스와이프 + 저장/삭제. */
 export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props) {
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(initialIndex);
@@ -41,6 +46,37 @@ export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props
   }, [initialIndex, photos]);
 
   const open = photos.length > 0;
+  const current = open ? photos[Math.min(index, photos.length - 1)] : null;
+
+  const handleDownload = async () => {
+    if (!current) return;
+    try {
+      const perm = await MediaLibrary.requestPermissionsAsync(true); // 추가 전용
+      if (!perm.granted) {
+        Alert.alert('사진 접근 권한 필요', '설정에서 사진 추가 권한을 허용해주세요.');
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(current.uri);
+      Alert.alert('저장 완료', '사진을 앨범에 저장했어요 📸');
+    } catch {
+      Alert.alert('오류', '저장에 실패했어요.');
+    }
+  };
+
+  const handleDelete = () => {
+    if (!current) return;
+    Alert.alert('사진 삭제', '이 사진을 삭제할까요? 되돌릴 수 없어요.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: () => {
+          removePhoto(current.id, current.uri);
+          onClose();
+        },
+      },
+    ]);
+  };
 
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
@@ -74,13 +110,24 @@ export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props
               </Pressable>
             )}
           />
-          {photos.length > 1 && (
-            <View style={styles.dots} pointerEvents="none">
-              {photos.map((p, i) => (
-                <View key={p.id} style={[styles.dot, i === index && styles.dotActive]} />
-              ))}
+
+          <View style={styles.footer} pointerEvents="box-none">
+            {photos.length > 1 && (
+              <View style={styles.dots}>
+                {photos.map((p, i) => (
+                  <View key={p.id} style={[styles.dot, i === index && styles.dotActive]} />
+                ))}
+              </View>
+            )}
+            <View style={styles.actions}>
+              <TouchableOpacity onPress={handleDownload} style={styles.actionBtn} activeOpacity={0.8}>
+                <Ionicons name="download-outline" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDelete} style={styles.actionBtn} activeOpacity={0.8}>
+                <Ionicons name="trash-outline" size={23} color={COLORS.hotpink} />
+              </TouchableOpacity>
             </View>
-          )}
+          </View>
         </View>
       )}
     </Modal>
@@ -111,15 +158,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     fontFamily: FONT.mono,
   },
-  dots: {
+  footer: {
     position: 'absolute',
     bottom: 44,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    alignItems: 'center',
+    gap: 18,
   },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.border },
   dotActive: { backgroundColor: COLORS.lime },
+  actions: { flexDirection: 'row', gap: 28 },
+  actionBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
