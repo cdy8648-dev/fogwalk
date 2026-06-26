@@ -214,14 +214,16 @@ export function updateProgress(fields: Partial<Progress>): void {
 
 // ── achievements ───────────────────────────────────────────────
 
-export function insertAchievement(achievement: Achievement): void {
-  db.runSync(
+/** 업적 영속. 실제로 새로 삽입되면(이미 있던 게 아니면) true. */
+export function insertAchievement(achievement: Achievement): boolean {
+  const res = db.runSync(
     'INSERT OR IGNORE INTO achievements (id, type, value, unlocked_at) VALUES (?, ?, ?, ?)',
     achievement.id,
     achievement.type,
     achievement.value,
     achievement.unlockedAt
   );
+  return res.changes > 0;
 }
 
 export function getAllAchievements(): Achievement[] {

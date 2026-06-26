@@ -13,26 +13,25 @@ interface AchievementState {
   unlockedTypes: Set<string>; // 해금된 업적 type (중복 방지)
   queue: Celebration[]; // 표시 대기열
   hydrate: () => void;
-  unlock: (type: string, celebration: Celebration) => void;
-  celebrate: (celebration: Celebration) => void; // 레벨업 등 type 없는 축하
+  markUnlocked: (type: string) => void; // 해금 집합에만 추가(축하는 별도)
+  celebrate: (celebration: Celebration) => void; // 축하 큐에 적재
   dismiss: () => void;
 }
 
-export const useAchievementStore = create<AchievementState>((set, get) => ({
+export const useAchievementStore = create<AchievementState>((set) => ({
   unlockedTypes: new Set<string>(),
   queue: [],
 
   hydrate: () =>
     set({ unlockedTypes: new Set(getAllAchievements().map((a) => a.type)) }),
 
-  unlock: (type, celebration) => {
-    if (get().unlockedTypes.has(type)) return;
+  markUnlocked: (type) =>
     set((state) => {
+      if (state.unlockedTypes.has(type)) return state;
       const next = new Set(state.unlockedTypes);
       next.add(type);
-      return { unlockedTypes: next, queue: [...state.queue, celebration] };
-    });
-  },
+      return { unlockedTypes: next };
+    }),
 
   celebrate: (celebration) =>
     set((state) => ({ queue: [...state.queue, celebration] })),

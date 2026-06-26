@@ -11,6 +11,8 @@ import { ensureLandmarksFetched } from './landmarks';
 import {
   getDailyStatsByDate,
   getProgress,
+  getSetting,
+  setSetting,
   updateProgress,
   upsertCountryTiles,
   upsertDailyStats,
@@ -107,7 +109,6 @@ export function refreshProgressStore(celebrateLevelUp = false): void {
   const p = getProgress();
   const today = getDailyStatsByDate(todayStr());
   const prog = levelProgress(p.totalXp);
-  const prevLevel = useUserStore.getState().level;
 
   useUserStore.getState().setProgress({
     totalDistanceM: p.totalDistanceM,
@@ -120,12 +121,20 @@ export function refreshProgressStore(celebrateLevelUp = false): void {
     levelRatio: prog.ratio,
   });
 
-  if (celebrateLevelUp && prog.level > prevLevel) {
-    useAchievementStore.getState().celebrate({
-      emoji: '⭐',
-      title: `레벨 ${prog.level} 달성!`,
-      subtitle: '계속 탐험해보세요',
-    });
+  // 레벨업 축하: 휘발성 store 레벨이 아니라 DB에 영속된 기준선(celebratedLevel)과 비교
+  // → hydrate 안 된 컨텍스트(백그라운드 재실행)에서 1→실제레벨을 매번 축하하던 버그 방지.
+  if (celebrateLevelUp) {
+    const stored = getSetting('celebratedLevel');
+    if (stored == null) {
+      setSetting('celebratedLevel', String(prog.level)); // 최초 1회 기준선만 저장(축하 X)
+    } else if (prog.level > Number(stored)) {
+      useAchievementStore.getState().celebrate({
+        emoji: '⭐',
+        title: `레벨 ${prog.level} 달성!`,
+        subtitle: '계속 탐험해보세요',
+      });
+      setSetting('celebratedLevel', String(prog.level));
+    }
   }
 
   checkAchievements();

@@ -27,12 +27,13 @@ export function checkAchievements(): void {
         value: String(def.threshold),
         unlockedAt: now,
       };
-      insertAchievement(achievement); // 영속
-      store.unlock(def.type, {
-        emoji: def.emoji,
-        title: '뱃지 획득!',
-        subtitle: def.label,
-      });
+      // DB에 "실제로 새로" 들어갔을 때만 축하 — hydrate 안 된 컨텍스트(백그라운드 재실행)
+      // 에서 이미 받은 뱃지를 다시 토스트로 띄우는 것 방지.
+      const isNew = insertAchievement(achievement);
+      store.markUnlocked(def.type);
+      if (isNew) {
+        store.celebrate({ emoji: def.emoji, title: '뱃지 획득!', subtitle: def.label });
+      }
     }
   }
 }
