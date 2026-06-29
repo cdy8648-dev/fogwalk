@@ -32,7 +32,7 @@ export default function CollectionStack() {
       <Stack.Screen
         name="CollectionHome"
         component={CollectionScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Collection' }}
       />
       <Stack.Screen name="BadgeDetail" component={BadgeDetailScreen} options={{ title: '뱃지' }} />
       <Stack.Screen
