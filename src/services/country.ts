@@ -9,23 +9,35 @@ import {
 import { detectCountry, getCurrentCoarse } from './gps';
 
 /**
- * 현재 국가 캐싱. 역지오코딩 호출을 아끼려고 멀리(>REDETECT_M) 이동했을 때만 재판별.
- * recordMovement(동기)에서 getCurrentCountry()로 읽어 신규 타일을 적립한다.
+ * 현재 국가 + 권역(시/도) 캐싱. 역지오코딩 1회로 둘 다 얻는다.
+ * 권역은 경계가 가까워 국가보다 촘촘히(>REDETECT_M) 재판별한다.
+ * recordMovement(동기)에서 getCurrentCountry()/getCurrentRegion()로 읽어 신규 타일을 적립한다.
  */
-const REDETECT_M = 30_000; // 30km
+const REDETECT_M = 2_000; // 2km — 시/도 경계 추적용
 
-let current: { code: string; name: string } | null = null;
+let current: { code: string; name: string; region: string | null } | null = null;
 let anchor: { lat: number; lng: number } | null = null;
 let inFlight = false;
 
 export function getCurrentCountry(): { code: string; name: string } | null {
-  return current;
+  return current && { code: current.code, name: current.name };
 }
 
-/** 앱 시작 시 마지막 국가 복원 (재판별 없이 즉시 적립 가능하도록). */
+/** 현재 권역(시/도). 없으면 null. */
+export function getCurrentRegion(): string | null {
+  return current?.region ?? null;
+}
+
+/** 앱 시작 시 마지막 국가/권역 복원 (재판별 없이 즉시 적립 가능하도록). */
 export function hydrateCountry(): void {
   const code = getSetting('countryCode');
-  if (code) current = { code, name: getSetting('countryName') ?? code };
+  if (code) {
+    current = {
+      code,
+      name: getSetting('countryName') ?? code,
+      region: getSetting('countryRegion'),
+    };
+  }
 }
 
 /**
@@ -56,6 +68,7 @@ export async function ensureCountry(lat: number, lng: number): Promise<void> {
       anchor = { lat, lng };
       setSetting('countryCode', c.code);
       setSetting('countryName', c.name);
+      if (c.region) setSetting('countryRegion', c.region);
       backfillExistingTiles(c);
     }
   } finally {

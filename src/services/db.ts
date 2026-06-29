@@ -7,6 +7,7 @@ import type {
   Landmark,
   LandmarkCategory,
   Photo,
+  RegionStat,
 } from '../types';
 
 /**
@@ -86,6 +87,14 @@ CREATE TABLE IF NOT EXISTS country_stats (
   name TEXT,
   tiles INTEGER DEFAULT 0,
   first_visited_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS region_stats (
+  country_code TEXT NOT NULL,
+  region TEXT NOT NULL,
+  tiles INTEGER DEFAULT 0,
+  first_visited_at INTEGER,
+  PRIMARY KEY (country_code, region)
 );
 `;
 
@@ -494,6 +503,40 @@ export function getAllCountryStats(): CountryStat[] {
   return rows.map((r) => ({
     code: r.code,
     name: r.name ?? r.code,
+    tiles: r.tiles,
+    firstVisitedAt: r.first_visited_at ?? 0,
+  }));
+}
+
+// ── region_stats (여권 권역별, 시/도) ──────────────────────────
+
+export function upsertRegionTiles(
+  countryCode: string,
+  region: string,
+  addTiles: number
+): void {
+  db.runSync(
+    `INSERT INTO region_stats (country_code, region, tiles, first_visited_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(country_code, region) DO UPDATE SET tiles = tiles + excluded.tiles`,
+    countryCode,
+    region,
+    addTiles,
+    Date.now()
+  );
+}
+
+export function getRegionStats(countryCode: string): RegionStat[] {
+  const rows = db.getAllSync<{
+    region: string;
+    tiles: number;
+    first_visited_at: number | null;
+  }>(
+    'SELECT region, tiles, first_visited_at FROM region_stats WHERE country_code = ? ORDER BY tiles DESC',
+    countryCode
+  );
+  return rows.map((r) => ({
+    region: r.region,
     tiles: r.tiles,
     firstVisitedAt: r.first_visited_at ?? 0,
   }));

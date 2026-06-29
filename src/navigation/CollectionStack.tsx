@@ -4,6 +4,7 @@ import { COLORS } from '../constants/colors';
 import CollectionScreen from '../screens/CollectionScreen';
 import BadgeDetailScreen from '../screens/BadgeDetailScreen';
 import PassportDetailScreen from '../screens/PassportDetailScreen';
+import CountryRegionsScreen from '../screens/CountryRegionsScreen';
 import DiscoveryDetailScreen from '../screens/DiscoveryDetailScreen';
 
 // 발견 상세에서 처음 선택할 카테고리 필터 (콜라주 타일 탭 시 전달).
@@ -13,6 +14,7 @@ export type CollectionStackParamList = {
   CollectionHome: undefined;
   BadgeDetail: undefined;
   PassportDetail: undefined;
+  CountryRegions: { code: string; name: string };
   DiscoveryDetail: { filter?: DiscoveryFilter } | undefined;
 };
 
@@ -39,6 +41,11 @@ export default function CollectionStack() {
         name="PassportDetail"
         component={PassportDetailScreen}
         options={{ title: '여권' }}
+      />
+      <Stack.Screen
+        name="CountryRegions"
+        component={CountryRegionsScreen}
+        options={{ title: '권역별' }}
       />
       <Stack.Screen
         name="DiscoveryDetail"

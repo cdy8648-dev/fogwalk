@@ -5,7 +5,7 @@ import { haversineMeters } from '../utils/distance';
 import { modeWeight } from '../utils/mode';
 import { levelProgress, xpForMovement } from '../utils/xp';
 import { checkAchievements } from './achievements';
-import { ensureCountry, getCurrentCountry } from './country';
+import { ensureCountry, getCurrentCountry, getCurrentRegion } from './country';
 import { checkLandmarkDiscoveries } from './discovery';
 import { ensureLandmarksFetched } from './landmarks';
 import {
@@ -16,6 +16,7 @@ import {
   updateProgress,
   upsertCountryTiles,
   upsertDailyStats,
+  upsertRegionTiles,
 } from './db';
 
 /**
@@ -88,11 +89,15 @@ export function recordMovement(
   // 새 지역이면 랜드마크 OSM 조회(비동기, 캐싱)
   void ensureLandmarksFetched(lat, lng);
 
-  // 여권: 신규 타일을 현재 국가에 적립 (국가 판별은 비동기로 캐시 갱신)
+  // 여권: 신규 타일을 현재 국가 + 권역(시/도)에 적립 (판별은 비동기로 캐시 갱신)
   void ensureCountry(lat, lng);
   if (newTiles > 0) {
     const country = getCurrentCountry();
-    if (country) upsertCountryTiles(country.code, country.name, newTiles);
+    if (country) {
+      upsertCountryTiles(country.code, country.name, newTiles);
+      const region = getCurrentRegion();
+      if (region) upsertRegionTiles(country.code, region, newTiles);
+    }
   }
 
   // 랜드마크 발견 체크 (근처 미발견 → 발견 + 안개 뻥 + 보상)

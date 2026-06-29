@@ -127,7 +127,12 @@ export default function CollectionScreen() {
       ) : (
         <View style={styles.passportList}>
           {countries.slice(0, PASSPORT_TEASER).map((c) => (
-            <View key={c.code} style={styles.ppCard}>
+            <TouchableOpacity
+              key={c.code}
+              style={styles.ppCard}
+              activeOpacity={0.85}
+              onPress={() => nav.navigate('CountryRegions', { code: c.code, name: c.name })}
+            >
               <Text style={styles.ppFlag}>{codeToFlag(c.code)}</Text>
               <View style={styles.ppSpacer} />
               <Text style={styles.ppNum} numberOfLines={1}>
@@ -137,7 +142,7 @@ export default function CollectionScreen() {
               <Text style={styles.ppName} numberOfLines={1}>
                 {c.name}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
           {countries.length === 1 && (
             <View style={[styles.ppCard, styles.ppCardEmpty]}>

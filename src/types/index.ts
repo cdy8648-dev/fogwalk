@@ -68,3 +68,9 @@ export interface CountryStat {
   tiles: number;
   firstVisitedAt: number;
 }
+
+export interface RegionStat {
+  region: string; // 시/도 (예: 서울특별시)
+  tiles: number;
+  firstVisitedAt: number;
+}

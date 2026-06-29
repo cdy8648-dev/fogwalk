@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import EmptyHint from '../components/ui/EmptyHint';
 import SectionPill from '../components/ui/SectionPill';
 import StatTile from '../components/ui/StatTile';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
+import type { CollectionStackParamList } from '../navigation/CollectionStack';
 import { getAllCountryStats } from '../services/db';
 import { useMapStore } from '../store/mapStore';
 import { abbrev } from '../utils/format';
@@ -13,6 +16,7 @@ import { codeToFlag } from '../utils/flag';
 import { formatDate } from '../utils/date';
 
 export default function PassportDetailScreen() {
+  const nav = useNavigation<NativeStackNavigationProp<CollectionStackParamList>>();
   const fogVersion = useMapStore((s) => s.fogVersion);
   const countries = useMemo(() => getAllCountryStats(), [fogVersion]);
   const totalTiles = countries.reduce((sum, c) => sum + c.tiles, 0);
@@ -32,7 +36,12 @@ export default function PassportDetailScreen() {
 
           <View style={styles.list}>
             {countries.map((c) => (
-              <View key={c.code} style={styles.card}>
+              <TouchableOpacity
+                key={c.code}
+                style={styles.card}
+                activeOpacity={0.85}
+                onPress={() => nav.navigate('CountryRegions', { code: c.code, name: c.name })}
+              >
                 <Text style={styles.flag}>{codeToFlag(c.code)}</Text>
                 <View style={styles.mid}>
                   <Text style={styles.name}>{c.name}</Text>
@@ -46,7 +55,7 @@ export default function PassportDetailScreen() {
                   </Text>
                   <Text style={styles.unit}>칸</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </>

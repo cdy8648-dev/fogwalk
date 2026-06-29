@@ -39,11 +39,11 @@ export async function getCurrentCoarse(): Promise<Coordinate> {
   return { lat: pos.coords.latitude, lng: pos.coords.longitude };
 }
 
-/** 좌표 → 국가 (역지오코딩, 네이티브). 실패 시 null. */
+/** 좌표 → 국가 + 권역(시/도) (역지오코딩, 네이티브). 실패 시 null. */
 export async function detectCountry(
   lat: number,
   lng: number
-): Promise<{ code: string; name: string } | null> {
+): Promise<{ code: string; name: string; region: string | null } | null> {
   try {
     const results = await Location.reverseGeocodeAsync({
       latitude: lat,
@@ -51,7 +51,11 @@ export async function detectCountry(
     });
     const r = results[0];
     if (!r?.isoCountryCode) return null;
-    return { code: r.isoCountryCode, name: r.country ?? r.isoCountryCode };
+    return {
+      code: r.isoCountryCode,
+      name: r.country ?? r.isoCountryCode,
+      region: r.region ?? null, // 시/도 (예: 서울특별시, 경기도)
+    };
   } catch {
     return null;
   }
