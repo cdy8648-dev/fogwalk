@@ -36,6 +36,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
 import type { Photo } from '../types';
 import { abbrev } from '../utils/format';
+import { fogClassAt } from '../utils/h3';
 
 // 첫 위치 픽스 전 기본 중심(서울 시청).
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
@@ -111,6 +112,19 @@ export default function MapScreen() {
         logoEnabled={false}
         attributionEnabled={false}
         onDidFinishLoadingMap={handleMapLoaded}
+        onLongPress={(e) => {
+          const g = e.geometry;
+          if (g.type !== 'Point') return;
+          const [lng, lat] = g.coordinates;
+          const cls = fogClassAt(lat, lng, useMapStore.getState().visitedTileIds);
+          const msg =
+            cls === 'land'
+              ? '밝힌 땅이에요 🌿'
+              : cls === 'near'
+                ? '회색 안개예요 🌫️'
+                : '검은 안개예요 🌑';
+          Alert.alert('여기는', msg);
+        }}
         onCameraChanged={(e) => {
           const zoom = e.properties?.zoom ?? 15;
           const thumbs = zoom >= CONFIG.PHOTO_THUMB_MIN_ZOOM;
