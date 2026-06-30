@@ -51,15 +51,17 @@ export default function PhotoViewer({ photos, initialIndex = 0, onClose }: Props
   const handleDownload = async () => {
     if (!current) return;
     try {
-      const perm = await MediaLibrary.requestPermissionsAsync(true); // 추가 전용
+      // 전체 권한 필요: 네이티브 저장이 UIImageWriteToSavedPhotosAlbum(레거시)을 써서
+      // "추가 전용(write-only)" 권한으로는 실패함.
+      const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('사진 접근 권한 필요', '설정에서 사진 추가 권한을 허용해주세요.');
+        Alert.alert('사진 접근 권한 필요', '설정 > FogWalk 에서 사진 권한을 허용해주세요.');
         return;
       }
       await MediaLibrary.saveToLibraryAsync(current.uri);
       Alert.alert('저장 완료', '사진을 앨범에 저장했어요 📸');
-    } catch {
-      Alert.alert('오류', '저장에 실패했어요.');
+    } catch (e) {
+      Alert.alert('저장 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해주세요.');
     }
   };
 
