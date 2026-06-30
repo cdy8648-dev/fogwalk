@@ -1,11 +1,12 @@
 import { CONFIG } from '../constants/config';
 import { useAchievementStore } from '../store/achievementStore';
 import { useUserStore } from '../store/userStore';
+import { localDateStr } from '../utils/calendar';
 import { haversineMeters } from '../utils/distance';
 import { modeWeight } from '../utils/mode';
 import { levelProgress, xpForMovement } from '../utils/xp';
 import { checkAchievements } from './achievements';
-import { ensureCountry, getCurrentCountry, getCurrentRegion } from './country';
+import { attributeTiles, ensureCountry } from './country';
 import { checkLandmarkDiscoveries } from './discovery';
 import { ensureLandmarksFetched } from './landmarks';
 import {
@@ -14,9 +15,7 @@ import {
   getSetting,
   setSetting,
   updateProgress,
-  upsertCountryTiles,
   upsertDailyStats,
-  upsertRegionTiles,
 } from './db';
 
 /**
@@ -24,12 +23,8 @@ import {
  * XP 계산은 utils/xp.ts 의 순수 함수로 위임한다.
  */
 
-/** 로컬 'YYYY-MM-DD'. */
 function todayStr(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
+  return localDateStr(new Date());
 }
 
 function dayDiff(a: string, b: string): number {
@@ -91,14 +86,7 @@ export function recordMovement(
 
   // 여권: 신규 타일을 현재 국가 + 권역(시/도)에 적립 (판별은 비동기로 캐시 갱신)
   void ensureCountry(lat, lng);
-  if (newTiles > 0) {
-    const country = getCurrentCountry();
-    if (country) {
-      upsertCountryTiles(country.code, country.name, newTiles);
-      const region = getCurrentRegion();
-      if (region) upsertRegionTiles(country.code, region, newTiles);
-    }
-  }
+  if (newTiles > 0) attributeTiles(newTiles);
 
   // 랜드마크 발견 체크 (근처 미발견 → 발견 + 안개 뻥 + 보상)
   checkLandmarkDiscoveries(lat, lng);

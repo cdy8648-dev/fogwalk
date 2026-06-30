@@ -6,15 +6,13 @@ import { useMapStore } from '../store/mapStore';
 import type { Landmark } from '../types';
 import { haversineMeters } from '../utils/distance';
 import { coordToTile, dilateTiles } from '../utils/h3';
-import { getCurrentCountry, getCurrentRegion } from './country';
+import { attributeTiles } from './country';
 import {
   getProgress,
   getUndiscoveredLandmarksNear,
   insertVisitedTiles,
   markLandmarkDiscovered,
   updateProgress,
-  upsertCountryTiles,
-  upsertRegionTiles,
 } from './db';
 
 function landmarkXp(lm: Landmark): number {
@@ -61,12 +59,7 @@ function discover(lm: Landmark, now: number): void {
   const fresh = insertVisitedTiles(burst);
   if (fresh.length) {
     useMapStore.getState().addVisitedTiles(fresh);
-    const country = getCurrentCountry();
-    if (country) {
-      upsertCountryTiles(country.code, country.name, fresh.length);
-      const region = getCurrentRegion();
-      if (region) upsertRegionTiles(country.code, region, fresh.length);
-    }
+    attributeTiles(fresh.length);
   }
 
   // 보상: 희귀도/유형 XP

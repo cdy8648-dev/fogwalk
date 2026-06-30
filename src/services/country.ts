@@ -5,6 +5,7 @@ import {
   getTileCount,
   setSetting,
   upsertCountryTiles,
+  upsertRegionTiles,
 } from './db';
 import { detectCountry, getCurrentCoarse } from './gps';
 
@@ -26,6 +27,13 @@ export function getCurrentCountry(): { code: string; name: string } | null {
 /** 현재 권역(시/도). 없으면 null. */
 export function getCurrentRegion(): string | null {
   return current?.region ?? null;
+}
+
+/** 신규 밝힌 타일을 현재 국가 + 권역(시/도)에 적립. (recordMovement·발견 공용) */
+export function attributeTiles(count: number): void {
+  if (count <= 0 || !current) return;
+  upsertCountryTiles(current.code, current.name, count);
+  if (current.region) upsertRegionTiles(current.code, current.region, count);
 }
 
 /** 앱 시작 시 마지막 국가/권역 복원 (재판별 없이 즉시 적립 가능하도록). */
