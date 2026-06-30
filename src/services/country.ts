@@ -6,6 +6,7 @@ import {
   setSetting,
   upsertCountryTiles,
   upsertRegionTiles,
+  upsertSubregionTiles,
 } from './db';
 import { detectCountry, getCurrentCoarse } from './gps';
 
@@ -16,7 +17,12 @@ import { detectCountry, getCurrentCoarse } from './gps';
  */
 const REDETECT_M = 2_000; // 2km — 시/도 경계 추적용
 
-let current: { code: string; name: string; region: string | null } | null = null;
+let current: {
+  code: string;
+  name: string;
+  region: string | null;
+  subregion: string | null;
+} | null = null;
 let anchor: { lat: number; lng: number } | null = null;
 let inFlight = false;
 
@@ -29,11 +35,21 @@ export function getCurrentRegion(): string | null {
   return current?.region ?? null;
 }
 
-/** 신규 밝힌 타일을 현재 국가 + 권역(시/도)에 적립. (recordMovement·발견 공용) */
+/** 현재 하위권역(시/구). 없으면 null. */
+export function getCurrentSubregion(): string | null {
+  return current?.subregion ?? null;
+}
+
+/** 신규 밝힌 타일을 현재 국가 + 권역(시/도) + 하위권역(시/구)에 적립. (공용) */
 export function attributeTiles(count: number): void {
   if (count <= 0 || !current) return;
   upsertCountryTiles(current.code, current.name, count);
-  if (current.region) upsertRegionTiles(current.code, current.region, count);
+  if (current.region) {
+    upsertRegionTiles(current.code, current.region, count);
+    if (current.subregion) {
+      upsertSubregionTiles(current.code, current.region, current.subregion, count);
+    }
+  }
 }
 
 /** 앱 시작 시 마지막 국가/권역 복원 (재판별 없이 즉시 적립 가능하도록). */
@@ -44,6 +60,7 @@ export function hydrateCountry(): void {
       code,
       name: getSetting('countryName') ?? code,
       region: getSetting('countryRegion'),
+      subregion: getSetting('countrySubregion'),
     };
   }
 }
@@ -77,6 +94,7 @@ export async function ensureCountry(lat: number, lng: number): Promise<void> {
       setSetting('countryCode', c.code);
       setSetting('countryName', c.name);
       if (c.region) setSetting('countryRegion', c.region);
+      if (c.subregion) setSetting('countrySubregion', c.subregion);
       backfillExistingTiles(c);
     }
   } finally {

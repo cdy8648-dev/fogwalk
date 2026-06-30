@@ -96,6 +96,15 @@ CREATE TABLE IF NOT EXISTS region_stats (
   first_visited_at INTEGER,
   PRIMARY KEY (country_code, region)
 );
+
+CREATE TABLE IF NOT EXISTS subregion_stats (
+  country_code TEXT NOT NULL,
+  region TEXT NOT NULL,
+  subregion TEXT NOT NULL,
+  tiles INTEGER DEFAULT 0,
+  first_visited_at INTEGER,
+  PRIMARY KEY (country_code, region, subregion)
+);
 `;
 
 /** 앱 시작 시 1회 호출. 테이블 생성 + 단일 진행도 행 보장, 생성된 테이블 목록 출력. */
@@ -537,6 +546,43 @@ export function getRegionStats(countryCode: string): RegionStat[] {
   );
   return rows.map((r) => ({
     region: r.region,
+    tiles: r.tiles,
+    firstVisitedAt: r.first_visited_at ?? 0,
+  }));
+}
+
+// ── subregion_stats (시/구) ─────────────────────────────────────
+
+export function upsertSubregionTiles(
+  countryCode: string,
+  region: string,
+  subregion: string,
+  addTiles: number
+): void {
+  db.runSync(
+    `INSERT INTO subregion_stats (country_code, region, subregion, tiles, first_visited_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(country_code, region, subregion) DO UPDATE SET tiles = tiles + excluded.tiles`,
+    countryCode,
+    region,
+    subregion,
+    addTiles,
+    Date.now()
+  );
+}
+
+export function getSubregionStats(countryCode: string, region: string): RegionStat[] {
+  const rows = db.getAllSync<{
+    subregion: string;
+    tiles: number;
+    first_visited_at: number | null;
+  }>(
+    'SELECT subregion, tiles, first_visited_at FROM subregion_stats WHERE country_code = ? AND region = ? ORDER BY tiles DESC',
+    countryCode,
+    region
+  );
+  return rows.map((r) => ({
+    region: r.subregion, // RegionStat 재사용(시/구 이름을 region 필드에 담음)
     tiles: r.tiles,
     firstVisitedAt: r.first_visited_at ?? 0,
   }));

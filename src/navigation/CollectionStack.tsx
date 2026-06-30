@@ -14,7 +14,7 @@ export type CollectionStackParamList = {
   CollectionHome: undefined;
   BadgeDetail: undefined;
   PassportDetail: undefined;
-  CountryRegions: { code: string; name: string };
+  CountryRegions: { code: string; name: string; region?: string };
   DiscoveryDetail: { filter?: DiscoveryFilter } | undefined;
 };
 
