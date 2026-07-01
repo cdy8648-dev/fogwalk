@@ -65,7 +65,7 @@ export default function BadgeDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16, paddingBottom: 110 }, // 플로팅 탭바 공간 확보
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   card: {
     width: '47%',

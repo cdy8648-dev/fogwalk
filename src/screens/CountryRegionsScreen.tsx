@@ -138,7 +138,7 @@ export default function CountryRegionsScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16, paddingBottom: 110 }, // 플로팅 탭바 공간 확보
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   flag: { fontSize: 34 },
   title: { color: COLORS.text, fontSize: 22, fontWeight: '800' },

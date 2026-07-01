@@ -8,13 +8,14 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Camera, MapView } from '@rnmapbox/maps';
+import { Camera, MapView, PointAnnotation } from '@rnmapbox/maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import FogLayer from '../components/map/FogLayer';
@@ -75,10 +76,13 @@ export default function MapScreen() {
   const todayNewTiles = useUserStore((s) => s.todayNewTiles);
   const streak = useUserStore((s) => s.streak);
   const level = useUserStore((s) => s.level);
+  const ink = useUserStore((s) => s.ink);
   const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
   const [capturing, setCapturing] = useState(false);
+  // 롱프레스로 찍는 연필 핀 좌표([lng, lat]). 드래그로 위치 미세조정 가능. (잉크 라벨 토대)
+  const [pinCoord, setPinCoord] = useState<[number, number] | null>(null);
   // 줌 수준에 따른 마커 가시성. 줌아웃하면 단계별로 사라져 결국 전설만 남는다.
   const [vis, setVis] = useState<MarkerVis>(() => visForZoom(15));
 
@@ -142,6 +146,7 @@ export default function MapScreen() {
           const g = e.geometry;
           if (g.type !== 'Point') return;
           const [lng, lat] = g.coordinates;
+          setPinCoord([lng, lat]); // 정확한 위치에 연필 핀 표시
           const cls = fogClassAt(lat, lng, useMapStore.getState().visitedTileIds);
           const msg =
             cls === 'land'
@@ -149,7 +154,7 @@ export default function MapScreen() {
               : cls === 'near'
                 ? '회색 안개예요 🌫️'
                 : '검은 안개예요 🌑';
-          Alert.alert('여기는', msg);
+          Alert.alert('여기는', `${msg}\n\n연필을 끌어 위치를 조정할 수 있어요.`);
         }}
         onCameraChanged={(e) => {
           const next = visForZoom(e.properties?.zoom ?? 15);
@@ -161,6 +166,26 @@ export default function MapScreen() {
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
         />
         <FogLayer />
+        {/* 롱프레스 지점 연필 핀 — 드래그로 위치 조정 (팁이 정확한 좌표를 가리킴) */}
+        {pinCoord && (
+          <PointAnnotation
+            key={`pencil-${pinCoord[0]},${pinCoord[1]}`} // 좌표 변경 시 확실히 이동(iOS 갱신 이슈 회피)
+            id="pencil-pin"
+            coordinate={pinCoord}
+            anchor={{ x: 0.16, y: 0.9 }}
+            draggable
+            onDragEnd={(payload) => {
+              const c = payload.geometry.coordinates;
+              setPinCoord([c[0], c[1]]);
+            }}
+          >
+            <Image
+              source={require('../../assets/pencil.png')}
+              style={styles.pencil}
+              resizeMode="contain"
+            />
+          </PointAnnotation>
+        )}
         <LandmarkMarkers
           full={vis.thumbs}
           showSubway={vis.subway}
@@ -181,10 +206,28 @@ export default function MapScreen() {
         </Text>
       </View>
 
-      {/* 사진 남기기 버튼 (폴라로이드 일러스트) */}
+      {/* 우상단 잉크 잔량 HUD (걸어서 모아 지도를 칠하는 통화) */}
+      <TouchableOpacity
+        style={[styles.inkHud, { top: insets.top + 6 }]}
+        activeOpacity={0.85}
+        onPress={() =>
+          Alert.alert(
+            '잉크',
+            `보유 잉크 ${Math.floor(ink)}\n\n걸을수록 잉크가 모여요. 곧 잉크로 지도를 칠할 수 있어요 🖌️`
+          )
+        }
+        accessibilityLabel={`잉크 ${Math.floor(ink)}`}
+      >
+        <Image source={require('../../assets/ink.png')} style={styles.inkIcon} resizeMode="contain" />
+        <View style={styles.inkBadge}>
+          <Text style={styles.inkBadgeText}>{abbrev(Math.floor(ink))}</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* 사진 남기기 버튼 (폴라로이드 일러스트) — 플로팅 탭바 위로 */}
       <Fab
         image={require('../../assets/fab-photo.png')}
-        bottom={110}
+        bottom={insets.bottom + 152}
         onPress={onCapture}
         disabled={capturing}
         accessibilityLabel="사진 남기기"
@@ -195,7 +238,7 @@ export default function MapScreen() {
       {/* 내 위치로 이동 버튼 (지도 일러스트) */}
       <Fab
         image={require('../../assets/fab-location.png')}
-        bottom={40}
+        bottom={insets.bottom + 82}
         onPress={() => recenter(true)}
         accessibilityLabel="내 위치로 이동"
       />
@@ -227,6 +270,24 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   map: { flex: 1 },
+  pencil: { width: 44, height: 44 },
+  inkHud: { position: 'absolute', right: 16, width: 48, height: 48 },
+  inkIcon: { width: 48, height: 48 },
+  inkBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 5,
+    backgroundColor: COLORS.lime,
+    borderWidth: 1.5,
+    borderColor: COLORS.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inkBadgeText: { color: COLORS.ink, fontSize: 12, fontFamily: FONT.display },
   // 촬영 중 스피너 — 일러스트 위에 어둡게 깔아 가독성 확보.
   fabSpinner: {
     position: 'absolute',

@@ -65,7 +65,8 @@ CREATE TABLE IF NOT EXISTS progress (
   streak INTEGER DEFAULT 0,
   last_explore_date TEXT,
   last_lat REAL,
-  last_lng REAL
+  last_lng REAL,
+  ink REAL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS photos (
@@ -114,6 +115,12 @@ export function initDatabase(): void {
   // 기존 DB 마이그레이션: landmarks.rarity 컬럼 보강 (이미 있으면 throw → 무시)
   try {
     db.execSync('ALTER TABLE landmarks ADD COLUMN rarity TEXT');
+  } catch {
+    /* 컬럼 이미 존재 */
+  }
+  // 잉크 통화: progress.ink 컬럼 보강 (이미 있으면 throw → 무시)
+  try {
+    db.execSync('ALTER TABLE progress ADD COLUMN ink REAL DEFAULT 0');
   } catch {
     /* 컬럼 이미 존재 */
   }
@@ -187,6 +194,7 @@ export interface Progress {
   lastExploreDate: string | null; // 'YYYY-MM-DD'
   lastLat: number | null; // 거리 누적 연속용
   lastLng: number | null;
+  ink: number; // 잉크 잔량(소비형 통화)
 }
 
 export function getProgress(): Progress {
@@ -198,6 +206,7 @@ export function getProgress(): Progress {
     last_explore_date: string | null;
     last_lat: number | null;
     last_lng: number | null;
+    ink: number | null;
   }>('SELECT * FROM progress WHERE id = 1');
   return {
     totalDistanceM: row?.total_distance_m ?? 0,
@@ -207,6 +216,7 @@ export function getProgress(): Progress {
     lastExploreDate: row?.last_explore_date ?? null,
     lastLat: row?.last_lat ?? null,
     lastLng: row?.last_lng ?? null,
+    ink: row?.ink ?? 0,
   };
 }
 
@@ -226,6 +236,7 @@ export function updateProgress(fields: Partial<Progress>): void {
   push('last_explore_date', fields.lastExploreDate);
   push('last_lat', fields.lastLat);
   push('last_lng', fields.lastLng);
+  push('ink', fields.ink);
   if (sets.length === 0) return;
   db.runSync(`UPDATE progress SET ${sets.join(', ')} WHERE id = 1`, ...params);
 }

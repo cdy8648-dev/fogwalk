@@ -27,6 +27,18 @@ function todayStr(): string {
   return localDateStr(new Date());
 }
 
+/**
+ * 잉크 통화 도입 1회: 기존에 걸은 거리(가중)에서 잉크를 소급 지급.
+ * 앱 시작 시 refreshProgressStore 전에 호출. 이후 이동은 recordMovement 가 적립.
+ */
+export function backfillInkOnce(): void {
+  if (getSetting('ink_backfilled') === '1') return;
+  const p = getProgress();
+  const earned = (p.walkDistanceM / 1000) * CONFIG.INK_PER_KM;
+  if (earned > p.ink) updateProgress({ ink: earned });
+  setSetting('ink_backfilled', '1');
+}
+
 function dayDiff(a: string, b: string): number {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
 }
@@ -66,6 +78,8 @@ export function recordMovement(
 
   // XP: 가중 거리 + 가중 신규타일 (+ 스트릭 보너스). 차량은 가중이 낮아 XP도 적게.
   const xpGain = xpForMovement(weighted, newTiles * w, streak);
+  // 잉크: 가중 거리(km)에 비례해 적립 → 걸을수록 많이 번다(운전은 가중이 낮아 적게).
+  const inkGain = (weighted / 1000) * CONFIG.INK_PER_KM;
 
   updateProgress({
     totalDistanceM: p.totalDistanceM + segment,
@@ -75,6 +89,7 @@ export function recordMovement(
     lastExploreDate: lastDate,
     lastLat: lat,
     lastLng: lng,
+    ink: p.ink + inkGain,
   });
 
   if (segment > 0 || newTiles > 0) {
@@ -112,6 +127,7 @@ export function refreshProgressStore(celebrateLevelUp = false): void {
     totalXp: p.totalXp,
     level: prog.level,
     levelRatio: prog.ratio,
+    ink: p.ink,
   });
 
   // 레벨업 축하: 휘발성 store 레벨이 아니라 DB에 영속된 기준선(celebratedLevel)과 비교

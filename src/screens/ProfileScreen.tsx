@@ -271,7 +271,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { padding: 16, paddingBottom: 110 }, // 플로팅 탭바 공간 확보
   kicker: { color: COLORS.muted, fontSize: 12, letterSpacing: 2, marginTop: 2, fontFamily: FONT.mono },
   title: { color: COLORS.text, fontSize: 25, fontWeight: '800', marginTop: 2, marginBottom: 16 },
 

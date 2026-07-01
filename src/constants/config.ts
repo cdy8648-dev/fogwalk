@@ -43,4 +43,7 @@ export const CONFIG = {
   XP_LANDMARK_LEGENDARY: 800,
   XP_SUBWAY: 40, // 지하철역 발견 (수가 많으니 낮게)
   PEAK_MIN_ELE_M: 500, // wikidata 없는 봉우리는 이 고도(m) 이상만 인정
+
+  // 잉크(소비형 통화): 걸어서 번다(모드 가중 → 운전은 적게). 지도 라벨/공개에 사용.
+  INK_PER_KM: 1, // 가중 1km당 잉크 (튜닝 가능)
 } as const;

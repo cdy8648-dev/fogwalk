@@ -6,7 +6,6 @@ import { useFonts } from 'expo-font';
 import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import Mapbox from '@rnmapbox/maps';
-import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -14,7 +13,7 @@ import CelebrationOverlay from './src/components/CelebrationOverlay';
 import { COLORS } from './src/constants/colors';
 import { hydrateCountry, refreshCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
-import { refreshProgressStore } from './src/services/progress';
+import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
 import { useLandmarkStore } from './src/store/landmarkStore';
 import { useMapStore } from './src/store/mapStore';
@@ -23,6 +22,8 @@ import { useSettingsStore } from './src/store/settingsStore';
 import MapScreen from './src/screens/MapScreen';
 import CollectionStack from './src/navigation/CollectionStack';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ScreenHeader from './src/components/ui/ScreenHeader';
+import CustomTabBar from './src/components/CustomTabBar';
 
 // app.json 의 extra 에서 Mapbox 퍼블릭 토큰을 읽어 1회 설정.
 const mapboxToken = (Constants.expoConfig?.extra as { mapboxPublicToken?: string } | undefined)
@@ -60,6 +61,7 @@ export default function App() {
     hydrateCountry(); // 마지막 국가 복원(즉시 적립 가능)
     useMapStore.getState().hydrate(); // DB → Set 복원
     useAchievementStore.getState().hydrate(); // DB → 해금 뱃지 복원(중복알림 방지)
+    backfillInkOnce(); // 잉크 도입 1회: 기존 거리에서 소급 지급
     refreshProgressStore(); // DB → 진행도 복원 (뱃지 체크 포함)
     usePhotoStore.getState().hydrate(); // DB → 사진 복원
     useLandmarkStore.getState().hydrate(); // DB → 발견 랜드마크 복원
@@ -93,50 +95,22 @@ export default function App() {
       <NavigationContainer theme={navTheme}>
         <StatusBar style="light" />
         <Tab.Navigator
+          tabBar={(props) => <CustomTabBar {...props} />} // 글래스모피즘 플로팅 탭바
           screenOptions={{
-            headerStyle: { backgroundColor: COLORS.surface },
-            headerTintColor: COLORS.text,
-            headerTitleStyle: { fontWeight: '800' }, // Collection 스택 헤더와 통일
-            headerShadowVisible: false, // Collection 헤더처럼 그림자 선 제거
-            tabBarShowLabel: false,
-            tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.border },
-            tabBarActiveTintColor: COLORS.lime,
-            tabBarInactiveTintColor: COLORS.muted,
+            header: (props) => <ScreenHeader {...props} />, // 모든 페이지 공용 헤더(Map은 headerShown:false)
           }}
         >
           <Tab.Screen
             name="Map"
             component={MapScreen}
-            options={{
-              headerShown: false, // 풀블리드 지도 (카드는 safe-area 기준 오버레이)
-              tabBarIcon: ({ color, size, focused }) => (
-                <Ionicons name={focused ? 'map' : 'map-outline'} size={size} color={color} />
-              ),
-            }}
+            options={{ headerShown: false }} // 풀블리드 지도 (카드는 safe-area 기준 오버레이)
           />
           <Tab.Screen
             name="Collection"
             component={CollectionStack}
-            options={{
-              headerShown: false, // 스택이 헤더를 관리(상세 페이지 헤더와 중복 방지)
-              tabBarIcon: ({ color, size, focused }) => (
-                <Ionicons name={focused ? 'albums' : 'albums-outline'} size={size} color={color} />
-              ),
-            }}
+            options={{ headerShown: false }} // 스택이 헤더를 관리(상세 페이지 헤더와 중복 방지)
           />
-          <Tab.Screen
-            name="Profile"
-            component={ProfileScreen}
-            options={{
-              tabBarIcon: ({ color, size, focused }) => (
-                <Ionicons
-                  name={focused ? 'person-circle' : 'person-circle-outline'}
-                  size={size}
-                  color={color}
-                />
-              ),
-            }}
-          />
+          <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
       </NavigationContainer>
       <CelebrationOverlay />

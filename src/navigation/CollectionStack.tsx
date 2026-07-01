@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { COLORS } from '../constants/colors';
+import ScreenHeader from '../components/ui/ScreenHeader';
 import CollectionScreen from '../screens/CollectionScreen';
 import BadgeDetailScreen from '../screens/BadgeDetailScreen';
 import PassportDetailScreen from '../screens/PassportDetailScreen';
@@ -24,11 +25,8 @@ export default function CollectionStack() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: COLORS.surface },
-        headerTintColor: COLORS.text,
-        headerTitleStyle: { fontWeight: '800' },
+        header: (props) => <ScreenHeader {...props} />, // 모든 페이지 공용 헤더
         contentStyle: { backgroundColor: COLORS.fog },
-        headerShadowVisible: false,
       }}
     >
       <Stack.Screen
