@@ -15,7 +15,6 @@ import {
   View,
 } from 'react-native';
 import { Camera, MapView } from '@rnmapbox/maps';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import FogLayer from '../components/map/FogLayer';
@@ -41,6 +40,33 @@ import { fogClassAt } from '../utils/h3';
 // 첫 위치 픽스 전 기본 중심(서울 시청).
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
 
+// 줌 → 마커 가시성. 임계값은 config(큰 값일수록 먼저 사라짐).
+type MarkerVis = {
+  thumbs: boolean; // 썸네일/이모지 핀 vs 점
+  subway: boolean;
+  common: boolean;
+  photos: boolean;
+  rare: boolean;
+};
+function visForZoom(zoom: number): MarkerVis {
+  return {
+    thumbs: zoom >= CONFIG.PHOTO_THUMB_MIN_ZOOM,
+    subway: zoom >= CONFIG.SUBWAY_MIN_ZOOM,
+    common: zoom >= CONFIG.LANDMARK_COMMON_MIN_ZOOM,
+    photos: zoom >= CONFIG.PHOTO_MIN_ZOOM,
+    rare: zoom >= CONFIG.LANDMARK_RARE_MIN_ZOOM,
+  };
+}
+function sameVis(a: MarkerVis, b: MarkerVis): boolean {
+  return (
+    a.thumbs === b.thumbs &&
+    a.subway === b.subway &&
+    a.common === b.common &&
+    a.photos === b.photos &&
+    a.rare === b.rare
+  );
+}
+
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const { status } = useTracking();
@@ -53,8 +79,8 @@ export default function MapScreen() {
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
   const [capturing, setCapturing] = useState(false);
-  const [photoThumbs, setPhotoThumbs] = useState(true); // 줌 수준에 따라 썸네일/점
-  const [showSubway, setShowSubway] = useState(true); // 줌아웃 시 지하철 마커 숨김
+  // 줌 수준에 따른 마커 가시성. 줌아웃하면 단계별로 사라져 결국 전설만 남는다.
+  const [vis, setVis] = useState<MarkerVis>(() => visForZoom(15));
 
   const onCapture = useCallback(async () => {
     const loc = useMapStore.getState().currentLocation;
@@ -126,11 +152,8 @@ export default function MapScreen() {
           Alert.alert('여기는', msg);
         }}
         onCameraChanged={(e) => {
-          const zoom = e.properties?.zoom ?? 15;
-          const thumbs = zoom >= CONFIG.PHOTO_THUMB_MIN_ZOOM;
-          const subway = zoom >= CONFIG.SUBWAY_MIN_ZOOM;
-          setPhotoThumbs((prev) => (prev === thumbs ? prev : thumbs));
-          setShowSubway((prev) => (prev === subway ? prev : subway));
+          const next = visForZoom(e.properties?.zoom ?? 15);
+          setVis((prev) => (sameVis(prev, next) ? prev : next));
         }}
       >
         <Camera
@@ -138,8 +161,13 @@ export default function MapScreen() {
           defaultSettings={{ centerCoordinate: DEFAULT_CENTER, zoomLevel: 15 }}
         />
         <FogLayer />
-        <LandmarkMarkers full={photoThumbs} showSubway={showSubway} />
-        <PhotoMarkers thumbnails={photoThumbs} onSelect={setViewerPhotos} />
+        <LandmarkMarkers
+          full={vis.thumbs}
+          showSubway={vis.subway}
+          showCommon={vis.common}
+          showRare={vis.rare}
+        />
+        <PhotoMarkers thumbnails={vis.thumbs} visible={vis.photos} onSelect={setViewerPhotos} />
         <LocationMarker />
       </MapView>
 
@@ -153,30 +181,24 @@ export default function MapScreen() {
         </Text>
       </View>
 
-      {/* 사진 남기기 버튼 */}
+      {/* 사진 남기기 버튼 (폴라로이드 일러스트) */}
       <Fab
-        color={COLORS.amber}
-        bottom={104}
+        image={require('../../assets/fab-photo.png')}
+        bottom={110}
         onPress={onCapture}
         disabled={capturing}
         accessibilityLabel="사진 남기기"
       >
-        {capturing ? (
-          <ActivityIndicator color={COLORS.ink} />
-        ) : (
-          <Ionicons name="camera" size={24} color={COLORS.ink} />
-        )}
+        {capturing && <ActivityIndicator color={COLORS.ink} style={styles.fabSpinner} />}
       </Fab>
 
-      {/* 내 위치로 이동 버튼 */}
+      {/* 내 위치로 이동 버튼 (지도 일러스트) */}
       <Fab
-        color={COLORS.lime}
+        image={require('../../assets/fab-location.png')}
         bottom={40}
         onPress={() => recenter(true)}
         accessibilityLabel="내 위치로 이동"
-      >
-        <Ionicons name="locate" size={24} color={COLORS.ink} />
-      </Fab>
+      />
 
       {/* 사진 뷰어 (묶음 스와이프) */}
       <PhotoViewer photos={viewerPhotos} onClose={() => setViewerPhotos([])} />
@@ -205,6 +227,14 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   map: { flex: 1 },
+  // 촬영 중 스피너 — 일러스트 위에 어둡게 깔아 가독성 확보.
+  fabSpinner: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+    backgroundColor: 'rgba(13,15,26,0.5)',
+  },
   statCard: {
     position: 'absolute',
     left: 16,

@@ -24,9 +24,13 @@ export const CONFIG = {
   XP_STREAK_BONUS_PER_DAY: 0.02, // 스트릭 1일당 +2%
   XP_STREAK_BONUS_MAX: 0.3, // 최대 +30%
 
-  // 이 줌 이상에서만 사진 썸네일, 그보다 축소하면 점으로 (성능·가독성)
-  PHOTO_THUMB_MIN_ZOOM: 14,
-  SUBWAY_MIN_ZOOM: 13, // 이 줌 미만이면 지하철 마커 숨김 (수가 많아 클러터 방지)
+  // 줌아웃하면 마커가 단계별로 사라진다(클러터↓ 성능↑). 결국 전설 랜드마크만 남음.
+  // 큰 값일수록 먼저(=덜 축소했을 때) 사라짐. 사라지는 순서: 지하철→일반→사진→희귀→(전설만)
+  PHOTO_THUMB_MIN_ZOOM: 14, // 이 줌 이상=사진 썸네일/이모지 핀, 미만=점 (성능·가독성)
+  SUBWAY_MIN_ZOOM: 13, // 미만이면 지하철 마커 숨김 (수가 많아 가장 먼저)
+  LANDMARK_COMMON_MIN_ZOOM: 12, // 미만이면 일반(common) 랜드마크 숨김
+  PHOTO_MIN_ZOOM: 11, // 미만이면 사진 마커 숨김 (전설 전단계에서 사라짐)
+  LANDMARK_RARE_MIN_ZOOM: 9, // 미만이면 희귀(rare)도 숨김 → 전설만 남음
   PHOTO_GROUP_RES: 11, // 사진 묶음용 H3 해상도 (≈같은 자리, ~50m)
 
   // 랜드마크 (Phase 3)

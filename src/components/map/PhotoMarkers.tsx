@@ -10,11 +10,12 @@ import type { Photo } from '../../types';
 
 interface Props {
   thumbnails: boolean; // true=썸네일 마커, false=점 (줌아웃)
+  visible: boolean; // false면 사진 마커 전부 숨김 (전설 전단계에서 사라짐)
   onSelect: (group: Photo[]) => void;
 }
 
 /** 사진을 같은 위치(H3 셀)끼리 묶어 표시. 여러 장이면 카운트 배지. 탭하면 그 묶음 전달. */
-export default function PhotoMarkers({ thumbnails, onSelect }: Props) {
+export default function PhotoMarkers({ thumbnails, visible, onSelect }: Props) {
   const photos = usePhotoStore((s) => s.photos);
 
   // 같은 셀끼리 묶기 (대표 = 가장 최근 사진 = 배열 첫 항목)
@@ -40,6 +41,8 @@ export default function PhotoMarkers({ thumbnails, onSelect }: Props) {
     }),
     [groups]
   );
+
+  if (!visible) return null;
 
   if (!thumbnails) {
     return (
