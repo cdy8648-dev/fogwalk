@@ -12,7 +12,9 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as MediaLibrary from 'expo-media-library';
+// SDK 56에서 함수형 API(saveToLibraryAsync/requestPermissionsAsync)가 런타임 throw로 deprecated →
+// Expo 안내대로 legacy 진입점 사용(네이티브 모듈 동일, JS 경로만 변경).
+import * as MediaLibrary from 'expo-media-library/legacy';
 
 import { COLORS } from '../../constants/colors';
 import { FONT } from '../../constants/fonts';
