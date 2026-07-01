@@ -7,11 +7,27 @@ import EmptyHint from '../components/ui/EmptyHint';
 import StatTile from '../components/ui/StatTile';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
+import { KR_TOTAL_AREA_KM2, regionAreaKm2 } from '../constants/regionAreas';
 import type { CollectionStackParamList } from '../navigation/CollectionStack';
 import { getRegionStats, getSubregionStats } from '../services/db';
 import { useMapStore } from '../store/mapStore';
 import { abbrev } from '../utils/format';
 import { codeToFlag } from '../utils/flag';
+import { TILE_AREA_KM2 } from '../utils/h3';
+
+/** 밝힌 칸 수 → 권역 면적 대비 달성률(%). 면적 미상이면 null. */
+function completionPct(tiles: number, areaKm2: number | null): number | null {
+  if (!areaKm2) return null;
+  return (tiles * TILE_AREA_KM2) / areaKm2 * 100;
+}
+
+/** 작은 값도 읽히게: 10%↑ 정수, 1%↑ 소수1, 그 외 소수2. */
+function formatPct(pct: number): string {
+  if (pct >= 10) return `${Math.round(pct)}%`;
+  if (pct >= 1) return `${pct.toFixed(1)}%`;
+  if (pct < 0.01) return '<0.01%';
+  return `${pct.toFixed(2)}%`;
+}
 
 type Props = NativeStackScreenProps<CollectionStackParamList, 'CountryRegions'>;
 
@@ -34,6 +50,11 @@ export default function CountryRegionsScreen({ route }: Props) {
 
   const totalTiles = items.reduce((sum, r) => sum + r.tiles, 0);
   const maxTiles = items.reduce((m, r) => Math.max(m, r.tiles), 0) || 1;
+  // 시/도 목록(국가 레벨)에서만 면적 기반 달성률을 쓴다. 시/구·해외는 칸 수.
+  const overallPct =
+    isCountryLevel && code === 'KR'
+      ? completionPct(totalTiles, KR_TOTAL_AREA_KM2)
+      : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -60,21 +81,36 @@ export default function CountryRegionsScreen({ route }: Props) {
               label={isCountryLevel ? '권역' : '세부 지역'}
               accent={COLORS.violetSoft}
             />
+            {overallPct != null && (
+              <StatTile value={formatPct(overallPct)} label="국토 달성률" accent={COLORS.lime} />
+            )}
             <StatTile value={abbrev(totalTiles)} label="총 밝힌 칸" accent={COLORS.violetSoft} />
           </View>
 
           <View style={styles.list}>
             {items.map((r) => {
+              const area = isCountryLevel ? regionAreaKm2(code, r.region) : null;
+              const pct = completionPct(r.tiles, area);
+              // 면적 기반이면 바 = 달성률(100% 상한), 아니면 권역간 상대 비교.
+              const fillWidth =
+                pct != null ? Math.min(pct, 100) : (r.tiles / maxTiles) * 100;
               const row = (
                 <>
                   <View style={styles.rowTop}>
                     <Text style={styles.region} numberOfLines={1}>
                       {r.region}
                     </Text>
-                    <Text style={styles.num}>{abbrev(r.tiles)}칸</Text>
+                    {pct != null ? (
+                      <View style={styles.rowRight}>
+                        <Text style={styles.pct}>{formatPct(pct)}</Text>
+                        <Text style={styles.sub}>{abbrev(r.tiles)}칸</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.num}>{abbrev(r.tiles)}칸</Text>
+                    )}
                   </View>
                   <View style={styles.track}>
-                    <View style={[styles.fill, { width: `${(r.tiles / maxTiles) * 100}%` }]} />
+                    <View style={[styles.fill, { width: `${fillWidth}%` }]} />
                   </View>
                 </>
               );
@@ -119,6 +155,9 @@ const styles = StyleSheet.create({
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   region: { color: COLORS.text, fontSize: 15, fontWeight: '700', flex: 1 },
   num: { color: COLORS.violetSoft, fontSize: 15, fontFamily: FONT.display, marginLeft: 8 },
+  rowRight: { alignItems: 'flex-end', marginLeft: 8 },
+  pct: { color: COLORS.lime, fontSize: 16, fontFamily: FONT.display },
+  sub: { color: COLORS.muted, fontSize: 11, fontFamily: FONT.mono, marginTop: 1 },
   track: {
     height: 7,
     backgroundColor: COLORS.fogLight,

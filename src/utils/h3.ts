@@ -1,6 +1,9 @@
-import { cellsToMultiPolygon, gridDisk, latLngToCell } from 'h3-js';
+import { cellsToMultiPolygon, getHexagonAreaAvg, gridDisk, latLngToCell } from 'h3-js';
 
 import { CONFIG } from '../constants/config';
+
+/** 타일 1칸의 평균 면적(km²). 달성률(밝힌칸→면적) 계산에 사용. */
+export const TILE_AREA_KM2 = getHexagonAreaAvg(CONFIG.H3_RESOLUTION, 'km2');
 
 /** 좌표 → H3 타일 ID (기본 해상도). */
 export function coordToTile(lat: number, lng: number): string {
