@@ -96,6 +96,8 @@ export default function App() {
           screenOptions={{
             headerStyle: { backgroundColor: COLORS.surface },
             headerTintColor: COLORS.text,
+            headerTitleStyle: { fontWeight: '800' }, // Collection 스택 헤더와 통일
+            headerShadowVisible: false, // Collection 헤더처럼 그림자 선 제거
             tabBarShowLabel: false,
             tabBarStyle: { backgroundColor: COLORS.surface, borderTopColor: COLORS.border },
             tabBarActiveTintColor: COLORS.lime,
