@@ -139,12 +139,14 @@ export function initDatabase(): void {
     setSetting('discovery_v3', '1');
   }
 
-  const tables = db.getAllSync<{ name: string }>(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-  );
-  console.log(
-    `[db] ${tables.length} tables ready: ${tables.map((t) => t.name).join(', ')}`
-  );
+  if (__DEV__) {
+    const tables = db.getAllSync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+    );
+    console.log(
+      `[db] ${tables.length} tables ready: ${tables.map((t) => t.name).join(', ')}`
+    );
+  }
 }
 
 // ── visited_tiles ──────────────────────────────────────────────

@@ -32,7 +32,7 @@ export default function CollectionStack() {
       <Stack.Screen
         name="CollectionHome"
         component={CollectionScreen}
-        options={{ title: 'Collection' }}
+        options={{ headerShown: false }} // 홈은 헤더 없이 (콘텐츠 자체 상단 여백)
       />
       <Stack.Screen name="BadgeDetail" component={BadgeDetailScreen} options={{ title: '뱃지' }} />
       <Stack.Screen

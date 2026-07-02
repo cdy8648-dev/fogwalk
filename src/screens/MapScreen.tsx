@@ -6,7 +6,6 @@ import {
   useState,
 } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Linking,
@@ -17,12 +16,13 @@ import {
 } from 'react-native';
 import { Camera, MapView, PointAnnotation } from '@rnmapbox/maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, type ParamListBase } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import FogLayer from '../components/map/FogLayer';
 import LandmarkMarkers from '../components/map/LandmarkMarkers';
 import LocationMarker from '../components/map/LocationMarker';
 import PhotoMarkers from '../components/map/PhotoMarkers';
-import Fab from '../components/ui/Fab';
 import PhotoViewer from '../components/ui/PhotoViewer';
 import Tape from '../components/ui/Tape';
 import { COLORS } from '../constants/colors';
@@ -32,14 +32,43 @@ import { getMapStyle } from '../constants/mapStyles';
 import { useTracking } from '../hooks/useTracking';
 import { capturePhotoAt } from '../services/photos';
 import { useMapStore } from '../store/mapStore';
+import { useMapUiStore } from '../store/mapUiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
 import type { Photo } from '../types';
 import { abbrev } from '../utils/format';
-import { fogClassAt } from '../utils/h3';
+import { clearFogWithInk } from '../services/ink';
+import { coordToTile, enclosedFogAt, fogClassAt } from '../utils/h3';
 
 // 첫 위치 픽스 전 기본 중심(서울 시청).
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
+
+/**
+ * 연필 핀이 가리키는 대상. 안개 분류 + 잉크로 지울 타일 집합을 함께 담는다.
+ * - land: 밝힌 땅 (지우기 없음 — 라벨은 다음 단계)
+ * - gray: 회색 안개 → 그 칸 1개, 어디서나 가능
+ * - hole: 검은 안개인데 밝힌 땅으로 둘러싸인 '구멍' → 통째로 (땅따먹기)
+ * - blocked: 검은 안개인데 열려 있거나 너무 넓음 → 지우기 불가
+ */
+type PencilTarget =
+  | { kind: 'land' }
+  | { kind: 'gray'; tiles: [string] }
+  | { kind: 'hole'; tiles: string[] }
+  | { kind: 'blocked' };
+
+function targetMessage(t: PencilTarget): string {
+  if (t.kind === 'land') return '밝힌 땅이에요 🌿';
+  if (t.kind === 'gray') return '회색 안개예요 🌫️';
+  if (t.kind === 'hole') return `검은 안개예요 🌑 · ${t.tiles.length}칸 포위!`;
+  return '검은 안개예요 🌑';
+}
+
+/** 잉크 비용. 지울 수 없는 대상은 null. */
+function targetCost(t: PencilTarget): number | null {
+  if (t.kind === 'gray') return CONFIG.INK_COST_GRAY;
+  if (t.kind === 'hole') return t.tiles.length * CONFIG.INK_COST_BLACK;
+  return null;
+}
 
 // 줌 → 마커 가시성. 임계값은 config(큰 값일수록 먼저 사라짐).
 type MarkerVis = {
@@ -70,19 +99,22 @@ function sameVis(a: MarkerVis, b: MarkerVis): boolean {
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<BottomTabNavigationProp<ParamListBase>>();
   const { status } = useTracking();
-  const currentLocation = useMapStore((s) => s.currentLocation);
+  // 주의: 원시 위치·소수 잉크를 그대로 구독하면 GPS 픽스마다 화면 전체가 재렌더된다.
+  // 위치는 유무(boolean)만, 잉크는 정수부만 구독 (위치 자체는 LocationMarker가 구독).
+  const hasLocation = useMapStore((s) => s.currentLocation != null);
   const tiles = useMapStore((s) => s.visitedTileIds.size);
   const todayNewTiles = useUserStore((s) => s.todayNewTiles);
   const streak = useUserStore((s) => s.streak);
   const level = useUserStore((s) => s.level);
-  const ink = useUserStore((s) => s.ink);
+  const ink = useUserStore((s) => Math.floor(s.ink)); // 정수 비용과 floor(x)≥c ⟺ x≥c 로 판정 동일
   const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
-  const [capturing, setCapturing] = useState(false);
-  // 롱프레스로 찍는 연필 핀 좌표([lng, lat]). 드래그로 위치 미세조정 가능. (잉크 라벨 토대)
+  // 롱프레스로 찍는 연필 핀 좌표([lng, lat]) + 그 위치의 대상 판별(팝업용). 드래그로 이동.
   const [pinCoord, setPinCoord] = useState<[number, number] | null>(null);
+  const [pinTarget, setPinTarget] = useState<PencilTarget | null>(null);
   // 줌 수준에 따른 마커 가시성. 줌아웃하면 단계별로 사라져 결국 전설만 남는다.
   const [vis, setVis] = useState<MarkerVis>(() => visForZoom(15));
 
@@ -92,15 +124,49 @@ export default function MapScreen() {
       Alert.alert('위치 확인 중', '현재 위치를 찾는 중이에요. 잠시 후 다시 시도해주세요.');
       return;
     }
-    setCapturing(true);
+    useMapUiStore.getState().setCapturing(true);
     const res = await capturePhotoAt(loc.lat, loc.lng);
-    setCapturing(false);
+    useMapUiStore.getState().setCapturing(false);
     if (res === 'no-permission') {
       Alert.alert('카메라 권한 필요', '설정에서 카메라 접근을 허용해주세요.');
     } else if (res === 'error') {
       Alert.alert('오류', '사진 저장에 실패했어요.');
     }
   }, []);
+
+  // 연필 핀 배치/이동 시 대상 판별(분류 + 지울 타일 계산) 후 팝업 표시.
+  const showPencil = useCallback((lng: number, lat: number) => {
+    setPinCoord([lng, lat]);
+    const visited = useMapStore.getState().visitedTileIds;
+    const cls = fogClassAt(lat, lng, visited);
+    if (cls === 'land') {
+      setPinTarget({ kind: 'land' });
+    } else if (cls === 'near') {
+      setPinTarget({ kind: 'gray', tiles: [coordToTile(lat, lng)] });
+    } else {
+      // 검은 안개: 밝힌 땅으로 둘러싸인 구멍인지 flood-fill 판별 (상한 초과 = 열림/너무 큼)
+      const hole = enclosedFogAt(lat, lng, visited, CONFIG.INK_HOLE_MAX_TILES);
+      setPinTarget(hole ? { kind: 'hole', tiles: hole } : { kind: 'blocked' });
+    }
+  }, []);
+  const removePencil = useCallback(() => {
+    setPinCoord(null);
+    setPinTarget(null);
+  }, []);
+
+  // 팝업의 [잉크로 밝히기] 확정 — 차감 + reveal + 연필 제거.
+  const clearWithInk = useCallback(() => {
+    const t = pinTarget;
+    if (!t || (t.kind !== 'gray' && t.kind !== 'hole')) return;
+    const cost = targetCost(t);
+    if (cost == null) return;
+    const res = clearFogWithInk(t.tiles, cost);
+    if (res === 'no-ink') {
+      Alert.alert('잉크 부족', '더 걸어서 잉크를 모아보세요 🚶');
+      return;
+    }
+    removePencil();
+  }, [pinTarget, removePencil]);
 
   const cameraRef = useRef<ComponentRef<typeof Camera>>(null);
   const didAutoCenter = useRef(false);
@@ -119,11 +185,11 @@ export default function MapScreen() {
 
   // 첫 위치 픽스 시 1회 자동 센터. (cameraRef가 준비됐을 때만 완료 처리 → 레이스 방지)
   useEffect(() => {
-    if (currentLocation && !didAutoCenter.current && cameraRef.current) {
+    if (hasLocation && !didAutoCenter.current && cameraRef.current) {
       recenter(false);
       didAutoCenter.current = true;
     }
-  }, [currentLocation, recenter]);
+  }, [hasLocation, recenter]);
 
   // 위치가 이미 있는데 지도가 늦게 뜬 경우 보강.
   const handleMapLoaded = useCallback(() => {
@@ -132,6 +198,19 @@ export default function MapScreen() {
       didAutoCenter.current = true;
     }
   }, [recenter]);
+
+  // 탭바 카메라 버튼이 호출할 촬영 액션 등록.
+  useEffect(() => {
+    useMapUiStore.getState().setCapture(onCapture);
+  }, [onCapture]);
+
+  // 이미 활성인 Map 탭을 한 번 더 누르면 내 위치로 이동.
+  useEffect(() => {
+    const unsub = navigation.addListener('tabPress', () => {
+      if (navigation.isFocused()) recenter(true);
+    });
+    return unsub;
+  }, [navigation, recenter]);
 
   return (
     <View style={styles.container}>
@@ -146,15 +225,7 @@ export default function MapScreen() {
           const g = e.geometry;
           if (g.type !== 'Point') return;
           const [lng, lat] = g.coordinates;
-          setPinCoord([lng, lat]); // 정확한 위치에 연필 핀 표시
-          const cls = fogClassAt(lat, lng, useMapStore.getState().visitedTileIds);
-          const msg =
-            cls === 'land'
-              ? '밝힌 땅이에요 🌿'
-              : cls === 'near'
-                ? '회색 안개예요 🌫️'
-                : '검은 안개예요 🌑';
-          Alert.alert('여기는', `${msg}\n\n연필을 끌어 위치를 조정할 수 있어요.`);
+          showPencil(lng, lat); // 연필 핀 표시 + 분류 팝업
         }}
         onCameraChanged={(e) => {
           const next = visForZoom(e.properties?.zoom ?? 15);
@@ -176,7 +247,7 @@ export default function MapScreen() {
             draggable
             onDragEnd={(payload) => {
               const c = payload.geometry.coordinates;
-              setPinCoord([c[0], c[1]]);
+              showPencil(c[0], c[1]); // 드래그해 놓으면 그 위치 분류 팝업
             }}
           >
             <Image
@@ -213,35 +284,66 @@ export default function MapScreen() {
         onPress={() =>
           Alert.alert(
             '잉크',
-            `보유 잉크 ${Math.floor(ink)}\n\n걸을수록 잉크가 모여요. 곧 잉크로 지도를 칠할 수 있어요 🖌️`
+            `보유 잉크 ${ink}\n\n걸을수록 잉크가 모여요. 곧 잉크로 지도를 칠할 수 있어요 🖌️`
           )
         }
-        accessibilityLabel={`잉크 ${Math.floor(ink)}`}
+        accessibilityLabel={`잉크 ${ink}`}
       >
         <Image source={require('../../assets/ink.png')} style={styles.inkIcon} resizeMode="contain" />
         <View style={styles.inkBadge}>
-          <Text style={styles.inkBadgeText}>{abbrev(Math.floor(ink))}</Text>
+          <Text style={styles.inkBadgeText}>{abbrev(ink)}</Text>
         </View>
       </TouchableOpacity>
 
-      {/* 사진 남기기 버튼 (폴라로이드 일러스트) — 플로팅 탭바 위로 */}
-      <Fab
-        image={require('../../assets/fab-photo.png')}
-        bottom={insets.bottom + 152}
-        onPress={onCapture}
-        disabled={capturing}
-        accessibilityLabel="사진 남기기"
-      >
-        {capturing && <ActivityIndicator color={COLORS.ink} style={styles.fabSpinner} />}
-      </Fab>
+      {/* 연필 핀 팝업: 판별 + (가능하면) 잉크로 밝히기. 드래그로 이동 시 갱신, X로 연필 제거 */}
+      {pinTarget &&
+        (() => {
+          const cost = targetCost(pinTarget);
+          const canAfford = cost != null && ink >= cost;
+          const n = pinTarget.kind === 'gray' || pinTarget.kind === 'hole' ? pinTarget.tiles.length : 0;
+          return (
+            <View
+              style={[styles.pinPopupWrap, { bottom: insets.bottom + 96 }]}
+              pointerEvents="box-none"
+            >
+              <View style={styles.pinPopup}>
+                <View style={styles.pinPopupRow}>
+                  <Text style={styles.pinPopupText}>{targetMessage(pinTarget)}</Text>
+                  <TouchableOpacity
+                    onPress={removePencil}
+                    style={styles.pinPopupClose}
+                    hitSlop={8}
+                    accessibilityLabel="연필 제거"
+                  >
+                    <Text style={styles.pinPopupCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
 
-      {/* 내 위치로 이동 버튼 (지도 일러스트) */}
-      <Fab
-        image={require('../../assets/fab-location.png')}
-        bottom={insets.bottom + 82}
-        onPress={() => recenter(true)}
-        accessibilityLabel="내 위치로 이동"
-      />
+                {pinTarget.kind === 'blocked' && (
+                  <Text style={styles.pinPopupSub}>
+                    밝힌 땅으로 완전히 둘러싼 곳만 지울 수 있어요 (너무 넓어도 안 돼요)
+                  </Text>
+                )}
+
+                {cost != null && (
+                  <TouchableOpacity
+                    onPress={clearWithInk}
+                    disabled={!canAfford}
+                    activeOpacity={0.85}
+                    style={[styles.pinAction, !canAfford && styles.pinActionDisabled]}
+                    accessibilityLabel={`잉크 ${cost}로 ${n}칸 밝히기`}
+                  >
+                    <Text style={[styles.pinActionText, !canAfford && styles.pinActionTextDisabled]}>
+                      {canAfford
+                        ? `🖌️ 잉크 ${cost}로 ${n}칸 밝히기`
+                        : `잉크 부족 · ${cost} 필요 (보유 ${ink})`}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          );
+        })()}
 
       {/* 사진 뷰어 (묶음 스와이프) */}
       <PhotoViewer photos={viewerPhotos} onClose={() => setViewerPhotos([])} />
@@ -288,14 +390,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   inkBadgeText: { color: COLORS.ink, fontSize: 12, fontFamily: FONT.display },
-  // 촬영 중 스피너 — 일러스트 위에 어둡게 깔아 가독성 확보.
-  fabSpinner: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+  // 연필 핀 안내 팝업 (하단 중앙, 탭바 위)
+  pinPopupWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  pinPopup: {
+    maxWidth: 320,
+    paddingLeft: 18,
+    paddingRight: 10,
+    paddingVertical: 12,
     borderRadius: 16,
-    backgroundColor: 'rgba(13,15,26,0.5)',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
   },
+  pinPopupRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pinPopupText: { color: COLORS.text, fontSize: 15, fontWeight: '700', flexShrink: 1 },
+  pinPopupSub: { color: COLORS.muted, fontSize: 12, marginTop: 8, marginRight: 8 },
+  pinAction: {
+    marginTop: 10,
+    marginRight: 8,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: COLORS.lime,
+    alignItems: 'center',
+  },
+  pinActionDisabled: { backgroundColor: COLORS.fogLight },
+  pinActionText: { color: COLORS.ink, fontSize: 14, fontWeight: '800' },
+  pinActionTextDisabled: { color: COLORS.muted },
+  pinPopupClose: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.fogLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinPopupCloseText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
   statCard: {
     position: 'absolute',
     left: 16,

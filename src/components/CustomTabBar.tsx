@@ -3,6 +3,8 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
+import { useMapUiStore } from '../store/mapUiStore';
+
 // 탭별 아이콘: 활성=3D 그라데이션(컬러), 비활성=clay(무채색).
 const ICONS: Record<string, { active: ReturnType<typeof require>; idle: ReturnType<typeof require> }> = {
   Map: {
@@ -19,6 +21,9 @@ const ICONS: Record<string, { active: ReturnType<typeof require>; idle: ReturnTy
   },
 };
 
+const CAMERA_ACTIVE = require('../../assets/tab-camera.png');
+const CAMERA_IDLE = require('../../assets/tab-camera-clay.png');
+
 /**
  * 하단에 떠 있는 글래스모피즘 탭바(아이폰 느낌). 기본 솔리드 바 대신 사용.
  * BlurView(다크) + 반투명 틴트 + 라운드 알약. 활성=그라데이션 아이콘+은은한 라임 글로우,
@@ -26,6 +31,10 @@ const ICONS: Record<string, { active: ReturnType<typeof require>; idle: ReturnTy
  */
 export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const capture = useMapUiStore((s) => s.capture);
+  const capturing = useMapUiStore((s) => s.capturing);
+  // 카메라(액션 버튼)는 Map 탭이 활성일 때만 활성화 — 사진은 지도에서만 남긴다.
+  const mapActive = state.routes[state.index]?.name === 'Map';
 
   return (
     <View style={[styles.wrap, { bottom: insets.bottom + 10 }]} pointerEvents="box-none">
@@ -34,6 +43,8 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={styles.tint} />
           {state.routes.map((route, index) => {
+            const icons = ICONS[route.name];
+            if (!icons) return null; // ICONS 미등록 라우트는 크래시 대신 숨김
             const focused = state.index === index;
             const onPress = () => {
               const event = navigation.emit({
@@ -55,7 +66,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               >
                 <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
                   <Image
-                    source={focused ? ICONS[route.name].active : ICONS[route.name].idle}
+                    source={focused ? icons.active : icons.idle}
                     style={[styles.icon, focused && styles.iconActive, !focused && styles.iconIdle]}
                     resizeMode="contain"
                   />
@@ -63,6 +74,33 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               </TouchableOpacity>
             );
           })}
+
+          {/* 카메라 액션 버튼 (Profile 오른쪽). Map 활성일 때만 촬영 가능. */}
+          <View style={styles.divider} />
+          <TouchableOpacity
+            onPress={() => {
+              if (mapActive && !capturing) capture();
+            }}
+            disabled={!mapActive || capturing}
+            activeOpacity={0.8}
+            style={styles.tab}
+            accessibilityRole="button"
+            accessibilityLabel="사진 남기기"
+            accessibilityState={{ disabled: !mapActive }}
+          >
+            <View style={[styles.iconWrap, mapActive && styles.iconWrapActive]}>
+              <Image
+                source={mapActive ? CAMERA_ACTIVE : CAMERA_IDLE}
+                style={[
+                  styles.icon,
+                  mapActive && styles.iconActive,
+                  !mapActive && styles.iconIdle,
+                  capturing && styles.iconCapturing,
+                ]}
+                resizeMode="contain"
+              />
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -114,4 +152,13 @@ const styles = StyleSheet.create({
   icon: { width: 28, height: 28 },
   iconActive: { width: 30, height: 30 }, // 활성 살짝 크게
   iconIdle: { opacity: 0.9 }, // clay는 이미 무채색 → 살짝만 낮춤
+  iconCapturing: { opacity: 0.4 }, // 촬영 중 표시
+  // 탭(내비게이션) 과 카메라(액션) 를 시각적으로 분리하는 얇은 구분선
+  divider: {
+    width: StyleSheet.hairlineWidth,
+    height: 26,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignSelf: 'center',
+    marginHorizontal: 4,
+  },
 });

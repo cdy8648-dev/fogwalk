@@ -43,6 +43,33 @@ export function fogClassAt(lat: number, lng: number, visited: Set<string>): FogC
   return 'far';
 }
 
+/**
+ * 좌표의 안개가 밝힌 땅으로 완전히 둘러싸인 '구멍'인지 판별(땅따먹기).
+ * 미방문 타일을 BFS로 확장 — 방문 타일이 벽 역할. 벽에 막혀 maxTiles 안에서
+ * 확장이 끝나면 구멍 타일 전체를 반환, 넘게 퍼지면(열린 안개/너무 큼) null.
+ */
+export function enclosedFogAt(
+  lat: number,
+  lng: number,
+  visited: Set<string>,
+  maxTiles: number
+): string[] | null {
+  const start = coordToTile(lat, lng);
+  if (visited.has(start)) return null;
+  const seen = new Set<string>([start]);
+  const queue = [start];
+  while (queue.length > 0) {
+    const cur = queue.pop()!;
+    for (const n of gridDisk(cur, 1)) {
+      if (seen.has(n) || visited.has(n)) continue;
+      seen.add(n);
+      if (seen.size > maxTiles) return null;
+      queue.push(n);
+    }
+  }
+  return [...seen];
+}
+
 /** 타일 집합을 gridDisk(k)로 팽창(dilate)시킨 합집합. 안개 버퍼 영역 계산용. */
 export function dilateTiles(tileIds: string[], k: number): string[] {
   if (tileIds.length === 0) return [];

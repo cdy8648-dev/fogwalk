@@ -22,7 +22,6 @@ import { useSettingsStore } from './src/store/settingsStore';
 import MapScreen from './src/screens/MapScreen';
 import CollectionStack from './src/navigation/CollectionStack';
 import ProfileScreen from './src/screens/ProfileScreen';
-import ScreenHeader from './src/components/ui/ScreenHeader';
 import CustomTabBar from './src/components/CustomTabBar';
 
 // app.json 의 extra 에서 Mapbox 퍼블릭 토큰을 읽어 1회 설정.
@@ -96,20 +95,10 @@ export default function App() {
         <StatusBar style="light" />
         <Tab.Navigator
           tabBar={(props) => <CustomTabBar {...props} />} // 글래스모피즘 플로팅 탭바
-          screenOptions={{
-            header: (props) => <ScreenHeader {...props} />, // 모든 페이지 공용 헤더(Map은 headerShown:false)
-          }}
+          screenOptions={{ headerShown: false }} // 탭 화면은 헤더 없음(콘텐츠 상단 여백으로 처리)
         >
-          <Tab.Screen
-            name="Map"
-            component={MapScreen}
-            options={{ headerShown: false }} // 풀블리드 지도 (카드는 safe-area 기준 오버레이)
-          />
-          <Tab.Screen
-            name="Collection"
-            component={CollectionStack}
-            options={{ headerShown: false }} // 스택이 헤더를 관리(상세 페이지 헤더와 중복 방지)
-          />
+          <Tab.Screen name="Map" component={MapScreen} />
+          <Tab.Screen name="Collection" component={CollectionStack} />
           <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
       </NavigationContainer>

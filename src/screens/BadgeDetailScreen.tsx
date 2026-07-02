@@ -29,11 +29,9 @@ export default function BadgeDetailScreen() {
   }, [unlockedTypes]);
   const tiles = useMemo(() => getTileCount(), [unlockedTypes]);
 
-  const unlockedCount = ACHIEVEMENTS.filter((a) => unlockedTypes.has(a.type)).length;
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionPill label="뱃지 도감" color={COLORS.lime} rotate={-1.5} hint={`${unlockedCount}/${ACHIEVEMENTS.length} 해금`} />
+      <SectionPill label="뱃지 도감" color={COLORS.lime} rotate={-1.5} />
 
       <View style={styles.grid}>
         {ACHIEVEMENTS.map((a) => {

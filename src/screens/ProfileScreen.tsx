@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AboutModal from '../components/AboutModal';
 import EmptyHint from '../components/ui/EmptyHint';
@@ -52,6 +53,7 @@ function monthLabel(ym: string): string {
 
 export default function ProfileScreen() {
   const level = useUserStore((s) => s.level);
+  const insets = useSafeAreaInsets();
   const levelRatio = useUserStore((s) => s.levelRatio);
   const totalXp = useUserStore((s) => s.totalXp);
   const streak = useUserStore((s) => s.streak);
@@ -97,7 +99,10 @@ export default function ProfileScreen() {
   }, [months]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+    >
       <Text style={styles.kicker}>PROFILE</Text>
       <Text style={styles.title}>내 탐험 기록</Text>
 
@@ -125,7 +130,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* 활동 */}
-      <SectionPill label="활동" color={COLORS.lime} rotate={-2} hint="월별 활동" />
+      <SectionPill label="활동" color={COLORS.lime} rotate={-2} />
       <View style={styles.actCard}>
         <View style={styles.actHead}>
           <View style={styles.actAvatar}>
@@ -220,7 +225,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* History */}
-      <SectionPill label="History" color={COLORS.violet} rotate={1.5} hint="월별 기록" />
+      <SectionPill label="History" color={COLORS.violet} rotate={1.5} />
       {months.length === 0 ? (
         <EmptyHint>걸은 기록이 월별로 여기 쌓여요. 오늘부터 시작해볼까요 👣</EmptyHint>
       ) : (

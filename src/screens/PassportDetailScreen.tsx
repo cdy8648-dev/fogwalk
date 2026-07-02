@@ -23,7 +23,7 @@ export default function PassportDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionPill label="여권" color={COLORS.violet} rotate={-1.5} hint="탐험한 나라" />
+      <SectionPill label="여권" color={COLORS.violet} rotate={-1.5} />
 
       {countries.length === 0 ? (
         <EmptyHint>탐험한 나라가 여기 쌓여요. 해외에 가면 국기가 늘어납니다 🛂</EmptyHint>

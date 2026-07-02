@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BadgeStepper from '../components/BadgeStepper';
 import Polaroid from '../components/Polaroid';
@@ -41,7 +42,6 @@ function SectionHead(props: {
   label: string;
   color: string;
   rotate?: number;
-  hint?: string;
   onPress?: () => void;
 }) {
   const { onPress, ...pill } = props;
@@ -56,6 +56,7 @@ function SectionHead(props: {
 
 export default function CollectionScreen() {
   const nav = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const photos = usePhotoStore((s) => s.photos);
   const landmarks = useLandmarkStore((s) => s.discovered);
   const fogVersion = useMapStore((s) => s.fogVersion);
@@ -100,7 +101,10 @@ export default function CollectionScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+    >
       <Text style={styles.kicker}>COLLECTION</Text>
       <Text style={styles.title}>모아둔 것들</Text>
 
@@ -109,7 +113,6 @@ export default function CollectionScreen() {
         label="뱃지"
         color={COLORS.lime}
         rotate={-2}
-        hint="칸 발견"
         onPress={() => nav.navigate('BadgeDetail')}
       />
       <BadgeStepper />
@@ -119,7 +122,6 @@ export default function CollectionScreen() {
         label="여권"
         color={COLORS.violet}
         rotate={1.5}
-        hint="지역별"
         onPress={countries.length > 0 ? () => nav.navigate('PassportDetail') : undefined}
       />
       {countries.length === 0 ? (
@@ -159,7 +161,6 @@ export default function CollectionScreen() {
         label="새로운 발견"
         color={COLORS.amber}
         rotate={-1.5}
-        hint="카테고리별"
         onPress={landmarks.length > 0 ? () => nav.navigate('DiscoveryDetail') : undefined}
       />
       <View style={styles.discRow}>
@@ -175,7 +176,6 @@ export default function CollectionScreen() {
             ]}
           >
             <Text style={styles.discEmoji}>{t.emoji}</Text>
-            <Text style={styles.discName}>{t.name}</Text>
             <Text style={styles.discCount}>{t.count}</Text>
           </TouchableOpacity>
         ))}
@@ -259,8 +259,7 @@ const styles = StyleSheet.create({
   },
   dim: { opacity: 0.55 },
   discEmoji: { fontSize: 30 },
-  discName: { color: COLORS.text, fontSize: 12, fontWeight: '700', marginTop: 6 },
-  discCount: { color: COLORS.amber, fontSize: 16, fontFamily: FONT.display, marginTop: 2 },
+  discCount: { color: COLORS.amber, fontSize: 16, fontFamily: FONT.display, marginTop: 6 },
 
   lmList: { gap: 8, marginTop: 12 },
   lmRow: {
