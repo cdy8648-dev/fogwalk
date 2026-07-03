@@ -1,13 +1,17 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { ParamListBase } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import Battery from '../components/ui/Battery';
 import EmptyHint from '../components/ui/EmptyHint';
 import StatTile from '../components/ui/StatTile';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
-import { KR_TOTAL_AREA_KM2, regionAreaKm2 } from '../constants/regionAreas';
+import { KR_TOTAL_AREA_KM2 } from '../constants/regionAreas';
 import type { CollectionStackParamList } from '../navigation/CollectionStack';
 import { getRegionStats, getSubregionStats } from '../services/db';
 import { useMapStore } from '../store/mapStore';
@@ -15,7 +19,7 @@ import { abbrev } from '../utils/format';
 import { codeToFlag } from '../utils/flag';
 import { TILE_AREA_KM2 } from '../utils/h3';
 
-/** 밝힌 칸 수 → 권역 면적 대비 달성률(%). 면적 미상이면 null. */
+/** 밝힌 칸 수 → 면적 대비 달성률(%). 면적 미상이면 null. */
 function completionPct(tiles: number, areaKm2: number | null): number | null {
   if (!areaKm2) return null;
   return (tiles * TILE_AREA_KM2) / areaKm2 * 100;
@@ -32,55 +36,61 @@ function formatPct(pct: number): string {
 type Props = NativeStackScreenProps<CollectionStackParamList, 'CountryRegions'>;
 
 /**
- * 권역별 밝힌 칸. 한 화면으로 두 레벨 처리:
- * - region 파라미터 없음 = 국가 → 시/도 목록 (행 탭 시 시/구로 드릴)
- * - region 파라미터 있음 = 그 시/도 → 시/구 목록 (말단)
+ * 권역별 밝힌 칸 — 헤더 없는 단일 페이지. 시/도 카드가 아코디언으로 펼쳐져
+ * 시/구 세부를 인라인으로 보여준다(별도 드릴 페이지 없음 → 뒤로가기 불필요).
+ * 카드: 이름 | 배터리 게이지(최다 권역 대비 10칸) | 밝힌 칸 수.
  */
 export default function CountryRegionsScreen({ route }: Props) {
-  const { code, name, region } = route.params;
+  const { code, name } = route.params;
+  const insets = useSafeAreaInsets();
   const nav = useNavigation<NativeStackNavigationProp<CollectionStackParamList>>();
   const fogVersion = useMapStore((s) => s.fogVersion);
-  const isCountryLevel = !region;
+  // 펼쳐진 권역(한 번에 하나) — 다시 탭하면 접힘.
+  const [open, setOpen] = useState<string | null>(null);
+
+  // 헤더가 없으니 Collection 탭 재탭 = 컬렉션 홈으로 (스와이프백과 별개의 탈출구).
+  useEffect(() => {
+    const tab = nav.getParent<BottomTabNavigationProp<ParamListBase>>();
+    if (!tab) return;
+    return tab.addListener('tabPress', () => {
+      if (nav.isFocused()) nav.popToTop();
+    });
+  }, [nav]);
 
   const items = useMemo(
-    () => (region == null ? getRegionStats(code) : getSubregionStats(code, region)),
+    () => getRegionStats(code),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [code, region, fogVersion]
+    [code, fogVersion]
+  );
+  // 펼친 권역의 시/구 세부 (동기 SQLite — 펼칠 때만 조회).
+  const subItems = useMemo(
+    () => (open ? getSubregionStats(code, open) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [code, open, fogVersion]
   );
 
   const totalTiles = items.reduce((sum, r) => sum + r.tiles, 0);
   const maxTiles = items.reduce((m, r) => Math.max(m, r.tiles), 0) || 1;
-  // 시/도 목록(국가 레벨)에서만 면적 기반 달성률을 쓴다. 시/구·해외는 칸 수.
-  const overallPct =
-    isCountryLevel && code === 'KR'
-      ? completionPct(totalTiles, KR_TOTAL_AREA_KM2)
-      : null;
+  const overallPct = code === 'KR' ? completionPct(totalTiles, KR_TOTAL_AREA_KM2) : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+    >
       <View style={styles.head}>
-        {isCountryLevel ? (
-          <Text style={styles.flag}>{codeToFlag(code)}</Text>
-        ) : (
-          <Text style={styles.flag}>🗺️</Text>
-        )}
-        <Text style={styles.title}>{isCountryLevel ? name : region}</Text>
+        <Text style={styles.flag}>{codeToFlag(code)}</Text>
+        <Text style={styles.title}>{name}</Text>
       </View>
 
       {items.length === 0 ? (
         <EmptyHint>
-          {isCountryLevel
-            ? '권역별 기록이 곧 쌓여요. (업데이트 이후 새로 밝힌 칸부터 시/도별로 모입니다 🗺️)'
-            : '이 지역의 세부 기록이 아직 없어요. 더 걸어서 채워보세요 🚶'}
+          권역별 기록이 곧 쌓여요. (업데이트 이후 새로 밝힌 칸부터 시/도별로 모입니다 🗺️)
         </EmptyHint>
       ) : (
         <>
           <View style={styles.summary}>
-            <StatTile
-              value={String(items.length)}
-              label={isCountryLevel ? '권역' : '세부 지역'}
-              accent={COLORS.violetSoft}
-            />
+            <StatTile value={String(items.length)} label="권역" accent={COLORS.violetSoft} />
             {overallPct != null && (
               <StatTile value={formatPct(overallPct)} label="국토 달성률" accent={COLORS.lime} />
             )}
@@ -89,43 +99,39 @@ export default function CountryRegionsScreen({ route }: Props) {
 
           <View style={styles.list}>
             {items.map((r) => {
-              const area = isCountryLevel ? regionAreaKm2(code, r.region) : null;
-              const pct = completionPct(r.tiles, area);
-              // 면적 기반이면 바 = 달성률(100% 상한), 아니면 권역간 상대 비교.
-              const fillWidth =
-                pct != null ? Math.min(pct, 100) : (r.tiles / maxTiles) * 100;
-              const row = (
-                <>
-                  <View style={styles.rowTop}>
+              const expanded = open === r.region;
+              return (
+                <View key={r.region} style={styles.rowCard}>
+                  <TouchableOpacity
+                    style={styles.rowHead}
+                    activeOpacity={0.85}
+                    onPress={() => setOpen(expanded ? null : r.region)}
+                    accessibilityLabel={`${r.region} ${abbrev(r.tiles)}칸 ${expanded ? '접기' : '펼치기'}`}
+                  >
                     <Text style={styles.region} numberOfLines={1}>
                       {r.region}
                     </Text>
-                    {pct != null ? (
-                      <View style={styles.rowRight}>
-                        <Text style={styles.pct}>{formatPct(pct)}</Text>
-                        <Text style={styles.sub}>{abbrev(r.tiles)}칸</Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.num}>{abbrev(r.tiles)}칸</Text>
-                    )}
-                  </View>
-                  <View style={styles.track}>
-                    <View style={[styles.fill, { width: `${fillWidth}%` }]} />
-                  </View>
-                </>
-              );
-              return isCountryLevel ? (
-                <TouchableOpacity
-                  key={r.region}
-                  style={styles.rowCard}
-                  activeOpacity={0.85}
-                  onPress={() => nav.navigate('CountryRegions', { code, name, region: r.region })}
-                >
-                  {row}
-                </TouchableOpacity>
-              ) : (
-                <View key={r.region} style={styles.rowCard}>
-                  {row}
+                    {/* 배터리 = 최다 권역 대비 상대 잔량 (가장 많이 밝힌 곳이 10칸) */}
+                    <Battery ratio={r.tiles / maxTiles} />
+                    <Text style={styles.num}>{abbrev(r.tiles)}칸</Text>
+                  </TouchableOpacity>
+
+                  {expanded && (
+                    <View style={styles.subList}>
+                      {subItems.length === 0 ? (
+                        <Text style={styles.subEmpty}>세부 기록이 아직 없어요 🚶</Text>
+                      ) : (
+                        subItems.map((s) => (
+                          <View key={s.region} style={styles.subRow}>
+                            <Text style={styles.subName} numberOfLines={1}>
+                              {s.region}
+                            </Text>
+                            <Text style={styles.subNum}>{abbrev(s.tiles)}칸</Text>
+                          </View>
+                        ))
+                      )}
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -152,18 +158,25 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 16,
   },
-  rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rowHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   region: { color: COLORS.text, fontSize: 15, fontWeight: '700', flex: 1 },
-  num: { color: COLORS.violetSoft, fontSize: 15, fontFamily: FONT.display, marginLeft: 8 },
-  rowRight: { alignItems: 'flex-end', marginLeft: 8 },
-  pct: { color: COLORS.lime, fontSize: 16, fontFamily: FONT.display },
-  sub: { color: COLORS.muted, fontSize: 11, fontFamily: FONT.mono, marginTop: 1 },
-  track: {
-    height: 7,
-    backgroundColor: COLORS.fogLight,
-    borderRadius: 999,
-    marginTop: 9,
-    overflow: 'hidden',
+  num: {
+    color: COLORS.violetSoft,
+    fontSize: 14,
+    fontFamily: FONT.display,
+    minWidth: 52,
+    textAlign: 'right',
   },
-  fill: { height: '100%', backgroundColor: COLORS.violet, borderRadius: 999 },
+  // 아코디언 펼침부 (시/구 세부)
+  subList: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border,
+    gap: 8,
+  },
+  subRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  subName: { color: COLORS.muted, fontSize: 13, flex: 1, marginRight: 8 },
+  subNum: { color: COLORS.text, fontSize: 13, fontFamily: FONT.mono },
+  subEmpty: { color: COLORS.muted, fontSize: 12 },
 });

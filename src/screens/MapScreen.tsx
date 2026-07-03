@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { Camera, MapView, PointAnnotation } from '@rnmapbox/maps';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, type ParamListBase } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -38,36 +39,28 @@ import { useUserStore } from '../store/userStore';
 import type { Photo } from '../types';
 import { abbrev } from '../utils/format';
 import { clearFogWithInk } from '../services/ink';
-import { coordToTile, enclosedFogAt, fogClassAt } from '../utils/h3';
+import { fogClassAt, grayRegionAt, tileCenterCoord } from '../utils/h3';
 
 // 첫 위치 픽스 전 기본 중심(서울 시청).
 const DEFAULT_CENTER: [number, number] = [126.978, 37.5665];
 
 /**
- * 연필 핀이 가리키는 대상. 안개 분류 + 잉크로 지울 타일 집합을 함께 담는다.
+ * 연필 핀이 가리키는 대상.
  * - land: 밝힌 땅 (지우기 없음 — 라벨은 다음 단계)
- * - gray: 회색 안개 → 그 칸 1개, 어디서나 가능
- * - hole: 검은 안개인데 밝힌 땅으로 둘러싸인 '구멍' → 통째로 (땅따먹기)
- * - blocked: 검은 안개인데 열려 있거나 너무 넓음 → 지우기 불가
+ * - gray: 회색 안개 → 잉크로 밝힘. tiles = 연결된 회색 영역(가까운 순, 상한 컷), [0]=핀 칸.
+ *   truncated = 상한에 잘림(실제 영역은 더 큼)
+ * - blocked: 검은 안개 → 잉크로 못 밝힘. 회색을 밝히면 그 주변 검은 안개가 회색으로 걷힘
  */
 type PencilTarget =
   | { kind: 'land' }
-  | { kind: 'gray'; tiles: [string] }
-  | { kind: 'hole'; tiles: string[] }
+  | { kind: 'gray'; tiles: string[]; truncated: boolean }
   | { kind: 'blocked' };
 
 function targetMessage(t: PencilTarget): string {
   if (t.kind === 'land') return '밝힌 땅이에요 🌿';
-  if (t.kind === 'gray') return '회색 안개예요 🌫️';
-  if (t.kind === 'hole') return `검은 안개예요 🌑 · ${t.tiles.length}칸 포위!`;
+  if (t.kind === 'gray')
+    return `회색 안개예요 🌫️ · 연결 ${t.tiles.length}${t.truncated ? '+' : ''}칸`;
   return '검은 안개예요 🌑';
-}
-
-/** 잉크 비용. 지울 수 없는 대상은 null. */
-function targetCost(t: PencilTarget): number | null {
-  if (t.kind === 'gray') return CONFIG.INK_COST_GRAY;
-  if (t.kind === 'hole') return t.tiles.length * CONFIG.INK_COST_BLACK;
-  return null;
 }
 
 // 줌 → 마커 가시성. 임계값은 config(큰 값일수록 먼저 사라짐).
@@ -135,18 +128,24 @@ export default function MapScreen() {
   }, []);
 
   // 연필 핀 배치/이동 시 대상 판별(분류 + 지울 타일 계산) 후 팝업 표시.
+  // 핀은 육각타일 중심으로 스냅 — 어느 칸을 가리키는지 명확하게.
   const showPencil = useCallback((lng: number, lat: number) => {
-    setPinCoord([lng, lat]);
+    setPinCoord(tileCenterCoord(lat, lng));
     const visited = useMapStore.getState().visitedTileIds;
     const cls = fogClassAt(lat, lng, visited);
     if (cls === 'land') {
       setPinTarget({ kind: 'land' });
     } else if (cls === 'near') {
-      setPinTarget({ kind: 'gray', tiles: [coordToTile(lat, lng)] });
+      // 연결된 회색 영역을 상한+1까지 수집 → 상한 초과분이 있으면 잘림 표시
+      const region = grayRegionAt(lat, lng, visited, CONFIG.INK_BULK_MAX_TILES + 1);
+      const truncated = region.length > CONFIG.INK_BULK_MAX_TILES;
+      setPinTarget({
+        kind: 'gray',
+        tiles: truncated ? region.slice(0, CONFIG.INK_BULK_MAX_TILES) : region,
+        truncated,
+      });
     } else {
-      // 검은 안개: 밝힌 땅으로 둘러싸인 구멍인지 flood-fill 판별 (상한 초과 = 열림/너무 큼)
-      const hole = enclosedFogAt(lat, lng, visited, CONFIG.INK_HOLE_MAX_TILES);
-      setPinTarget(hole ? { kind: 'hole', tiles: hole } : { kind: 'blocked' });
+      setPinTarget({ kind: 'blocked' }); // 검은 안개는 잉크로 못 밝힘
     }
   }, []);
   const removePencil = useCallback(() => {
@@ -154,21 +153,21 @@ export default function MapScreen() {
     setPinTarget(null);
   }, []);
 
-  // 팝업의 [잉크로 밝히기] 확정 — 차감 + reveal + 연필 제거.
-  const clearWithInk = useCallback(() => {
-    const t = pinTarget;
-    if (!t || (t.kind !== 'gray' && t.kind !== 'hole')) return;
-    const cost = targetCost(t);
-    if (cost == null) return;
-    const res = clearFogWithInk(t.tiles, cost);
-    if (res === 'no-ink') {
-      Alert.alert('잉크 부족', '더 걸어서 잉크를 모아보세요 🚶');
-      return;
-    }
-    removePencil();
-  }, [pinTarget, removePencil]);
+  // 팝업의 [잉크로 밝히기] 확정 — 차감 + reveal + 연필 제거. tiles = 밝힐 칸(1칸 or 일괄).
+  const clearWithInk = useCallback(
+    (tiles: string[]) => {
+      const res = clearFogWithInk(tiles, tiles.length * CONFIG.INK_COST_GRAY);
+      if (res === 'no-ink') {
+        Alert.alert('잉크 부족', '더 걸어서 잉크를 모아보세요 🚶');
+        return;
+      }
+      removePencil();
+    },
+    [removePencil]
+  );
 
   const cameraRef = useRef<ComponentRef<typeof Camera>>(null);
+  const pencilRef = useRef<ComponentRef<typeof PointAnnotation>>(null);
   const didAutoCenter = useRef(false);
 
   // 스토어에서 최신 위치를 읽어 카메라 이동(스테일 클로저 방지).
@@ -241,19 +240,24 @@ export default function MapScreen() {
         {pinCoord && (
           <PointAnnotation
             key={`pencil-${pinCoord[0]},${pinCoord[1]}`} // 좌표 변경 시 확실히 이동(iOS 갱신 이슈 회피)
+            ref={pencilRef}
             id="pencil-pin"
             coordinate={pinCoord}
             anchor={{ x: 0.16, y: 0.9 }}
             draggable
             onDragEnd={(payload) => {
               const c = payload.geometry.coordinates;
-              showPencil(c[0], c[1]); // 드래그해 놓으면 그 위치 분류 팝업
+              showPencil(c[0], c[1]); // 드래그해 놓으면 타일 중심으로 스냅 + 분류 팝업
             }}
           >
             <Image
               source={require('../../assets/pencil.png')}
               style={styles.pencil}
               resizeMode="contain"
+              fadeDuration={0}
+              // iOS PointAnnotation은 자식 스냅샷을 마운트 시점에 찍어서 첫 롱프레스에
+              // 이미지가 안 보이는 이슈가 있음 → 로드 완료 후 강제 갱신
+              onLoad={() => pencilRef.current?.refresh()}
             />
           </PointAnnotation>
         )}
@@ -267,24 +271,29 @@ export default function MapScreen() {
         <LocationMarker />
       </MapView>
 
-      {/* 상단 탐험 통계 오버레이 (폴라로이드 무드: 테잎 + 살짝 기울임) */}
-      <View style={[styles.statCard, { top: insets.top + 6 }]} pointerEvents="none">
+      {/* 상단 탐험 통계 오버레이 — 탭바와 같은 글래스모피즘 (테잎 + 살짝 기울임 유지) */}
+      <View style={[styles.statCard, { top: insets.top + 20 }]} pointerEvents="none">
+        <View style={styles.statGlass}>
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.statTint} />
+          <Text style={styles.statLabel}>내가 밝힌 땅</Text>
+          <Text style={styles.statValue}>{abbrev(tiles)} 칸</Text>
+          <Text style={styles.statSub}>
+            Lv {level} · 오늘 {abbrev(todayNewTiles)}칸 · 🔥 {streak}일
+          </Text>
+        </View>
+        {/* 테잎은 글래스 클립(overflow) 밖 — 카드 위에 걸치도록 나중에 그림 */}
         <Tape width={58} height={18} color="rgba(200,245,96,0.5)" style={styles.statTapePos} />
-        <Text style={styles.statLabel}>내가 밝힌 땅</Text>
-        <Text style={styles.statValue}>{abbrev(tiles)} 칸</Text>
-        <Text style={styles.statSub}>
-          Lv {level} · 오늘 {abbrev(todayNewTiles)}칸 · 🔥 {streak}일
-        </Text>
       </View>
 
       {/* 우상단 잉크 잔량 HUD (걸어서 모아 지도를 칠하는 통화) */}
       <TouchableOpacity
-        style={[styles.inkHud, { top: insets.top + 6 }]}
+        style={[styles.inkHud, { top: insets.top + 20 }]}
         activeOpacity={0.85}
         onPress={() =>
           Alert.alert(
             '잉크',
-            `보유 잉크 ${ink}\n\n걸을수록 잉크가 모여요. 곧 잉크로 지도를 칠할 수 있어요 🖌️`
+            `보유 잉크 ${ink}\n\n걸을수록 잉크가 모여요. 지도를 길게 눌러 회색 안개를 잉크로 밝혀보세요 ✏️`
           )
         }
         accessibilityLabel={`잉크 ${ink}`}
@@ -295,12 +304,25 @@ export default function MapScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* 연필 핀 팝업: 판별 + (가능하면) 잉크로 밝히기. 드래그로 이동 시 갱신, X로 연필 제거 */}
+      {/* 잉크 아래 편지함 (준비 중) */}
+      <TouchableOpacity
+        style={[styles.mailHud, { top: insets.top + 20 + 58 }]}
+        activeOpacity={0.85}
+        onPress={() => Alert.alert('편지함', '준비 중입니다 💌')}
+        accessibilityLabel="편지함 (준비 중)"
+      >
+        <Image source={require('../../assets/mail.png')} style={styles.inkIcon} resizeMode="contain" />
+      </TouchableOpacity>
+
+      {/* 연필 핀 팝업: 판별 + 잉크로 밝히기(회색만: 1칸 / 연결 일괄). 드래그로 이동 시 갱신, X로 연필 제거 */}
       {pinTarget &&
         (() => {
-          const cost = targetCost(pinTarget);
-          const canAfford = cost != null && ink >= cost;
-          const n = pinTarget.kind === 'gray' || pinTarget.kind === 'hole' ? pinTarget.tiles.length : 0;
+          const oneCost = CONFIG.INK_COST_GRAY;
+          // 일괄 = 연결 영역 중 잉크로 살 수 있는 만큼(가까운 순). 2칸 이상일 때만 버튼 노출.
+          const region = pinTarget.kind === 'gray' ? pinTarget.tiles : [];
+          const bulkN = Math.min(region.length, Math.floor(ink / oneCost));
+          const bulkWhole =
+            pinTarget.kind === 'gray' && !pinTarget.truncated && bulkN === region.length;
           return (
             <View
               style={[styles.pinPopupWrap, { bottom: insets.bottom + 96 }]}
@@ -321,24 +343,44 @@ export default function MapScreen() {
 
                 {pinTarget.kind === 'blocked' && (
                   <Text style={styles.pinPopupSub}>
-                    밝힌 땅으로 완전히 둘러싼 곳만 지울 수 있어요 (너무 넓어도 안 돼요)
+                    검은 안개는 잉크로 밝힐 수 없어요. 가까운 회색 안개를 밝히면 그 주변이
+                    회색으로 걷혀요 ✏️
                   </Text>
                 )}
 
-                {cost != null && (
-                  <TouchableOpacity
-                    onPress={clearWithInk}
-                    disabled={!canAfford}
-                    activeOpacity={0.85}
-                    style={[styles.pinAction, !canAfford && styles.pinActionDisabled]}
-                    accessibilityLabel={`잉크 ${cost}로 ${n}칸 밝히기`}
-                  >
-                    <Text style={[styles.pinActionText, !canAfford && styles.pinActionTextDisabled]}>
-                      {canAfford
-                        ? `🖌️ 잉크 ${cost}로 ${n}칸 밝히기`
-                        : `잉크 부족 · ${cost} 필요 (보유 ${ink})`}
-                    </Text>
-                  </TouchableOpacity>
+                {pinTarget.kind === 'gray' && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => clearWithInk([region[0]])}
+                      disabled={ink < oneCost}
+                      activeOpacity={0.85}
+                      style={[styles.pinAction, ink < oneCost && styles.pinActionDisabled]}
+                      accessibilityLabel={`잉크 ${oneCost}로 이 칸 밝히기`}
+                    >
+                      <Text
+                        style={[styles.pinActionText, ink < oneCost && styles.pinActionTextDisabled]}
+                      >
+                        {ink >= oneCost
+                          ? `🖌️ 이 칸 밝히기 (잉크 ${oneCost})`
+                          : `잉크 부족 · ${oneCost} 필요 (보유 ${ink})`}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {bulkN >= 2 && (
+                      <TouchableOpacity
+                        onPress={() => clearWithInk(region.slice(0, bulkN))}
+                        activeOpacity={0.85}
+                        style={styles.pinAction}
+                        accessibilityLabel={`잉크 ${bulkN * oneCost}로 ${bulkN}칸 밝히기`}
+                      >
+                        <Text style={styles.pinActionText}>
+                          {bulkWhole
+                            ? `🖌️ 연결된 ${bulkN}칸 모두 밝히기 (잉크 ${bulkN * oneCost})`
+                            : `🖌️ 가까운 ${bulkN}칸 밝히기 (잉크 ${bulkN * oneCost})`}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
               </View>
             </View>
@@ -374,6 +416,7 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   pencil: { width: 44, height: 44 },
   inkHud: { position: 'absolute', right: 16, width: 48, height: 48 },
+  mailHud: { position: 'absolute', right: 16, width: 48, height: 48 },
   inkIcon: { width: 48, height: 48 },
   inkBadge: {
     position: 'absolute',
@@ -429,21 +472,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pinPopupCloseText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  // 바깥: 위치/기울임/그림자만 (overflow:hidden 이 그림자·테잎을 자르지 않도록 분리)
   statCard: {
     position: 'absolute',
     left: 16,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 12,
     borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.violet,
     transform: [{ rotate: '-2.5deg' }],
     shadowColor: '#000',
     shadowOpacity: 0.35,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
+  },
+  // 안쪽: 탭바와 동일한 글래스 레시피 (블러 + 틴트 + 헤어라인 보더)
+  statGlass: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  statTint: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15,17,32,0.45)',
   },
   statTapePos: { position: 'absolute', top: -9, alignSelf: 'center' },
   statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },

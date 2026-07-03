@@ -1,4 +1,10 @@
-import { cellsToMultiPolygon, getHexagonAreaAvg, gridDisk, latLngToCell } from 'h3-js';
+import {
+  cellsToMultiPolygon,
+  cellToLatLng,
+  getHexagonAreaAvg,
+  gridDisk,
+  latLngToCell,
+} from 'h3-js';
 
 import { CONFIG } from '../constants/config';
 
@@ -8,6 +14,12 @@ export const TILE_AREA_KM2 = getHexagonAreaAvg(CONFIG.H3_RESOLUTION, 'km2');
 /** 좌표 → H3 타일 ID (기본 해상도). */
 export function coordToTile(lat: number, lng: number): string {
   return latLngToCell(lat, lng, CONFIG.H3_RESOLUTION);
+}
+
+/** 좌표가 속한 육각타일의 중심 [lng, lat]. 연필 핀을 타일 가운데로 스냅할 때 사용. */
+export function tileCenterCoord(lat: number, lng: number): [number, number] {
+  const [cLat, cLng] = cellToLatLng(coordToTile(lat, lng));
+  return [cLng, cLat];
 }
 
 /** 현재 위치에서 밝힐 타일들 (현재 타일 + gridDisk(k)). */
@@ -44,30 +56,37 @@ export function fogClassAt(lat: number, lng: number, visited: Set<string>): FogC
 }
 
 /**
- * 좌표의 안개가 밝힌 땅으로 완전히 둘러싸인 '구멍'인지 판별(땅따먹기).
- * 미방문 타일을 BFS로 확장 — 방문 타일이 벽 역할. 벽에 막혀 maxTiles 안에서
- * 확장이 끝나면 구멍 타일 전체를 반환, 넘게 퍼지면(열린 안개/너무 큼) null.
+ * 좌표가 속한 '연결된 회색 안개' 영역을 가까운 순(BFS)으로 최대 limit칸 수집.
+ * 회색 = 미방문이면서 FOG_NEAR_RADIUS_K 안에 밝힌 타일이 있음(fogClassAt 'near'와 동일 기준).
+ * 회색 프론티어는 영토 전체를 감싸는 띠라 매우 클 수 있음 → limit으로 탐색을 끊는다.
+ * 반환 [0] = 시작 타일. 시작이 회색이 아니면 [].
  */
-export function enclosedFogAt(
+export function grayRegionAt(
   lat: number,
   lng: number,
   visited: Set<string>,
-  maxTiles: number
-): string[] | null {
+  limit: number
+): string[] {
+  const isGray = (tile: string): boolean => {
+    if (visited.has(tile)) return false;
+    for (const t of gridDisk(tile, CONFIG.FOG_NEAR_RADIUS_K)) {
+      if (visited.has(t)) return true;
+    }
+    return false;
+  };
   const start = coordToTile(lat, lng);
-  if (visited.has(start)) return null;
+  if (limit < 1 || !isGray(start)) return [];
+  const region = [start]; // FIFO 순회 → 가까운 칸부터 담김
   const seen = new Set<string>([start]);
-  const queue = [start];
-  while (queue.length > 0) {
-    const cur = queue.pop()!;
-    for (const n of gridDisk(cur, 1)) {
-      if (seen.has(n) || visited.has(n)) continue;
+  for (let i = 0; i < region.length && region.length < limit; i++) {
+    for (const n of gridDisk(region[i], 1)) {
+      if (seen.has(n) || !isGray(n)) continue;
       seen.add(n);
-      if (seen.size > maxTiles) return null;
-      queue.push(n);
+      region.push(n);
+      if (region.length >= limit) break;
     }
   }
-  return [...seen];
+  return region;
 }
 
 /** 타일 집합을 gridDisk(k)로 팽창(dilate)시킨 합집합. 안개 버퍼 영역 계산용. */

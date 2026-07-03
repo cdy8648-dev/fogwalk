@@ -64,7 +64,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 accessibilityState={focused ? { selected: true } : {}}
                 accessibilityLabel={route.name}
               >
-                <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+                <View style={styles.iconWrap}>
                   <Image
                     source={focused ? icons.active : icons.idle}
                     style={[styles.icon, focused && styles.iconActive, !focused && styles.iconIdle]}
@@ -88,7 +88,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             accessibilityLabel="사진 남기기"
             accessibilityState={{ disabled: !mapActive }}
           >
-            <View style={[styles.iconWrap, mapActive && styles.iconWrapActive]}>
+            <View style={styles.iconWrap}>
               <Image
                 source={mapActive ? CAMERA_ACTIVE : CAMERA_IDLE}
                 style={[
@@ -143,12 +143,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // 활성은 그라데이션 아이콘 자체가 시그널 → 은은한 라임 글로우 배경만.
-  iconWrapActive: {
-    backgroundColor: 'rgba(200,245,96,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,245,96,0.35)',
-  },
+  // 활성 시그널은 그라데이션 아이콘 + 살짝 큰 크기만 (배경 글로우 없음).
   icon: { width: 28, height: 28 },
   iconActive: { width: 30, height: 30 }, // 활성 살짝 크게
   iconIdle: { opacity: 0.9 }, // clay는 이미 무채색 → 살짝만 낮춤

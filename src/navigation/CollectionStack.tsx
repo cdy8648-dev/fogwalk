@@ -15,7 +15,7 @@ export type CollectionStackParamList = {
   CollectionHome: undefined;
   BadgeDetail: undefined;
   PassportDetail: undefined;
-  CountryRegions: { code: string; name: string; region?: string };
+  CountryRegions: { code: string; name: string };
   DiscoveryDetail: { filter?: DiscoveryFilter } | undefined;
 };
 
@@ -43,7 +43,7 @@ export default function CollectionStack() {
       <Stack.Screen
         name="CountryRegions"
         component={CountryRegionsScreen}
-        options={{ title: '권역별' }}
+        options={{ headerShown: false }} // 아코디언 단일 페이지 — 탭바·스와이프백으로 이동
       />
       <Stack.Screen
         name="DiscoveryDetail"
