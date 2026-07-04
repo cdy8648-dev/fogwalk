@@ -11,6 +11,7 @@ export interface Landmark {
   lng: number;
   discoveredAt?: number;
   rarity?: string;
+  qid?: string; // OSM wikidata 태그 — 큐레이션(유네스코 뱃지·축하 문구) 조회 키
 }
 
 export type LandmarkCategory =
@@ -25,6 +26,9 @@ export type LandmarkCategory =
   | 'attraction'
   | 'bridge'
   | 'subway'
+  | 'airport'
+  | 'train'
+  | 'port'
   | 'other';
 
 export interface Achievement {

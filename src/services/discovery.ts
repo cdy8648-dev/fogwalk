@@ -16,8 +16,9 @@ import {
 } from './db';
 
 function landmarkXp(lm: Landmark): number {
-  if (lm.category === 'subway') return CONFIG.XP_SUBWAY;
+  if (lm.category === 'subway') return CONFIG.XP_SUBWAY; // 도감 트랙 — XP 없음
   if (lm.rarity === 'legendary') return CONFIG.XP_LANDMARK_LEGENDARY;
+  if (lm.rarity === 'epic') return CONFIG.XP_LANDMARK_EPIC;
   if (lm.rarity === 'rare') return CONFIG.XP_LANDMARK_RARE;
   return CONFIG.XP_LANDMARK_COMMON;
 }
@@ -25,7 +26,15 @@ function landmarkXp(lm: Landmark): number {
 function discoverTitle(lm: Landmark): string {
   if (lm.category === 'subway') return '🚇 지하철역 발견!';
   if (lm.rarity === 'legendary') return '⭐ 전설의 랜드마크 발견!';
+  if (lm.rarity === 'epic') return '◆ 영웅 랜드마크 발견!';
   return '랜드마크 발견!';
+}
+
+/** 발견 판정 반경 — 공항은 폴리곤 중심이 활주로라 전용 광역 반경. */
+function discoverRadiusM(lm: Landmark): number {
+  return lm.category === 'airport'
+    ? CONFIG.LANDMARK_DISCOVER_RADIUS_AIRPORT_M
+    : CONFIG.LANDMARK_DISCOVER_RADIUS_M;
 }
 
 /**
@@ -33,17 +42,18 @@ function discoverTitle(lm: Landmark): string {
  * 발견 시: 마킹 + 주변 안개 뻥(Civ st.) + 희귀도 XP + 축하.
  */
 export function checkLandmarkDiscoveries(lat: number, lng: number): void {
+  // bbox는 가장 넓은 반경(공항)으로 조회 → 실제 판정은 카테고리별 원형 거리로
   const near = getUndiscoveredLandmarksNear(
     lat,
     lng,
-    CONFIG.LANDMARK_DISCOVER_RADIUS_M
+    CONFIG.LANDMARK_DISCOVER_RADIUS_AIRPORT_M
   );
   if (near.length === 0) return;
 
   const now = Date.now();
   for (const lm of near) {
     const d = haversineMeters({ lat, lng }, { lat: lm.lat, lng: lm.lng });
-    if (d > CONFIG.LANDMARK_DISCOVER_RADIUS_M) continue; // bbox → 실제 원형 거리로 보정
+    if (d > discoverRadiusM(lm)) continue;
     discover(lm, now);
   }
 }

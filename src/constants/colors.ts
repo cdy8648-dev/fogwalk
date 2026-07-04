@@ -8,6 +8,7 @@ export const COLORS = {
   violetSoft: '#B3A8FF',
   hotpink: '#FF6BB5',
   amber: '#FFB830',
+  gold: '#E0A458', // 전설 등급 별빛 (마스터 시트)
   teal: '#5BC0BE',
   text: '#E2E5EE',
   muted: '#7C8294',

@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
+import { NotoSerifKR_700Bold } from '@expo-google-fonts/noto-serif-kr';
 import Mapbox from '@rnmapbox/maps';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -53,6 +54,7 @@ export default function App() {
     SpaceGrotesk_700Bold,
     DMMono_400Regular,
     DMMono_500Medium,
+    NotoSerifKR_700Bold,
   });
 
   useEffect(() => {

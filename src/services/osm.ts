@@ -1,5 +1,5 @@
 import { CONFIG } from '../constants/config';
-import { isLegendaryName, isSubwayHub } from '../constants/curatedLandmarks';
+import { isSubwayHub, matchCurated } from '../constants/curatedLandmarks';
 import type { Landmark, LandmarkCategory } from '../types';
 
 /**
@@ -20,9 +20,16 @@ const USER_AGENT = 'FogWalk/1.0 (exploration app; cdy8648@naver.com)';
 type Tags = Record<string, string | undefined>;
 
 function categorize(tags: Tags): LandmarkCategory {
-  if (tags.railway === 'station' && (tags.station === 'subway' || tags.subway === 'yes')) {
+  // 경전철(light_rail: 우이신설·신림선 등)도 지하철 트랙으로 취급
+  if (
+    tags.railway === 'station' &&
+    (tags.station === 'subway' || tags.station === 'light_rail' || tags.subway === 'yes')
+  ) {
     return 'subway';
   }
+  if (tags.aeroway === 'aerodrome') return 'airport';
+  if (tags.railway === 'station') return 'train'; // KTX·일반 기차역 (지하철은 위에서 분기)
+  if (tags.amenity === 'ferry_terminal') return 'port';
   if (tags.man_made === 'tower') return 'tower';
   if (tags.man_made === 'bridge') return 'bridge';
   if (tags.natural === 'peak') return 'peak';
@@ -43,20 +50,28 @@ function categorize(tags: Tags): LandmarkCategory {
 }
 
 /**
- * 희귀도 산정. 큐레이션 이름 = 전설, 지하철 = 거점만 희귀.
- * 그 외는 신호 점수: wikidata/문화재(+2) · attraction(+1) · height≥100(+1).
+ * OSM 유네스코 세계유산 태그 감지 (전 세계 공통 표기).
+ * 표준은 heritage:operator=whc(+heritage=1). ref:whc(등재번호)·whc:criteria 도 강한 신호.
+ * → 화이트리스트 없는 해외에서도 세계유산이 자동 전설로 뜬다.
+ */
+function isUnescoTagged(tags: Tags): boolean {
+  const op = (tags['heritage:operator'] ?? '').toLowerCase();
+  if (op.includes('whc') || op.includes('unesco')) return true;
+  return !!tags['ref:whc'] || !!tags['whc:criteria'];
+}
+
+/**
+ * 희귀도 산정 (4단계 마스터 시트).
+ * 전설/영웅/희귀 = 큐레이션 화이트리스트(QID 우선, 이름 폴백) + 유네스코 태그 자동 전설.
+ * 교통 트랙은 고정 등급(공항=영웅·기차/항구=희귀·지하철=거점만 희귀), 그 외 자동수집 = 일반.
  */
 function rarityOf(tags: Tags, name: string, category: LandmarkCategory): string {
+  const curated = matchCurated(tags.wikidata, name);
+  if (curated) return curated.rarity;
+  if (isUnescoTagged(tags)) return 'legendary'; // 글로벌: 세계유산 = 자동 전설
   if (category === 'subway') return isSubwayHub(name) ? 'rare' : 'common';
-  if (isLegendaryName(name)) return 'legendary';
-  let score = 0;
-  if (tags.wikidata || tags.wikipedia) score += 2;
-  if (tags.heritage || tags['heritage:operator']) score += 2;
-  if (tags.tourism === 'attraction') score += 1;
-  const h = parseFloat(tags.height ?? '');
-  if (!Number.isNaN(h) && h >= 100) score += 1;
-  if (score >= 4) return 'legendary';
-  if (score >= 2) return 'rare';
+  if (category === 'airport') return 'epic';
+  if (category === 'train' || category === 'port') return 'rare';
   return 'common';
 }
 
@@ -77,6 +92,8 @@ export async function fetchLandmarksAround(
   const a = `around:${radiusM},${lat},${lng}`;
   // 가벼운 단일키 조회 — 의미 필터(wikidata/문화재 등)는 parseElements 에서 JS로.
   // (조건을 쿼리에 많이 넣으면 dense 지역에서 Overpass 가 타임아웃 → 전부 0건이 됨)
+  // 교통(지하철·공항·기차·항구)은 별도 out 블록: 도심에서 POI가 200개 캡을 치면
+  // (서울시청 실측 200/200) 같은 묶음의 역이 잘려 영영 미발견되던 버그 방지.
   const query = `[out:json][timeout:25];
 (
   nwr(${a})[tourism~"^(attraction|museum|viewpoint|artwork|gallery|theme_park|zoo|aquarium)$"][name];
@@ -86,9 +103,14 @@ export async function fetchLandmarksAround(
   nwr(${a})[leisure=park][name];
   nwr(${a})[boundary=national_park][name];
   nwr(${a})[amenity=place_of_worship][name];
-  nwr(${a})[railway=station][station=subway][name];
 );
-out center 200;`;
+out center 200;
+(
+  nwr(${a})[railway=station][name];
+  nwr(${a})[aeroway=aerodrome][name];
+  nwr(${a})[amenity=ferry_terminal][name];
+);
+out center 80;`;
 
   for (const url of OVERPASS_ENDPOINTS) {
     try {
@@ -123,13 +145,20 @@ out center 200;`;
 function qualifies(tags: Tags, name: string, category: LandmarkCategory): boolean {
   const hasWiki = !!(tags.wikidata || tags.wikipedia);
   const hasHeritage = !!(tags.heritage || tags['heritage:operator']);
+  if (isUnescoTagged(tags)) return true; // 세계유산은 카테고리 불문 인정
   switch (category) {
     case 'subway':
     case 'museum':
     case 'palace': // historic=castle/palace/fort/fortress/city_gate (본래 상징적)
       return true;
+    // 교통 트랙: 실제 공항(군용 제외)·주요 기차역·여객터미널만
+    case 'airport':
+      return (hasWiki || !!tags.iata) && tags['aerodrome:type'] !== 'military' && !tags.military;
+    case 'train':
+    case 'port':
+      return hasWiki;
     case 'attraction':
-      return hasWiki || isLegendaryName(name);
+      return hasWiki || matchCurated(tags.wikidata, name) != null;
     case 'tower':
       return !!tags.height || !!tags.tourism || hasWiki;
     case 'bridge':
@@ -167,6 +196,7 @@ function parseElements(elements: OverpassElement[]): Landmark[] {
       lat: elLat,
       lng: elLng,
       rarity: rarityOf(tags, name, category),
+      qid: tags.wikidata, // 큐레이션(유네스코 뱃지·축하 문구) 조회 키
     });
   }
   return out;

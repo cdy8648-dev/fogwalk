@@ -124,6 +124,12 @@ export function initDatabase(): void {
   } catch {
     /* 컬럼 이미 존재 */
   }
+  // 큐레이션 매칭 키: landmarks.qid (wikidata) 컬럼 보강
+  try {
+    db.execSync('ALTER TABLE landmarks ADD COLUMN qid TEXT');
+  } catch {
+    /* 컬럼 이미 존재 */
+  }
 
   // 발견 시스템 v2: 느슨한 규칙으로 등록된 미발견 랜드마크 + 조회기록 정리 → 새 규칙으로 재수집.
   // (발견 기록 discovered_at 은 보존: upsertLandmark 가 충돌 시 카테고리/희귀도만 갱신)
@@ -137,6 +143,13 @@ export function initDatabase(): void {
     db.runSync('DELETE FROM landmarks WHERE discovered_at IS NULL');
     db.runSync('DELETE FROM fetched_areas');
     setSetting('discovery_v3', '1');
+  }
+  // v4: 도심 POI 200개 캡에 지하철역이 잘려 미수집되던 쿼리 수정(별도 out 블록 + 경전철)
+  // → 기존 조회 영역을 무효화해 고친 쿼리로 재수집.
+  if (getSetting('discovery_v4') !== '1') {
+    db.runSync('DELETE FROM landmarks WHERE discovered_at IS NULL');
+    db.runSync('DELETE FROM fetched_areas');
+    setSetting('discovery_v4', '1');
   }
 
   if (__DEV__) {
@@ -325,21 +338,23 @@ export function getAllDailyStats(): DailyStats[] {
 
 export function upsertLandmark(landmark: Landmark): void {
   db.runSync(
-    `INSERT INTO landmarks (osm_id, name, category, lat, lng, discovered_at, rarity)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO landmarks (osm_id, name, category, lat, lng, discovered_at, rarity, qid)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(osm_id) DO UPDATE SET
        name = excluded.name,
        category = excluded.category,
        lat = excluded.lat,
        lng = excluded.lng,
-       rarity = excluded.rarity`,
+       rarity = excluded.rarity,
+       qid = excluded.qid`,
     landmark.osmId,
     landmark.name,
     landmark.category,
     landmark.lat,
     landmark.lng,
     landmark.discoveredAt ?? null,
-    landmark.rarity ?? null
+    landmark.rarity ?? null,
+    landmark.qid ?? null
   );
 }
 
@@ -363,8 +378,9 @@ export function getUndiscoveredLandmarksNear(
     lng: number;
     discovered_at: number | null;
     rarity: string | null;
+    qid: string | null;
   }>(
-    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity
+    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity, qid
      FROM landmarks
      WHERE discovered_at IS NULL
        AND lat BETWEEN ? AND ?
@@ -383,6 +399,7 @@ export function getUndiscoveredLandmarksNear(
     lng: r.lng,
     discoveredAt: r.discovered_at ?? undefined,
     rarity: r.rarity ?? undefined,
+    qid: r.qid ?? undefined,
   }));
 }
 
@@ -395,8 +412,9 @@ export function getDiscoveredLandmarks(): Landmark[] {
     lng: number;
     discovered_at: number | null;
     rarity: string | null;
+    qid: string | null;
   }>(
-    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity
+    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity, qid
      FROM landmarks
      WHERE discovered_at IS NOT NULL
      ORDER BY discovered_at DESC`
@@ -409,6 +427,7 @@ export function getDiscoveredLandmarks(): Landmark[] {
     lng: r.lng,
     discoveredAt: r.discovered_at ?? undefined,
     rarity: r.rarity ?? undefined,
+    qid: r.qid ?? undefined,
   }));
 }
 

@@ -30,18 +30,22 @@ export const CONFIG = {
   SUBWAY_MIN_ZOOM: 13, // 미만이면 지하철 마커 숨김 (수가 많아 가장 먼저)
   LANDMARK_COMMON_MIN_ZOOM: 12, // 미만이면 일반(common) 랜드마크 숨김
   PHOTO_MIN_ZOOM: 11, // 미만이면 사진 마커 숨김 (전설 전단계에서 사라짐)
-  LANDMARK_RARE_MIN_ZOOM: 9, // 미만이면 희귀(rare)도 숨김 → 전설만 남음
+  LANDMARK_RARE_MIN_ZOOM: 9, // 미만이면 희귀(rare) 숨김
+  LANDMARK_EPIC_MIN_ZOOM: 7, // 미만이면 영웅(epic)도 숨김 → 전설만 남음
   PHOTO_GROUP_RES: 11, // 사진 묶음용 H3 해상도 (≈같은 자리, ~50m)
 
-  // 랜드마크 (Phase 3)
+  // 랜드마크 (발견요소 4단계 마스터 시트 기준)
   LANDMARK_FETCH_RADIUS_M: 1000, // 새 지역 진입 시 OSM 조회 반경 (작게 — Overpass 타임아웃 방지)
   LANDMARK_FETCH_CELL_RES: 8, // 조회 중복 방지용 H3 해상도(≈0.9km 셀, 반경 1km가 충분히 덮음)
   LANDMARK_DISCOVER_RADIUS_M: 150, // 이 반경 안에 들어오면 발견
+  // 공항은 OSM 폴리곤 중심이 활주로 한가운데(터미널에서 ~2km) → 넓은 전용 반경
+  LANDMARK_DISCOVER_RADIUS_AIRPORT_M: 2500,
   LANDMARK_BURST_RADIUS_K: 4, // 발견 시 안개 뻥: 중심 gridDisk(k) reveal (≈500m)
   XP_LANDMARK_COMMON: 80,
   XP_LANDMARK_RARE: 250,
-  XP_LANDMARK_LEGENDARY: 800,
-  XP_SUBWAY: 40, // 지하철역 발견 (수가 많으니 낮게)
+  XP_LANDMARK_EPIC: 500,
+  XP_LANDMARK_LEGENDARY: 1000,
+  XP_SUBWAY: 0, // 지하철은 XP 없음 — 도감 채우기 트랙 (마스터 시트)
   PEAK_MIN_ELE_M: 500, // wikidata 없는 봉우리는 이 고도(m) 이상만 인정
 
   // 잉크(소비형 통화): 걸어서 번다(모드 가중 → 운전은 적게). 지도 라벨/공개에 사용.

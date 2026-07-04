@@ -10,12 +10,13 @@ interface Props {
   full: boolean; // true=이모지 핀, false=점 (줌아웃)
   showSubway: boolean; // false면 지하철 마커 숨김 (줌아웃 시 가장 먼저)
   showCommon: boolean; // false면 일반(common) 랜드마크 숨김
-  showRare: boolean; // false면 희귀(rare)도 숨김 → 전설만 남음
+  showRare: boolean; // false면 희귀(rare) 숨김
+  showEpic: boolean; // false면 영웅(epic)도 숨김 → 전설만 남음
 }
 
 /** 발견한 랜드마크. 줌인=카테고리 이모지 핀, 줌아웃=점(가벼움). 색은 희귀도별.
- *  줌아웃 단계별로 지하철→일반→희귀 순으로 사라지고 결국 전설만 남는다. */
-export default function LandmarkMarkers({ full, showSubway, showCommon, showRare }: Props) {
+ *  줌아웃 단계별로 지하철→일반→희귀→영웅 순으로 사라지고 결국 전설만 남는다. */
+export default function LandmarkMarkers({ full, showSubway, showCommon, showRare, showEpic }: Props) {
   const discovered = useLandmarkStore((s) => s.discovered);
   const landmarks = useMemo(
     () =>
@@ -23,10 +24,11 @@ export default function LandmarkMarkers({ full, showSubway, showCommon, showRare
         if (l.category === 'subway') return showSubway;
         const r = l.rarity ?? 'common';
         if (r === 'legendary') return true;
+        if (r === 'epic') return showEpic;
         if (r === 'rare') return showRare;
         return showCommon; // common
       }),
-    [discovered, showSubway, showCommon, showRare]
+    [discovered, showSubway, showCommon, showRare, showEpic]
   );
 
   const dotShape = useMemo(
@@ -52,10 +54,12 @@ export default function LandmarkMarkers({ full, showSubway, showCommon, showRare
               'match',
               ['get', 'rarity'],
               'legendary',
-              COLORS.amber,
-              'rare',
-              COLORS.hotpink,
+              COLORS.gold,
+              'epic',
               COLORS.violet,
+              'rare',
+              COLORS.teal,
+              'rgba(255,255,255,0.75)', // 일반 = 희미한 흰 점 (별빛 규칙)
             ],
             circleStrokeColor: COLORS.ink,
             circleStrokeWidth: 1,

@@ -3,6 +3,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
+import { COLORS } from '../constants/colors';
 import { useMapUiStore } from '../store/mapUiStore';
 
 // 탭별 아이콘: 활성=3D 그라데이션(컬러), 비활성=clay(무채색).
@@ -122,8 +123,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: 30,
     overflow: 'hidden', // BlurView·활성 배경을 라운드로 클립
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1.5,
+    borderColor: COLORS.violet, // 네온퍼플 테두리 (스탯카드와 통일)
     paddingHorizontal: 8,
     paddingVertical: 8,
   },

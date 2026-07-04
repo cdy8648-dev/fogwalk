@@ -70,6 +70,7 @@ type MarkerVis = {
   common: boolean;
   photos: boolean;
   rare: boolean;
+  epic: boolean;
 };
 function visForZoom(zoom: number): MarkerVis {
   return {
@@ -78,6 +79,7 @@ function visForZoom(zoom: number): MarkerVis {
     common: zoom >= CONFIG.LANDMARK_COMMON_MIN_ZOOM,
     photos: zoom >= CONFIG.PHOTO_MIN_ZOOM,
     rare: zoom >= CONFIG.LANDMARK_RARE_MIN_ZOOM,
+    epic: zoom >= CONFIG.LANDMARK_EPIC_MIN_ZOOM,
   };
 }
 function sameVis(a: MarkerVis, b: MarkerVis): boolean {
@@ -86,7 +88,8 @@ function sameVis(a: MarkerVis, b: MarkerVis): boolean {
     a.subway === b.subway &&
     a.common === b.common &&
     a.photos === b.photos &&
-    a.rare === b.rare
+    a.rare === b.rare &&
+    a.epic === b.epic
   );
 }
 
@@ -266,6 +269,7 @@ export default function MapScreen() {
           showSubway={vis.subway}
           showCommon={vis.common}
           showRare={vis.rare}
+          showEpic={vis.epic}
         />
         <PhotoMarkers thumbnails={vis.thumbs} visible={vis.photos} onSelect={setViewerPhotos} />
         <LocationMarker />
@@ -483,15 +487,15 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
   },
-  // 안쪽: 탭바와 동일한 글래스 레시피 (블러 + 틴트 + 헤어라인 보더)
+  // 안쪽: 탭바와 동일한 글래스 레시피 (블러 + 틴트 + 네온퍼플 보더)
   statGlass: {
     paddingHorizontal: 18,
     paddingTop: 16,
     paddingBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1.5,
+    borderColor: COLORS.violet,
   },
   statTint: {
     position: 'absolute',
