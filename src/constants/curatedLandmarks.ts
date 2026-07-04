@@ -1,4 +1,5 @@
 import { KR_CURATED } from './curated/kr';
+import { JP_CURATED } from './curated/jp';
 
 /**
  * 큐레이션 랜드마크 화이트리스트 — 국가별 파일의 인덱스 + 매칭 로직.
@@ -27,7 +28,7 @@ export interface CuratedLandmark {
 }
 
 /** 전체 큐레이션 — 국가별 파일을 여기에 합친다. */
-export const CURATED_LANDMARKS: CuratedLandmark[] = [...KR_CURATED];
+export const CURATED_LANDMARKS: CuratedLandmark[] = [...KR_CURATED, ...JP_CURATED];
 
 /** QID → 큐레이션 (OSM wikidata 태그 매칭, 최우선). */
 export const CURATED_BY_QID: Record<string, CuratedLandmark> = Object.fromEntries(
