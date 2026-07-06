@@ -7,6 +7,7 @@ interface LandmarkState {
   discovered: Landmark[];
   hydrate: () => void;
   add: (lm: Landmark) => void;
+  updateDisplayName: (osmId: string, displayName: string, displayLang: string) => void;
 }
 
 export const useLandmarkStore = create<LandmarkState>((set) => ({
@@ -18,4 +19,10 @@ export const useLandmarkStore = create<LandmarkState>((set) => ({
         ? state
         : { discovered: [lm, ...state.discovered] }
     ),
+  updateDisplayName: (osmId, displayName, displayLang) =>
+    set((state) => ({
+      discovered: state.discovered.map((x) =>
+        x.osmId === osmId ? { ...x, displayName, displayLang } : x
+      ),
+    })),
 }));

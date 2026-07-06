@@ -5,13 +5,15 @@ export interface Coordinate {
 
 export interface Landmark {
   osmId: string;
-  name: string;
+  name: string; // OSM 원문 이름(현지어) — 폴백·매칭용 원본
   category: LandmarkCategory;
   lat: number;
   lng: number;
   discoveredAt?: number;
   rarity?: string;
   qid?: string; // OSM wikidata 태그 — 큐레이션(유네스코 뱃지·축하 문구) 조회 키
+  displayName?: string; // 유저 언어 우선 표시 이름 (없으면 name 폴백)
+  displayLang?: string; // displayName 의 언어 코드 ('ko'·'en'·'src'=원문)
 }
 
 export type LandmarkCategory =

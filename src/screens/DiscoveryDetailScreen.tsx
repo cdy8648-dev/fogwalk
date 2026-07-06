@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import EmptyHint from '../components/ui/EmptyHint';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
-import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
+import { CATEGORY_EMOJI, landmarkDisplayName, rarityLabel } from '../constants/landmarks';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { useLandmarkStore } from '../store/landmarkStore';
 import type { Landmark } from '../types';
@@ -65,7 +65,7 @@ export default function DiscoveryDetailScreen({ route }: Props) {
               <Text style={styles.emoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
               <View style={styles.mid}>
                 <Text style={styles.name} numberOfLines={1}>
-                  {lm.name}
+                  {landmarkDisplayName(lm)}
                 </Text>
                 {lm.discoveredAt ? (
                   <Text style={styles.date}>{formatDate(lm.discoveredAt)} 발견</Text>

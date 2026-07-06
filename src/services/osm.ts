@@ -1,6 +1,7 @@
 import { CONFIG } from '../constants/config';
 import { isSubwayHub, matchCurated } from '../constants/curatedLandmarks';
 import type { Landmark, LandmarkCategory } from '../types';
+import { getUserLangCode } from './locale';
 
 /**
  * OSM(Overpass) 전담 모듈. 주변 랜드마크를 조회해 Landmark[]로 반환.
@@ -75,6 +76,22 @@ function rarityOf(tags: Tags, name: string, category: LandmarkCategory): string 
   return 'common';
 }
 
+/**
+ * OSM 태그만으로 표시 이름 결정 (동기·무네트워크): name:{userLang} → name:en → name(원문).
+ * 원문(현지어)만 있고 유저 언어가 아니면 lang='src' → 이후 Wikidata 업그레이드 대상.
+ * (Wikidata 라벨은 발견한 소수 랜드마크에 한해 landmarkNames 에서 지연 조회 — 대량 조회 방지)
+ */
+export function pickLocalName(
+  tags: Tags,
+  userLang: string
+): { name: string; lang: string } {
+  const local = tags[`name:${userLang}`];
+  if (local) return { name: local, lang: userLang };
+  const en = tags['name:en'];
+  if (en) return { name: en, lang: 'en' };
+  return { name: tags.name as string, lang: 'src' };
+}
+
 interface OverpassElement {
   type: string;
   id: number;
@@ -130,7 +147,7 @@ out center 80;`;
       };
       // remark + 빈 결과 = 타임아웃/런타임 에러 → 실패로 보고 다음 엔드포인트 (잘못된 빈 캐시 방지)
       if (json.remark && (json.elements?.length ?? 0) === 0) continue;
-      return parseElements(json.elements ?? []);
+      return parseElements(json.elements ?? [], getUserLangCode());
     } catch {
       continue;
     }
@@ -148,9 +165,11 @@ function qualifies(tags: Tags, name: string, category: LandmarkCategory): boolea
   if (isUnescoTagged(tags)) return true; // 세계유산은 카테고리 불문 인정
   switch (category) {
     case 'subway':
-    case 'museum':
     case 'palace': // historic=castle/palace/fort/fortress/city_gate (본래 상징적)
       return true;
+    // 박물관: 동네 전시관·폐관 미반영(OSM 스테일) 노이즈가 많아 위키/문화재 등재 요구
+    case 'museum':
+      return hasWiki || hasHeritage;
     // 교통 트랙: 실제 공항(군용 제외)·주요 기차역·여객터미널만
     case 'airport':
       return (hasWiki || !!tags.iata) && tags['aerodrome:type'] !== 'military' && !tags.military;
@@ -179,7 +198,7 @@ function qualifies(tags: Tags, name: string, category: LandmarkCategory): boolea
   }
 }
 
-function parseElements(elements: OverpassElement[]): Landmark[] {
+function parseElements(elements: OverpassElement[], userLang: string): Landmark[] {
   const out: Landmark[] = [];
   for (const el of elements) {
     const tags = el.tags ?? {};
@@ -189,6 +208,7 @@ function parseElements(elements: OverpassElement[]): Landmark[] {
     if (!name || elLat == null || elLng == null) continue;
     const category = categorize(tags);
     if (!qualifies(tags, name, category)) continue;
+    const display = pickLocalName(tags, userLang);
     out.push({
       osmId: `${el.type}/${el.id}`,
       name,
@@ -197,6 +217,8 @@ function parseElements(elements: OverpassElement[]): Landmark[] {
       lng: elLng,
       rarity: rarityOf(tags, name, category),
       qid: tags.wikidata, // 큐레이션(유네스코 뱃지·축하 문구) 조회 키
+      displayName: display.name,
+      displayLang: display.lang,
     });
   }
   return out;

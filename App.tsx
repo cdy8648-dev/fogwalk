@@ -11,9 +11,12 @@ import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import CelebrationOverlay from './src/components/CelebrationOverlay';
+import DiscoveryOverlayHost from './src/components/discovery/DiscoveryOverlayHost';
 import { COLORS } from './src/constants/colors';
 import { hydrateCountry, refreshCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
+import { flushPendingDiscoveries } from './src/services/discovery';
+import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
 import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
 import { useLandmarkStore } from './src/store/landmarkStore';
@@ -67,6 +70,8 @@ export default function App() {
     usePhotoStore.getState().hydrate(); // DB → 사진 복원
     useLandmarkStore.getState().hydrate(); // DB → 발견 랜드마크 복원
     useSettingsStore.getState().hydrate(); // DB → 설정(지도 스타일) 복원
+    flushPendingDiscoveries(); // 백그라운드/이전 세션 발견 → 요약 카드
+    void migrateDiscoveryDisplayNames(); // 현지어로 저장된 발견 이름 → 유저 언어로 보강(백그라운드)
     setReady(true);
   }, []);
 
@@ -76,6 +81,7 @@ export default function App() {
       if (next === 'active') {
         useMapStore.getState().hydrate();
         refreshProgressStore();
+        flushPendingDiscoveries(); // 백그라운드 발견 → 요약 카드
         void refreshCountry(); // 해외 도착 등 먼 이동 시 국가 선제 감지
       }
     });
@@ -105,6 +111,7 @@ export default function App() {
         </Tab.Navigator>
       </NavigationContainer>
       <CelebrationOverlay />
+      <DiscoveryOverlayHost />
     </>
   );
 }

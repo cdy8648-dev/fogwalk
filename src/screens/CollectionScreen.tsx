@@ -11,7 +11,7 @@ import PhotoViewer from '../components/ui/PhotoViewer';
 import SectionPill from '../components/ui/SectionPill';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
-import { CATEGORY_EMOJI, rarityLabel } from '../constants/landmarks';
+import { CATEGORY_EMOJI, landmarkDisplayName, rarityLabel } from '../constants/landmarks';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { getAllCountryStats } from '../services/db';
 import { useLandmarkStore } from '../store/landmarkStore';
@@ -186,7 +186,7 @@ export default function CollectionScreen() {
             <View key={lm.osmId} style={styles.lmRow}>
               <Text style={styles.lmEmoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
               <Text style={styles.lmName} numberOfLines={1}>
-                {lm.name}
+                {landmarkDisplayName(lm)}
               </Text>
               <Text style={styles.lmRarity}>{rarityLabel(lm.rarity)}</Text>
             </View>

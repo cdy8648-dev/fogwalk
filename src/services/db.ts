@@ -130,6 +130,23 @@ export function initDatabase(): void {
   } catch {
     /* 컬럼 이미 존재 */
   }
+  // 발견 팝업: celebrated(0=미표시) — 백그라운드 발견을 복귀 시 요약 카드로 보여주기 위한 플래그
+  try {
+    db.execSync('ALTER TABLE landmarks ADD COLUMN celebrated INTEGER DEFAULT 0');
+  } catch {
+    /* 컬럼 이미 존재 */
+  }
+  // 다국어 표시 이름: 유저 언어 우선(name:ko→name:en→원문), Wikidata 지연 업그레이드
+  try {
+    db.execSync('ALTER TABLE landmarks ADD COLUMN display_name TEXT');
+  } catch {
+    /* 컬럼 이미 존재 */
+  }
+  try {
+    db.execSync('ALTER TABLE landmarks ADD COLUMN display_lang TEXT');
+  } catch {
+    /* 컬럼 이미 존재 */
+  }
 
   // 발견 시스템 v2: 느슨한 규칙으로 등록된 미발견 랜드마크 + 조회기록 정리 → 새 규칙으로 재수집.
   // (발견 기록 discovered_at 은 보존: upsertLandmark 가 충돌 시 카테고리/희귀도만 갱신)
@@ -150,6 +167,17 @@ export function initDatabase(): void {
     db.runSync('DELETE FROM landmarks WHERE discovered_at IS NULL');
     db.runSync('DELETE FROM fetched_areas');
     setSetting('discovery_v4', '1');
+  }
+  // 발견 팝업 도입: 기존 발견분은 이미 축하를 봤으므로 소급 팝업 방지
+  if (getSetting('discovery_popup_v1') !== '1') {
+    db.runSync('UPDATE landmarks SET celebrated = 1 WHERE discovered_at IS NOT NULL');
+    setSetting('discovery_popup_v1', '1');
+  }
+  // v5: 박물관 수집 기준 강화(위키/문화재 요구) — 동네 전시관·폐관 미반영 노이즈 제거 → 재수집
+  if (getSetting('discovery_v5') !== '1') {
+    db.runSync('DELETE FROM landmarks WHERE discovered_at IS NULL');
+    db.runSync('DELETE FROM fetched_areas');
+    setSetting('discovery_v5', '1');
   }
 
   if (__DEV__) {
@@ -338,15 +366,18 @@ export function getAllDailyStats(): DailyStats[] {
 
 export function upsertLandmark(landmark: Landmark): void {
   db.runSync(
-    `INSERT INTO landmarks (osm_id, name, category, lat, lng, discovered_at, rarity, qid)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO landmarks (osm_id, name, category, lat, lng, discovered_at, rarity, qid, display_name, display_lang)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(osm_id) DO UPDATE SET
        name = excluded.name,
        category = excluded.category,
        lat = excluded.lat,
        lng = excluded.lng,
        rarity = excluded.rarity,
-       qid = excluded.qid`,
+       qid = excluded.qid,
+       -- 이미 결정된 표시 이름(특히 Wikidata 업그레이드분)은 보존, 비어있을 때만 채움
+       display_name = COALESCE(display_name, excluded.display_name),
+       display_lang = COALESCE(display_lang, excluded.display_lang)`,
     landmark.osmId,
     landmark.name,
     landmark.category,
@@ -354,8 +385,54 @@ export function upsertLandmark(landmark: Landmark): void {
     landmark.lng,
     landmark.discoveredAt ?? null,
     landmark.rarity ?? null,
-    landmark.qid ?? null
+    landmark.qid ?? null,
+    landmark.displayName ?? null,
+    landmark.displayLang ?? null
   );
+}
+
+/** 표시 이름 갱신 (Wikidata 업그레이드·언어 변경 대응). */
+export function setLandmarkDisplayName(
+  osmId: string,
+  displayName: string,
+  displayLang: string
+): void {
+  db.runSync(
+    'UPDATE landmarks SET display_name = ?, display_lang = ? WHERE osm_id = ?',
+    displayName,
+    displayLang,
+    osmId
+  );
+}
+
+// 랜드마크 행 공통 형태 + 매퍼 (SELECT 컬럼 순서를 LANDMARK_COLS 와 일치시킬 것)
+interface LandmarkRow {
+  osm_id: string;
+  name: string;
+  category: string | null;
+  lat: number;
+  lng: number;
+  discovered_at: number | null;
+  rarity: string | null;
+  qid: string | null;
+  display_name: string | null;
+  display_lang: string | null;
+}
+const LANDMARK_COLS =
+  'osm_id, name, category, lat, lng, discovered_at, rarity, qid, display_name, display_lang';
+function mapLandmarkRow(r: LandmarkRow): Landmark {
+  return {
+    osmId: r.osm_id,
+    name: r.name,
+    category: (r.category ?? 'other') as LandmarkCategory,
+    lat: r.lat,
+    lng: r.lng,
+    discoveredAt: r.discovered_at ?? undefined,
+    rarity: r.rarity ?? undefined,
+    qid: r.qid ?? undefined,
+    displayName: r.display_name ?? undefined,
+    displayLang: r.display_lang ?? undefined,
+  };
 }
 
 /**
@@ -370,17 +447,8 @@ export function getUndiscoveredLandmarksNear(
   const dLat = radiusM / 111_320;
   const dLng = radiusM / (111_320 * Math.cos((lat * Math.PI) / 180) || 1);
 
-  const rows = db.getAllSync<{
-    osm_id: string;
-    name: string;
-    category: string | null;
-    lat: number;
-    lng: number;
-    discovered_at: number | null;
-    rarity: string | null;
-    qid: string | null;
-  }>(
-    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity, qid
+  const rows = db.getAllSync<LandmarkRow>(
+    `SELECT ${LANDMARK_COLS}
      FROM landmarks
      WHERE discovered_at IS NULL
        AND lat BETWEEN ? AND ?
@@ -391,44 +459,35 @@ export function getUndiscoveredLandmarksNear(
     lng + dLng
   );
 
-  return rows.map((r) => ({
-    osmId: r.osm_id,
-    name: r.name,
-    category: (r.category ?? 'other') as LandmarkCategory,
-    lat: r.lat,
-    lng: r.lng,
-    discoveredAt: r.discovered_at ?? undefined,
-    rarity: r.rarity ?? undefined,
-    qid: r.qid ?? undefined,
-  }));
+  return rows.map(mapLandmarkRow);
 }
 
 export function getDiscoveredLandmarks(): Landmark[] {
-  const rows = db.getAllSync<{
-    osm_id: string;
-    name: string;
-    category: string | null;
-    lat: number;
-    lng: number;
-    discovered_at: number | null;
-    rarity: string | null;
-    qid: string | null;
-  }>(
-    `SELECT osm_id, name, category, lat, lng, discovered_at, rarity, qid
+  const rows = db.getAllSync<LandmarkRow>(
+    `SELECT ${LANDMARK_COLS}
      FROM landmarks
      WHERE discovered_at IS NOT NULL
      ORDER BY discovered_at DESC`
   );
-  return rows.map((r) => ({
-    osmId: r.osm_id,
-    name: r.name,
-    category: (r.category ?? 'other') as LandmarkCategory,
-    lat: r.lat,
-    lng: r.lng,
-    discoveredAt: r.discovered_at ?? undefined,
-    rarity: r.rarity ?? undefined,
-    qid: r.qid ?? undefined,
-  }));
+  return rows.map(mapLandmarkRow);
+}
+
+/**
+ * 표시 이름 보강이 필요한 발견 랜드마크: 표시 이름이 없거나(레거시),
+ * 유저 언어가 아닌데(qid 보유) Wikidata 로 업그레이드 가능한 것들.
+ */
+export function getDiscoveredNeedingDisplayName(userLang: string): Landmark[] {
+  const rows = db.getAllSync<LandmarkRow>(
+    `SELECT ${LANDMARK_COLS}
+     FROM landmarks
+     WHERE discovered_at IS NOT NULL
+       AND (
+         display_name IS NULL
+         OR (display_lang IS NOT ? AND display_lang IS NOT 'en' AND qid IS NOT NULL)
+       )`,
+    userLang
+  );
+  return rows.map(mapLandmarkRow);
 }
 
 export function markLandmarkDiscovered(
@@ -440,6 +499,26 @@ export function markLandmarkDiscovered(
     discoveredAt,
     osmId
   );
+}
+
+/** 발견됐지만 아직 팝업으로 못 본 것들(백그라운드 발견) — 오래된 순. */
+export function getUncelebratedDiscoveries(): Landmark[] {
+  const rows = db.getAllSync<LandmarkRow>(
+    `SELECT ${LANDMARK_COLS}
+     FROM landmarks
+     WHERE discovered_at IS NOT NULL AND celebrated = 0
+     ORDER BY discovered_at ASC`
+  );
+  return rows.map(mapLandmarkRow);
+}
+
+export function markLandmarksCelebrated(osmIds: string[]): void {
+  if (osmIds.length === 0) return;
+  db.withTransactionSync(() => {
+    for (const id of osmIds) {
+      db.runSync('UPDATE landmarks SET celebrated = 1 WHERE osm_id = ?', id);
+    }
+  });
 }
 
 // ── fetched_areas (랜드마크 조회 중복 방지) ────────────────────

@@ -108,6 +108,8 @@ export default function MapScreen() {
   const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
+  // 우상단 햄버거 메뉴 (잉크·편지함 수납)
+  const [menuOpen, setMenuOpen] = useState(false);
   // 롱프레스로 찍는 연필 핀 좌표([lng, lat]) + 그 위치의 대상 판별(팝업용). 드래그로 이동.
   const [pinCoord, setPinCoord] = useState<[number, number] | null>(null);
   const [pinTarget, setPinTarget] = useState<PencilTarget | null>(null);
@@ -290,33 +292,70 @@ export default function MapScreen() {
         <Tape width={58} height={18} color="rgba(200,245,96,0.5)" style={styles.statTapePos} />
       </View>
 
-      {/* 우상단 잉크 잔량 HUD (걸어서 모아 지도를 칠하는 통화) */}
-      <TouchableOpacity
-        style={[styles.inkHud, { top: insets.top + 20 }]}
-        activeOpacity={0.85}
-        onPress={() =>
-          Alert.alert(
-            '잉크',
-            `보유 잉크 ${ink}\n\n걸을수록 잉크가 모여요. 지도를 길게 눌러 회색 안개를 잉크로 밝혀보세요 ✏️`
-          )
-        }
-        accessibilityLabel={`잉크 ${ink}`}
-      >
-        <Image source={require('../../assets/ink.png')} style={styles.inkIcon} resizeMode="contain" />
-        <View style={styles.inkBadge}>
-          <Text style={styles.inkBadgeText}>{abbrev(ink)}</Text>
-        </View>
-      </TouchableOpacity>
+      {/* 우상단 햄버거 메뉴 — 잉크·편지함 수납 (탭바·카드와 같은 글래스 레시피) */}
+      <View style={[styles.menuWrap, { top: insets.top + 20 }]}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          activeOpacity={0.85}
+          onPress={() => setMenuOpen((o) => !o)}
+          accessibilityLabel={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
+        >
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.menuTint} />
+          {menuOpen ? (
+            <Text style={styles.menuCloseGlyph}>✕</Text>
+          ) : (
+            <View style={styles.menuBars}>
+              <View style={styles.menuBar} />
+              <View style={styles.menuBar} />
+              <View style={styles.menuBar} />
+            </View>
+          )}
+        </TouchableOpacity>
 
-      {/* 잉크 아래 편지함 (준비 중) */}
-      <TouchableOpacity
-        style={[styles.mailHud, { top: insets.top + 20 + 58 }]}
-        activeOpacity={0.85}
-        onPress={() => Alert.alert('편지함', '준비 중입니다 💌')}
-        accessibilityLabel="편지함 (준비 중)"
-      >
-        <Image source={require('../../assets/mail.png')} style={styles.inkIcon} resizeMode="contain" />
-      </TouchableOpacity>
+        {menuOpen && (
+          <View style={styles.menuPanel}>
+            <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.menuTint} />
+            <TouchableOpacity
+              style={styles.menuItem}
+              activeOpacity={0.85}
+              onPress={() => {
+                setMenuOpen(false);
+                Alert.alert(
+                  '잉크',
+                  `보유 잉크 ${ink}\n\n걸을수록 잉크가 모여요. 지도를 길게 눌러 회색 안개를 잉크로 밝혀보세요 ✏️`
+                );
+              }}
+              accessibilityLabel={`잉크 ${ink}`}
+            >
+              <Image
+                source={require('../../assets/ink.png')}
+                style={styles.menuIcon}
+                resizeMode="contain"
+              />
+              <View style={styles.inkBadge}>
+                <Text style={styles.inkBadgeText}>{abbrev(ink)}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              activeOpacity={0.85}
+              onPress={() => {
+                setMenuOpen(false);
+                Alert.alert('편지함', '준비 중입니다 💌');
+              }}
+              accessibilityLabel="편지함 (준비 중)"
+            >
+              <Image
+                source={require('../../assets/mail.png')}
+                style={styles.menuIcon}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
       {/* 연필 핀 팝업: 판별 + 잉크로 밝히기(회색만: 1칸 / 연결 일괄). 드래그로 이동 시 갱신, X로 연필 제거 */}
       {pinTarget &&
@@ -419,9 +458,46 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   map: { flex: 1 },
   pencil: { width: 44, height: 44 },
-  inkHud: { position: 'absolute', right: 16, width: 48, height: 48 },
-  mailHud: { position: 'absolute', right: 16, width: 48, height: 48 },
-  inkIcon: { width: 48, height: 48 },
+  // 우상단 햄버거 메뉴 — 버튼·패널 모두 글래스 레시피(블러+틴트+네온퍼플 보더)
+  menuWrap: { position: 'absolute', right: 16, alignItems: 'flex-end' },
+  menuButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: COLORS.violet,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  menuTint: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15,17,32,0.45)',
+  },
+  menuBars: { gap: 4 },
+  menuBar: { width: 18, height: 2, borderRadius: 1, backgroundColor: COLORS.violet },
+  menuCloseGlyph: { color: COLORS.violet, fontSize: 16, fontWeight: '700' },
+  menuPanel: {
+    marginTop: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: COLORS.violet,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    gap: 10,
+    alignItems: 'center',
+  },
+  menuItem: { width: 48, height: 48 },
+  menuIcon: { width: 48, height: 48 },
   inkBadge: {
     position: 'absolute',
     top: -6,

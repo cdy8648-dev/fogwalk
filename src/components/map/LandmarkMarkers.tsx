@@ -3,7 +3,12 @@ import { Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { CircleLayer, MarkerView, ShapeSource } from '@rnmapbox/maps';
 
 import { COLORS } from '../../constants/colors';
-import { CATEGORY_EMOJI, rarityColor, rarityLabel } from '../../constants/landmarks';
+import {
+  CATEGORY_EMOJI,
+  landmarkDisplayName,
+  rarityColor,
+  rarityLabel,
+} from '../../constants/landmarks';
 import { useLandmarkStore } from '../../store/landmarkStore';
 
 interface Props {
@@ -80,7 +85,7 @@ export default function LandmarkMarkers({ full, showSubway, showCommon, showRare
         >
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => Alert.alert(lm.name, rarityLabel(lm.rarity))}
+            onPress={() => Alert.alert(landmarkDisplayName(lm), rarityLabel(lm.rarity))}
             style={[
               styles.pin,
               { borderColor: rarityColor(lm.rarity) },

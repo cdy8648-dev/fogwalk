@@ -9,6 +9,7 @@ module.exports = () => {
     ...config,
     plugins: [
       'expo-sqlite',
+      'expo-localization',
       [
         '@rnmapbox/maps',
         {
