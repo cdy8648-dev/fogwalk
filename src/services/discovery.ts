@@ -10,6 +10,7 @@ import type { Landmark } from '../types';
 import { haversineMeters } from '../utils/distance';
 import { coordToTile, dilateTiles } from '../utils/h3';
 import { attributeTiles } from './country';
+import { checkBadges } from './badges';
 import { upgradeDiscoveryName } from './landmarkNames';
 import {
   getProgress,
@@ -75,6 +76,9 @@ function discover(lm: Landmark, now: number): void {
 
   // 현지어 원문이면 Wikidata로 표시 이름 업그레이드 (해외 발견) — 조용히 백그라운드
   void upgradeDiscoveryName({ ...lm, discoveredAt: now });
+
+  // 발견 관련 뱃지(첫 발견·전설·수집·컬렉션) 판정
+  checkBadges('discover');
 }
 
 /**

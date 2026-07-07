@@ -34,7 +34,11 @@ export default function CollectionStack() {
         component={CollectionScreen}
         options={{ headerShown: false }} // 홈은 헤더 없이 (콘텐츠 자체 상단 여백)
       />
-      <Stack.Screen name="BadgeDetail" component={BadgeDetailScreen} options={{ title: '뱃지' }} />
+      <Stack.Screen
+        name="BadgeDetail"
+        component={BadgeDetailScreen}
+        options={{ headerShown: false }} // 헤더 없음 — 탭 재탭·스와이프백으로 이동
+      />
       <Stack.Screen
         name="PassportDetail"
         component={PassportDetailScreen}

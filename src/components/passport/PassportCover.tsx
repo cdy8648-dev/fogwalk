@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FONT } from '../../constants/fonts';
 import { codeToFlag } from '../../utils/flag';
 import { abbrev } from '../../utils/format';
+import { fs } from '../../utils/responsive';
 
 // 디자인 핸드오프 전용 팔레트 (앱 공통 COLORS 와 별개의 여권 무드).
 const P = {
@@ -196,14 +197,14 @@ const styles = StyleSheet.create({
   },
   edge: { position: 'absolute', top: 0, left: 0, right: 0, height: 3 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { fontFamily: FONT.mono, fontSize: 10, letterSpacing: 2.8, color: P.caption },
-  passNo: { fontFamily: FONT.mono, fontSize: 10, color: P.dim },
+  brand: { fontFamily: FONT.mono, fontSize: fs(10), letterSpacing: 2.8, color: P.caption },
+  passNo: { fontFamily: FONT.mono, fontSize: fs(10), color: P.dim },
   countryRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
-  flag: { fontSize: 34 },
-  countryName: { fontFamily: FONT.serif, fontSize: 25, color: P.textMain },
+  flag: { fontSize: fs(34) },
+  countryName: { fontFamily: FONT.serif, fontSize: fs(25), color: P.textMain },
   countryEn: {
     fontFamily: FONT.mono,
-    fontSize: 11,
+    fontSize: fs(11),
     letterSpacing: 0.88,
     color: P.caption,
     marginTop: 2,
@@ -252,13 +253,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stampLabel: { fontFamily: FONT.mono, fontSize: 7.5, letterSpacing: 1.35, color: P.limeDim },
-  stampPct: { fontFamily: FONT.display, fontSize: 26, color: P.lime, lineHeight: 28, marginTop: 3 },
-  stampPctUnit: { fontSize: 13 },
-  stampDate: { fontFamily: FONT.mono, fontSize: 7.5, letterSpacing: 1.05, color: P.limeDim, marginTop: 3 },
+  stampLabel: { fontFamily: FONT.mono, fontSize: fs(7.5), letterSpacing: 1.35, color: P.limeDim },
+  stampPct: { fontFamily: FONT.display, fontSize: fs(26), color: P.lime, lineHeight: 28, marginTop: 3 },
+  stampPctUnit: { fontSize: fs(13) },
+  stampDate: { fontFamily: FONT.mono, fontSize: fs(7.5), letterSpacing: 1.05, color: P.limeDim, marginTop: 3 },
   statsRow: { flexDirection: 'row', gap: 18, marginTop: 20 },
-  statValue: { fontFamily: FONT.display, fontSize: 21, color: P.textMain },
-  statLabel: { fontSize: 10, color: P.caption2, marginTop: 1 },
+  statValue: { fontFamily: FONT.display, fontSize: fs(21), color: P.textMain },
+  statLabel: { fontSize: fs(10), color: P.caption2, marginTop: 1 },
   mrz: {
     marginTop: 16,
     borderTopWidth: 1,
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
   },
   mrzText: {
     fontFamily: FONT.mono,
-    fontSize: 9.5,
+    fontSize: fs(9.5),
     letterSpacing: 1.14,
     color: P.dim2,
     lineHeight: 16,

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { FONT } from '../../constants/fonts';
 import { abbrev } from '../../utils/format';
+import { fs } from '../../utils/responsive';
 
 const P = {
   cardBg: '#11131F',
@@ -181,12 +182,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
   },
-  stampPct: { fontFamily: FONT.display, fontSize: 15, lineHeight: 16, maxWidth: 44 },
-  stampEn: { fontFamily: FONT.mono, fontSize: 6.5, letterSpacing: 0.65, marginTop: 2 },
+  stampPct: { fontFamily: FONT.display, fontSize: fs(15), lineHeight: 16, maxWidth: 44 },
+  stampEn: { fontFamily: FONT.mono, fontSize: fs(6.5), letterSpacing: 0.65, marginTop: 2 },
   body: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  name: { fontSize: 14.5, fontWeight: '800', color: P.textMain, flexShrink: 1, marginRight: 8 },
-  tiles: { fontFamily: FONT.display, fontSize: 13 },
+  name: { fontSize: fs(14.5), fontWeight: '800', color: P.textMain, flexShrink: 1, marginRight: 8 },
+  tiles: { fontFamily: FONT.display, fontSize: fs(13) },
   track: {
     height: 7,
     backgroundColor: P.track,
@@ -196,9 +197,9 @@ const styles = StyleSheet.create({
   },
   fillClip: { height: '100%', borderRadius: 999, overflow: 'hidden' },
   fill: { flex: 1 },
-  comment: { fontSize: 10, color: P.caption2, marginTop: 5 },
+  comment: { fontSize: fs(10), color: P.caption2, marginTop: 5 },
   subSummaryRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
-  subSummary: { fontSize: 10, color: P.caption },
+  subSummary: { fontSize: fs(10), color: P.caption },
   subSummaryNum: { color: P.subNum, fontWeight: '700' },
   subList: {
     marginTop: 12,
@@ -208,6 +209,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  subName: { color: P.caption, fontSize: 12.5, flex: 1, marginRight: 8 },
-  subNum: { color: P.subNum, fontSize: 12.5, fontFamily: FONT.mono },
+  subName: { color: P.caption, fontSize: fs(12.5), flex: 1, marginRight: 8 },
+  subNum: { color: P.subNum, fontSize: fs(12.5), fontFamily: FONT.mono },
 });

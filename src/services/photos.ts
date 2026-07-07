@@ -2,6 +2,7 @@ import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
 import { usePhotoStore } from '../store/photoStore';
+import { checkBadges } from './badges';
 import { deletePhoto, insertPhoto } from './db';
 import { deletePhotoFile, photoDir } from './photoFiles';
 
@@ -42,6 +43,7 @@ export async function capturePhotoAt(
     // DB엔 파일명만 저장(컨테이너 경로 변경에도 안전). 화면 스토어엔 현재 절대경로.
     insertPhoto({ id, lat, lng, uri: fileName, createdAt });
     usePhotoStore.getState().add({ id, lat, lng, uri: dest.uri, createdAt });
+    checkBadges('photo'); // 첫 기록 뱃지
     return 'ok';
   } catch (e) {
     console.warn('[photos] capture failed:', e);

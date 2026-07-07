@@ -40,18 +40,8 @@ export interface Achievement {
   unlockedAt: number;
 }
 
-export type AchievementType =
-  | 'streak_3'
-  | 'streak_7'
-  | 'streak_30'
-  | 'dist_1km'
-  | 'dist_5km'
-  | 'dist_10km'
-  | 'tiles_100'
-  | 'tiles_500'
-  | 'landmark_first'
-  | 'landmark_10'
-  | 'area_100';
+// 뱃지는 데이터(constants/badges.ts)로 관리 — id는 자유 문자열(BadgeDef.id 와 동일).
+export type AchievementType = string;
 
 export interface DailyStats {
   date: string;

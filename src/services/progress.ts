@@ -5,7 +5,7 @@ import { localDateStr } from '../utils/calendar';
 import { haversineMeters } from '../utils/distance';
 import { modeWeight } from '../utils/mode';
 import { levelProgress, xpForMovement } from '../utils/xp';
-import { checkAchievements } from './achievements';
+import { checkBadges } from './badges';
 import { attributeTiles, ensureCountry } from './country';
 import { checkLandmarkDiscoveries } from './discovery';
 import { ensureLandmarksFetched } from './landmarks';
@@ -146,5 +146,5 @@ export function refreshProgressStore(celebrateLevelUp = false): void {
     }
   }
 
-  checkAchievements();
+  checkBadges('progress');
 }

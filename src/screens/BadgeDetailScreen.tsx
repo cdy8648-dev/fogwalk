@@ -1,92 +1,213 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { ParamListBase } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import SectionPill from '../components/ui/SectionPill';
-import { ACHIEVEMENTS, type AchievementDef } from '../constants/achievements';
+import BadgeIcon from '../components/BadgeIcon';
+import {
+  AXIS_LABEL,
+  AXIS_ORDER,
+  BADGES,
+  TIER_COLOR,
+  type BadgeDef,
+} from '../constants/badges';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
-import { getAllAchievements, getTileCount } from '../services/db';
+import type { CollectionStackParamList } from '../navigation/CollectionStack';
+import { badgeCurrentValue, badgeMetricsSnapshot } from '../services/badges';
 import { useAchievementStore } from '../store/achievementStore';
-import { useUserStore } from '../store/userStore';
-import { formatDate } from '../utils/date';
+import { useLandmarkStore } from '../store/landmarkStore';
+import { useMapStore } from '../store/mapStore';
+import { abbrev } from '../utils/format';
 
-function metricValue(metric: AchievementDef['metric'], km: number, streak: number, tiles: number) {
-  if (metric === 'streak') return streak;
-  if (metric === 'distanceKm') return km;
-  return tiles;
-}
-
+/**
+ * 뱃지 진열장 (헤더 없음). 상단 전체 진행바 + 축별 섹션 그리드.
+ * 획득 = 풀컬러 + 티어 테두리, 미획득 = 실루엣 + 조건/진행도. hidden 은 '???'.
+ */
 export default function BadgeDetailScreen() {
-  const unlockedTypes = useAchievementStore((s) => s.unlockedTypes);
-  const km = useUserStore((s) => s.totalDistanceM) / 1000;
-  const streak = useUserStore((s) => s.streak);
+  const insets = useSafeAreaInsets();
+  const nav = useNavigation<NativeStackNavigationProp<CollectionStackParamList>>();
+  const unlocked = useAchievementStore((s) => s.unlockedTypes);
+  // 진행도 재계산 트리거(발견·타일 변화 반영)
+  const tiles = useMapStore((s) => s.visitedTileIds.size);
+  const discoveredLen = useLandmarkStore((s) => s.discovered.length);
 
-  // 해금 일자 (있으면 카드에 표기).
-  const unlockedAt = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const a of getAllAchievements()) map[a.type] = a.unlockedAt;
-    return map;
-  }, [unlockedTypes]);
-  const tiles = useMemo(() => getTileCount(), [unlockedTypes]);
+  // 헤더가 없으니 Collection 탭 재탭 = 컬렉션 홈으로 (CountryRegions 와 동일 패턴).
+  useEffect(() => {
+    const tab = nav.getParent<BottomTabNavigationProp<ParamListBase>>();
+    if (!tab) return;
+    return tab.addListener('tabPress', () => {
+      if (nav.isFocused()) nav.popToTop();
+    });
+  }, [nav]);
+
+  const metrics = useMemo(
+    badgeMetricsSnapshot,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [unlocked, tiles, discoveredLen]
+  );
+
+  const unlockedCount = BADGES.filter((b) => unlocked.has(b.id)).length;
+  const overallPct = Math.round((unlockedCount / BADGES.length) * 100);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionPill label="뱃지 도감" color={COLORS.lime} rotate={-1.5} />
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+    >
+      <Text style={styles.kicker}>ACHIEVEMENTS</Text>
+      <Text style={styles.title}>뱃지 진열장</Text>
 
-      <View style={styles.grid}>
-        {ACHIEVEMENTS.map((a) => {
-          const unlocked = unlockedTypes.has(a.type);
-          const cur = metricValue(a.metric, km, streak, tiles);
-          const prog = Math.min(1, cur / a.threshold);
-          return (
-            <View key={a.type} style={[styles.card, unlocked ? styles.cardOn : styles.cardOff]}>
-              <Text style={[styles.emoji, !unlocked && styles.dim]}>
-                {unlocked ? a.emoji : '🔒'}
-              </Text>
-              <Text style={styles.label} numberOfLines={2}>
-                {a.label}
-              </Text>
-              {unlocked ? (
-                <Text style={styles.date}>{formatDate(unlockedAt[a.type]) || '획득'}</Text>
-              ) : (
-                <View style={styles.track}>
-                  <View style={[styles.fill, { width: `${prog * 100}%` }]} />
-                </View>
-              )}
-            </View>
-          );
-        })}
+      {/* 전체 진행 카드 */}
+      <View style={styles.overall}>
+        <View style={styles.overallTop}>
+          <Text style={styles.overallText}>
+            뱃지 <Text style={styles.overallNum}>{BADGES.length}개 중 {unlockedCount}개</Text> 획득
+          </Text>
+          <Text style={styles.overallPct}>{overallPct}%</Text>
+        </View>
+        <View style={styles.track}>
+          <View style={[styles.fill, { width: `${overallPct}%` }]} />
+        </View>
       </View>
+
+      {AXIS_ORDER.map((axis) => {
+        const list = BADGES.filter((b) => b.axis === axis);
+        if (list.length === 0) return null;
+        const got = list.filter((b) => unlocked.has(b.id)).length;
+        return (
+          <View key={axis} style={styles.section}>
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>{AXIS_LABEL[axis]}</Text>
+              <Text style={styles.sectionCount}>
+                {got} / {list.length}
+              </Text>
+            </View>
+            <View style={styles.grid}>
+              {list.map((b) => (
+                <BadgeCell key={b.id} badge={b} unlocked={unlocked.has(b.id)} metrics={metrics} />
+              ))}
+            </View>
+          </View>
+        );
+      })}
     </ScrollView>
+  );
+}
+
+function BadgeCell({
+  badge,
+  unlocked,
+  metrics,
+}: {
+  badge: BadgeDef;
+  unlocked: boolean;
+  metrics: ReturnType<typeof badgeMetricsSnapshot>;
+}) {
+  const hiddenLocked = !unlocked && badge.hidden;
+  const cur = badgeCurrentValue(badge.metric, metrics);
+  const ratio = Math.min(1, cur / badge.threshold);
+  // km 은 소수1, 그 외 정수. 목표 초과분은 목표값으로 클램프(진행 텍스트 깔끔하게).
+  const curCapped = Math.min(cur, badge.threshold);
+  const curText = badge.unit === 'km' ? curCapped.toFixed(1) : abbrev(Math.floor(curCapped));
+
+  return (
+    <View style={styles.cell}>
+      <View style={styles.iconWrap}>
+        <BadgeIcon icon={badge.icon} size={64} locked={!unlocked} />
+      </View>
+      <Text
+        style={[styles.name, unlocked ? { color: COLORS.text } : styles.nameLocked]}
+        numberOfLines={1}
+      >
+        {hiddenLocked ? '???' : badge.name}
+      </Text>
+      {unlocked ? (
+        <Text style={[styles.sub, { color: TIER_COLOR[badge.tier] }]} numberOfLines={1}>
+          획득 완료
+        </Text>
+      ) : hiddenLocked ? (
+        <Text style={styles.sub} numberOfLines={1}>
+          숨겨진 뱃지
+        </Text>
+      ) : (
+        <>
+          <Text style={styles.sub} numberOfLines={2}>
+            {curText}/{abbrev(badge.threshold)}
+            {badge.unit}
+          </Text>
+          <View style={styles.miniTrack}>
+            <View style={[styles.miniFill, { width: `${ratio * 100}%` }]} />
+          </View>
+        </>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.fog },
   content: { padding: 16, paddingBottom: 110 }, // 플로팅 탭바 공간 확보
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
-  card: {
-    width: '47%',
+  kicker: { color: COLORS.muted, fontSize: 12, letterSpacing: 2, fontFamily: FONT.mono },
+  title: { color: COLORS.text, fontSize: 25, fontWeight: '800', marginTop: 2, marginBottom: 16 },
+
+  overall: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    padding: 16,
+  },
+  overallTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  overallText: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
+  overallNum: { color: COLORS.lime, fontWeight: '800' },
+  overallPct: { color: COLORS.lime, fontSize: 16, fontFamily: FONT.display },
+  track: { height: 8, backgroundColor: COLORS.fogLight, borderRadius: 999, marginTop: 12, overflow: 'hidden' },
+  fill: { height: '100%', backgroundColor: COLORS.lime, borderRadius: 999 },
+
+  section: { marginTop: 22 },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 2,
+  },
+  sectionTitle: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
+  sectionCount: { color: COLORS.muted, fontSize: 12, fontFamily: FONT.mono, letterSpacing: 1 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+
+  cell: {
+    width: '31%',
     flexGrow: 1,
     backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
     alignItems: 'center',
   },
-  cardOn: { borderWidth: 2, borderColor: COLORS.lime },
-  cardOff: { borderWidth: 1, borderColor: COLORS.border, opacity: 0.7 },
-  emoji: { fontSize: 36 },
-  dim: { opacity: 0.7 },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '700', marginTop: 8, textAlign: 'center' },
-  date: { color: COLORS.lime, fontSize: 11, marginTop: 6, fontFamily: FONT.mono },
-  track: {
-    height: 6,
-    width: '70%',
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  name: { fontSize: 12.5, fontWeight: '800', marginTop: 8, textAlign: 'center' },
+  nameLocked: { color: COLORS.muted },
+  sub: { color: COLORS.muted, fontSize: 10, marginTop: 3, textAlign: 'center' },
+  miniTrack: {
+    height: 4,
+    width: '80%',
     backgroundColor: COLORS.fogLight,
     borderRadius: 999,
-    marginTop: 9,
+    marginTop: 6,
     overflow: 'hidden',
   },
-  fill: { height: '100%', backgroundColor: COLORS.muted, borderRadius: 999 },
+  miniFill: { height: '100%', backgroundColor: COLORS.limeDeep, borderRadius: 999 },
 });

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<defs>
+<linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#e8b183"></stop><stop offset="0.55" stop-color="#8a5a30"></stop><stop offset="1" stop-color="#c98d5a"></stop>
+</linearGradient>
+<linearGradient id="face" x1="0" y1="0" x2="0.7" y2="1">
+<stop offset="0" stop-color="#243052"></stop><stop offset="1" stop-color="#141b33"></stop>
+</linearGradient>
+<linearGradient id="gloss" x1="0" y1="0" x2="0.6" y2="1">
+<stop offset="0" stop-color="rgba(255,255,255,.30)"></stop><stop offset="0.42" stop-color="rgba(255,255,255,.04)"></stop><stop offset="0.6" stop-color="rgba(255,255,255,0)"></stop>
+</linearGradient>
+
+<clipPath id="fc"><path d="M22,72 Q22,20 72,18 L128,18 Q178,20 178,72 L178,180 Q178,190 168,190 L32,190 Q22,190 22,180 Z" transform="translate(14,14) scale(0.86)"></path></clipPath>
+</defs>
+
+<path d="M22,72 Q22,20 72,18 L128,18 Q178,20 178,72 L178,180 Q178,190 168,190 L32,190 Q22,190 22,180 Z" fill="url(#ring)"></path>
+<path d="M22,72 Q22,20 72,18 L128,18 Q178,20 178,72 L178,180 Q178,190 168,190 L32,190 Q22,190 22,180 Z" fill="url(#face)" transform="translate(14,14) scale(0.86)"></path>
+<path d="M22,72 Q22,20 72,18 L128,18 Q178,20 178,72 L178,180 Q178,190 168,190 L32,190 Q22,190 22,180 Z" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="3" transform="translate(14,14) scale(0.86)"></path>
+<g clip-path="url(#fc)"><g transform="translate(100,106)"><path d="M-38,30 Q-24,23 -8,30 T24,30 T40,26" stroke="rgba(237,234,224,.35)" stroke-width="4" fill="none" stroke-linecap="round"></path>
+   <path d="M-34,44 Q-18,38 0,44 T34,42" stroke="rgba(237,234,224,.22)" stroke-width="4" fill="none" stroke-linecap="round"></path>
+   <g fill="#EDEAE0" transform="translate(2,-8) rotate(-10)"><ellipse cx="0" cy="4" rx="13" ry="19"></ellipse><ellipse cx="1" cy="30" rx="9.5" ry="8"></ellipse><circle cx="-11" cy="-16" r="4.2"></circle><circle cx="-2" cy="-20" r="4.8"></circle><circle cx="7" cy="-17" r="4.2"></circle><circle cx="14" cy="-11" r="3.6"></circle></g>
+   <path d="M-32,-36 L-30.56,-31.44 L-26,-30 L-30.56,-28.56 L-32,-24 L-33.44,-28.56 L-38,-30 L-33.44,-31.44 Z" fill="#C8F560"></path></g>
+<rect x="0" y="0" width="200" height="200" fill="url(#gloss)"></rect></g>
+<path d="M22,72 Q22,20 72,18 L128,18 Q178,20 178,72 L178,180 Q178,190 168,190 L32,190 Q22,190 22,180 Z" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="2" transform="translate(14,14) scale(0.86)"></path>
+</svg>

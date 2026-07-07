@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<defs>
+<linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#ffe9b8"></stop><stop offset="0.55" stop-color="#b47b2e"></stop><stop offset="1" stop-color="#f5d491"></stop>
+</linearGradient>
+<linearGradient id="face" x1="0" y1="0" x2="0.7" y2="1">
+<stop offset="0" stop-color="#2c3a2a"></stop><stop offset="1" stop-color="#17201a"></stop>
+</linearGradient>
+<linearGradient id="gloss" x1="0" y1="0" x2="0.6" y2="1">
+<stop offset="0" stop-color="rgba(255,255,255,.30)"></stop><stop offset="0.42" stop-color="rgba(255,255,255,.04)"></stop><stop offset="0.6" stop-color="rgba(255,255,255,0)"></stop>
+</linearGradient>
+<radialGradient id="gl"><stop offset="0.45" stop-color="rgba(224,164,88,.55)"></stop><stop offset="1" stop-color="rgba(224,164,88,0)"></stop></radialGradient>
+<clipPath id="fc"><polygon points="100,10 179,55 179,145 100,190 21,145 21,55" transform="translate(14,14) scale(0.86)"></polygon></clipPath>
+</defs>
+<circle cx="100" cy="100" r="100" fill="url(#gl)"></circle>
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="url(#ring)"></polygon>
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="url(#face)" transform="translate(14,14) scale(0.86)"></polygon>
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="3" transform="translate(14,14) scale(0.86)"></polygon>
+<g clip-path="url(#fc)"><g transform="translate(100,102)"><path d="M-46,34 L-18,-10 L2,20 L18,-4 L46,34 Z" fill="#22402f" opacity=".85"></path>
+   <g transform="translate(0,-2)"><rect x="-3" y="-46" width="6" height="8" fill="#E0A458"></rect>
+   <path d="M-16,-34 Q0,-50.8 16,-34 Q7.68,-38.8 0,-37.84 Q-7.68,-38.8 -16,-34 Z" fill="#EDEAE0"></path><rect x="-10" y="-34" width="20" height="9" fill="#8a5a30"></rect>
+   <path d="M-22,-18 Q0,-41.1 22,-18 Q10.559999999999999,-24.6 0,-23.28 Q-10.559999999999999,-24.6 -22,-18 Z" fill="#EDEAE0"></path><rect x="-14" y="-18" width="28" height="11" fill="#8a5a30"></rect>
+   <path d="M-28,0 Q0,-29.400000000000002 28,0 Q13.44,-8.4 0,-6.72 Q-13.44,-8.4 -28,0 Z" fill="#EDEAE0"></path><rect x="-18" y="0" width="36" height="13" fill="#8a5a30"></rect>
+   <rect x="-4" y="4" width="8" height="9" rx="2" fill="#E0A458"></rect>
+   <path d="M-30,22 L30,22" stroke="rgba(237,234,224,.5)" stroke-width="3" stroke-linecap="round"></path></g></g>
+<rect x="0" y="0" width="200" height="200" fill="url(#gloss)"></rect></g>
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="2" transform="translate(14,14) scale(0.86)"></polygon>
+</svg>

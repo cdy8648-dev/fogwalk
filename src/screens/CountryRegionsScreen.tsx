@@ -24,6 +24,7 @@ import { useMapStore } from '../store/mapStore';
 import { haversineMeters } from '../utils/distance';
 import { COLORS } from '../constants/colors';
 import { TILE_AREA_KM2 } from '../utils/h3';
+import { fs } from '../utils/responsive';
 
 /** 밝힌 칸 수 → 면적 대비 달성률(%). 면적 미상이면 null. */
 function completionPct(tiles: number, areaKm2: number | null): number | null {
@@ -31,12 +32,11 @@ function completionPct(tiles: number, areaKm2: number | null): number | null {
   return (tiles * TILE_AREA_KM2) / areaKm2 * 100;
 }
 
-/** 작은 값도 읽히게: 10%↑ 정수, 1%↑ 소수1, 그 외 소수2. */
+/** 소수점 1자리로 통일: 10%↑ 정수, 그 외 소수1 (예: 0.36 → 0.4). 반올림 시 0.0 되는 미세값은 <0.1%. */
 function formatPct(pct: number): string {
   if (pct >= 10) return `${Math.round(pct)}%`;
-  if (pct >= 1) return `${pct.toFixed(1)}%`;
-  if (pct < 0.01) return '<0.01%';
-  return `${pct.toFixed(2)}%`;
+  if (pct > 0 && pct < 0.05) return '<0.1%';
+  return `${pct.toFixed(1)}%`;
 }
 
 type Props = NativeStackScreenProps<CollectionStackParamList, 'CountryRegions'>;
@@ -191,8 +191,8 @@ const styles = StyleSheet.create({
     marginBottom: 11,
     paddingHorizontal: 2,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#E2E5EE' },
-  sectionCount: { fontFamily: FONT.mono, fontSize: 10, letterSpacing: 1, color: '#7C8294' },
+  sectionTitle: { fontSize: fs(13), fontWeight: '800', color: '#E2E5EE' },
+  sectionCount: { fontFamily: FONT.mono, fontSize: fs(10), letterSpacing: 1, color: '#7C8294' },
   list: { gap: 10 },
   // 다음 지역 티저 (dashed 잠금 카드)
   teaser: {
@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     opacity: 0.6,
   },
-  teaserPlane: { fontSize: 18 },
+  teaserPlane: { fontSize: fs(18) },
   teaserBody: { flex: 1 },
-  teaserTitle: { fontSize: 13, fontWeight: '700', color: '#6B7187' },
-  teaserDesc: { fontSize: 10.5, color: '#4C5268', marginTop: 2 },
+  teaserTitle: { fontSize: fs(13), fontWeight: '700', color: '#6B7187' },
+  teaserDesc: { fontSize: fs(10.5), color: '#4C5268', marginTop: 2 },
 });

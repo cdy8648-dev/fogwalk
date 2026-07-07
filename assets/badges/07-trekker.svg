@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<defs>
+<linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#f4f6fb"></stop><stop offset="0.55" stop-color="#8d95a8"></stop><stop offset="1" stop-color="#dfe4ee"></stop>
+</linearGradient>
+<linearGradient id="face" x1="0" y1="0" x2="0.7" y2="1">
+<stop offset="0" stop-color="#173a3f"></stop><stop offset="1" stop-color="#0e2226"></stop>
+</linearGradient>
+<linearGradient id="gloss" x1="0" y1="0" x2="0.6" y2="1">
+<stop offset="0" stop-color="rgba(255,255,255,.30)"></stop><stop offset="0.42" stop-color="rgba(255,255,255,.04)"></stop><stop offset="0.6" stop-color="rgba(255,255,255,0)"></stop>
+</linearGradient>
+
+<clipPath id="fc"><polygon points="100,10 179,55 179,145 100,190 21,145 21,55" transform="translate(14,14) scale(0.86)"></polygon></clipPath>
+</defs>
+
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="url(#ring)"></polygon>
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="url(#face)" transform="translate(14,14) scale(0.86)"></polygon>
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="3" transform="translate(14,14) scale(0.86)"></polygon>
+<g clip-path="url(#fc)"><g transform="translate(100,102)"><path d="M-44,26 L-14,-24 L6,10 L20,-16 L46,26 Z" fill="#5BC0BE"></path>
+   <path d="M-14,-24 L-7,-12 L-14,-8 L-20,-14 Z" fill="#EDEAE0"></path><path d="M20,-16 L25,-7 L18,-4 L15,-9 Z" fill="#EDEAE0"></path>
+   <g transform="translate(-28,2)"><rect x="-2" y="-22" width="4" height="46" rx="2" fill="#EDEAE0"></rect><path d="M-2,-20 L20,-20 L26,-14 L20,-8 L-2,-8 Z" fill="#E0A458"></path><path d="M2,-4 L-18,-4 L-24,2 L-18,8 L2,8 Z" fill="#C8F560"></path></g></g>
+<rect x="0" y="0" width="200" height="200" fill="url(#gloss)"></rect></g>
+<polygon points="100,10 179,55 179,145 100,190 21,145 21,55" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="2" transform="translate(14,14) scale(0.86)"></polygon>
+</svg>
