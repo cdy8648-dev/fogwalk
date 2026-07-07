@@ -67,6 +67,24 @@ export async function detectCountry(
   }
 }
 
+/** 좌표 → 짧은 주소 문자열 (나만의 장소용). 실패 시 null. */
+export async function reverseAddress(lat: number, lng: number): Promise<string | null> {
+  try {
+    const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+    const r = results[0];
+    if (!r) return null;
+    // 시/도 · 시/구 · 도로명 순으로 있는 것만 조합 (해외 포맷도 무난하게)
+    const parts = [r.region, r.subregion ?? r.city, r.street].filter(
+      (s): s is string => !!s
+    );
+    // 중복 토큰 제거 (해외에서 region=city 같은 경우)
+    const uniq = parts.filter((s, i) => parts.indexOf(s) === i);
+    return uniq.length ? uniq.join(' ') : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 백그라운드(+포그라운드) 추적 시작.
  * activityType=Fitness + pausesUpdatesAutomatically → iOS가 정지 감지 시 GPS를

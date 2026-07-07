@@ -24,6 +24,9 @@ import FogLayer from '../components/map/FogLayer';
 import LandmarkMarkers from '../components/map/LandmarkMarkers';
 import LocationMarker from '../components/map/LocationMarker';
 import PhotoMarkers from '../components/map/PhotoMarkers';
+import PlaceMarkers from '../components/map/PlaceMarkers';
+import PlaceDetailCard from '../components/place/PlaceDetailCard';
+import PlaceEditorSheet from '../components/place/PlaceEditorSheet';
 import PhotoViewer from '../components/ui/PhotoViewer';
 import Tape from '../components/ui/Tape';
 import { COLORS } from '../constants/colors';
@@ -32,11 +35,12 @@ import { FONT } from '../constants/fonts';
 import { getMapStyle } from '../constants/mapStyles';
 import { useTracking } from '../hooks/useTracking';
 import { capturePhotoAt } from '../services/photos';
+import { createPlace, movePlace, updatePlaceInfo, type PlaceDraft } from '../services/places';
 import { useMapStore } from '../store/mapStore';
 import { useMapUiStore } from '../store/mapUiStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
-import type { Photo } from '../types';
+import type { Photo, Place } from '../types';
 import { abbrev } from '../utils/format';
 import { clearFogWithInk } from '../services/ink';
 import { fogClassAt, grayRegionAt, tileCenterCoord } from '../utils/h3';
@@ -113,6 +117,12 @@ export default function MapScreen() {
   // 롱프레스로 찍는 연필 핀 좌표([lng, lat]) + 그 위치의 대상 판별(팝업용). 드래그로 이동.
   const [pinCoord, setPinCoord] = useState<[number, number] | null>(null);
   const [pinTarget, setPinTarget] = useState<PencilTarget | null>(null);
+  // 나만의 장소: 생성 좌표([lng,lat]) / 수정 대상 / 상세 카드 / 위치 이동 모드(+드래그 좌표)
+  const [placeCoord, setPlaceCoord] = useState<[number, number] | null>(null);
+  const [editingPlace, setEditingPlace] = useState<Place | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [movingPlace, setMovingPlace] = useState<Place | null>(null);
+  const [moveCoord, setMoveCoord] = useState<[number, number] | null>(null);
   // 줌 수준에 따른 마커 가시성. 줌아웃하면 단계별로 사라져 결국 전설만 남는다.
   const [vis, setVis] = useState<MarkerVis>(() => visForZoom(15));
 
@@ -170,6 +180,35 @@ export default function MapScreen() {
     },
     [removePencil]
   );
+
+  // 나만의 장소 저장 — 생성(잉크 차감·주소 자동)과 수정(무료) 분기
+  const savePlace = useCallback(
+    async (draft: PlaceDraft) => {
+      if (editingPlace) {
+        const next = updatePlaceInfo(editingPlace, draft);
+        setEditingPlace(null);
+        if (next) setSelectedPlace(next);
+        else Alert.alert('오류', '장소 저장에 실패했어요.');
+        return;
+      }
+      if (!placeCoord) return;
+      const [lng, lat] = placeCoord;
+      setPlaceCoord(null);
+      const res = await createPlace(lat, lng, draft);
+      if (res === 'no-ink') Alert.alert('잉크 부족', '더 걸어서 잉크를 모아보세요 🚶');
+      else if (res === 'error') Alert.alert('오류', '장소 저장에 실패했어요.');
+    },
+    [editingPlace, placeCoord]
+  );
+
+  // 위치 이동 확정 — 좌표 갱신 + 주소 재조회 후 상세 카드 복귀
+  const confirmMove = useCallback(async () => {
+    if (!movingPlace || !moveCoord) return;
+    const next = await movePlace(movingPlace, moveCoord[1], moveCoord[0]);
+    setMovingPlace(null);
+    setMoveCoord(null);
+    setSelectedPlace(next);
+  }, [movingPlace, moveCoord]);
 
   const cameraRef = useRef<ComponentRef<typeof Camera>>(null);
   const pencilRef = useRef<ComponentRef<typeof PointAnnotation>>(null);
@@ -274,6 +313,32 @@ export default function MapScreen() {
           showEpic={vis.epic}
         />
         <PhotoMarkers thumbnails={vis.thumbs} visible={vis.photos} onSelect={setViewerPhotos} />
+        {/* 나만의 장소 (이동 중인 건 드래그 핀으로 대체) */}
+        <PlaceMarkers
+          visible={vis.photos}
+          hideId={movingPlace?.id}
+          onSelect={(p) => {
+            removePencil();
+            setSelectedPlace(p);
+          }}
+        />
+        {/* 위치 이동 모드 — 드래그 가능한 핀으로 정밀 배치 */}
+        {movingPlace && moveCoord && (
+          <PointAnnotation
+            id="place-move"
+            coordinate={moveCoord}
+            anchor={{ x: 0.5, y: 1 }}
+            draggable
+            onDragEnd={(payload) => {
+              const c = payload.geometry.coordinates;
+              setMoveCoord([c[0], c[1]]);
+            }}
+          >
+            <View style={styles.movePin}>
+              <Text style={styles.movePinEmoji}>{movingPlace.emoji}</Text>
+            </View>
+          </PointAnnotation>
+        )}
         <LocationMarker />
       </MapView>
 
@@ -391,6 +456,23 @@ export default function MapScreen() {
                   </Text>
                 )}
 
+                {pinTarget.kind === 'land' && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (!pinCoord) return;
+                      setPlaceCoord(pinCoord);
+                      removePencil();
+                    }}
+                    activeOpacity={0.85}
+                    style={styles.pinAction}
+                    accessibilityLabel="나만의 장소 만들기"
+                  >
+                    <Text style={styles.pinActionText}>
+                      🚩 나만의 장소 만들기 (잉크 {CONFIG.INK_COST_PLACE})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {pinTarget.kind === 'gray' && (
                   <>
                     <TouchableOpacity
@@ -429,6 +511,68 @@ export default function MapScreen() {
             </View>
           );
         })()}
+
+      {/* 나만의 장소 상세 카드 (이동 모드/에디터 열림 중엔 숨김) */}
+      {selectedPlace && !movingPlace && (
+        <View
+          style={[styles.placeCardWrap, { bottom: insets.bottom + 96 }]}
+          pointerEvents="box-none"
+        >
+          <PlaceDetailCard
+            place={selectedPlace}
+            onEdit={() => setEditingPlace(selectedPlace)}
+            onMove={() => {
+              setMovingPlace(selectedPlace);
+              setMoveCoord([selectedPlace.lng, selectedPlace.lat]);
+              setSelectedPlace(null);
+            }}
+            onClose={() => setSelectedPlace(null)}
+          />
+        </View>
+      )}
+
+      {/* 위치 이동 확인 바 */}
+      {movingPlace && (
+        <View style={[styles.moveBar, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
+          <View style={styles.moveBarCard}>
+            <Text style={styles.moveBarText}>
+              {movingPlace.emoji} 핀을 끌어서 위치를 조정하세요
+            </Text>
+            <View style={styles.moveBarBtns}>
+              <TouchableOpacity
+                style={[styles.moveBtn, styles.moveBtnPrimary]}
+                onPress={() => void confirmMove()}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.moveBtnPrimaryText}>여기로 저장</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.moveBtn}
+                onPress={() => {
+                  setSelectedPlace(movingPlace);
+                  setMovingPlace(null);
+                  setMoveCoord(null);
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.moveBtnText}>취소</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* 나만의 장소 생성/수정 시트 */}
+      <PlaceEditorSheet
+        visible={placeCoord != null || editingPlace != null}
+        editing={editingPlace}
+        ink={ink}
+        onSave={(draft) => void savePlace(draft)}
+        onClose={() => {
+          setPlaceCoord(null);
+          setEditingPlace(null);
+        }}
+      />
 
       {/* 사진 뷰어 (묶음 스와이프) */}
       <PhotoViewer photos={viewerPhotos} onClose={() => setViewerPhotos([])} />
@@ -552,6 +696,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pinPopupCloseText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+
+  // 나만의 장소 — 상세 카드/이동 모드
+  placeCardWrap: { position: 'absolute', left: 0, right: 0 },
+  movePin: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 2.5,
+    borderColor: COLORS.lime, // 이동 중 = 라임 (확정 전 강조)
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  movePinEmoji: { fontSize: 19 },
+  moveBar: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  moveBarCard: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  moveBarText: { color: COLORS.text, fontSize: 13, fontWeight: '700' },
+  moveBarBtns: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  moveBtn: {
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+    borderRadius: 11,
+    backgroundColor: COLORS.fogLight,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  moveBtnPrimary: { backgroundColor: COLORS.lime, borderColor: COLORS.lime },
+  moveBtnPrimaryText: { color: COLORS.ink, fontSize: 13, fontWeight: '800' },
+  moveBtnText: { color: COLORS.text, fontSize: 13, fontWeight: '700' },
   // 바깥: 위치/기울임/그림자만 (overflow:hidden 이 그림자·테잎을 자르지 않도록 분리)
   statCard: {
     position: 'absolute',

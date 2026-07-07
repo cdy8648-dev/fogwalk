@@ -7,6 +7,7 @@ import type {
   Landmark,
   LandmarkCategory,
   Photo,
+  Place,
   RegionStat,
 } from '../types';
 
@@ -81,6 +82,18 @@ CREATE TABLE IF NOT EXISTS photos (
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
+);
+
+CREATE TABLE IF NOT EXISTS places (
+  id TEXT PRIMARY KEY,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  emoji TEXT NOT NULL,
+  name TEXT NOT NULL,
+  memo TEXT,
+  address TEXT,
+  photo_uri TEXT,
+  created_at INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS country_stats (
@@ -573,6 +586,68 @@ export function getAllPhotos(): Photo[] {
     lng: r.lng,
     uri: r.uri,
     caption: r.caption ?? undefined,
+    createdAt: r.created_at,
+  }));
+}
+
+// ── places (나만의 장소 — 잉크 라벨) ────────────────────────────
+
+export function insertPlace(p: Place): void {
+  db.runSync(
+    `INSERT INTO places (id, lat, lng, emoji, name, memo, address, photo_uri, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    p.id,
+    p.lat,
+    p.lng,
+    p.emoji,
+    p.name,
+    p.memo ?? null,
+    p.address ?? null,
+    p.photoUri ?? null,
+    p.createdAt
+  );
+}
+
+export function updatePlaceRow(p: Place): void {
+  db.runSync(
+    `UPDATE places SET lat = ?, lng = ?, emoji = ?, name = ?, memo = ?, address = ?, photo_uri = ?
+     WHERE id = ?`,
+    p.lat,
+    p.lng,
+    p.emoji,
+    p.name,
+    p.memo ?? null,
+    p.address ?? null,
+    p.photoUri ?? null,
+    p.id
+  );
+}
+
+export function deletePlaceRow(id: string): void {
+  db.runSync('DELETE FROM places WHERE id = ?', id);
+}
+
+export function getAllPlaces(): Place[] {
+  const rows = db.getAllSync<{
+    id: string;
+    lat: number;
+    lng: number;
+    emoji: string;
+    name: string;
+    memo: string | null;
+    address: string | null;
+    photo_uri: string | null;
+    created_at: number;
+  }>('SELECT * FROM places ORDER BY created_at DESC');
+  return rows.map((r) => ({
+    id: r.id,
+    lat: r.lat,
+    lng: r.lng,
+    emoji: r.emoji,
+    name: r.name,
+    memo: r.memo ?? undefined,
+    address: r.address ?? undefined,
+    photoUri: r.photo_uri ?? undefined,
     createdAt: r.created_at,
   }));
 }

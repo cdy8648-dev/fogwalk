@@ -22,6 +22,7 @@ import { useAchievementStore } from './src/store/achievementStore';
 import { useLandmarkStore } from './src/store/landmarkStore';
 import { useMapStore } from './src/store/mapStore';
 import { usePhotoStore } from './src/store/photoStore';
+import { usePlaceStore } from './src/store/placeStore';
 import { useSettingsStore } from './src/store/settingsStore';
 import MapScreen from './src/screens/MapScreen';
 import CollectionStack from './src/navigation/CollectionStack';
@@ -68,6 +69,7 @@ export default function App() {
     backfillInkOnce(); // 잉크 도입 1회: 기존 거리에서 소급 지급
     refreshProgressStore(); // DB → 진행도 복원 (뱃지 체크 포함)
     usePhotoStore.getState().hydrate(); // DB → 사진 복원
+    usePlaceStore.getState().hydrate(); // DB → 나만의 장소 복원
     useLandmarkStore.getState().hydrate(); // DB → 발견 랜드마크 복원
     useSettingsStore.getState().hydrate(); // DB → 설정(지도 스타일) 복원
     flushPendingDiscoveries(); // 백그라운드/이전 세션 발견 → 요약 카드

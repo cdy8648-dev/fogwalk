@@ -54,4 +54,9 @@ export const CONFIG = {
   // 잉크 안개 지우기 (연필 핀에서). 회색만 가능 — 검은 안개는 회색을 밝혀 전선을 미는 방식
   INK_COST_GRAY: 1, // 회색(근접) 안개 1칸
   INK_BULK_MAX_TILES: 30, // 일괄 밝히기 상한(칸). 회색 프론티어는 거대할 수 있어 가까운 순으로 자름
+
+  // 나만의 장소 (밝힌 땅에 잉크로 남기는 개인 라벨)
+  INK_COST_PLACE: 5, // 장소 1개 생성 비용 (수정·이동은 무료)
+  PLACE_NAME_MAX: 12,
+  PLACE_MEMO_MAX: 120,
 } as const;

@@ -58,6 +58,19 @@ export interface Photo {
   createdAt: number;
 }
 
+/** 나만의 장소 — 잉크로 밝힌 땅에 남기는 개인 라벨. */
+export interface Place {
+  id: string;
+  lat: number;
+  lng: number;
+  emoji: string;
+  name: string;
+  memo?: string;
+  address?: string; // 역지오코딩 (생성/이동 시 갱신)
+  photoUri?: string; // DB엔 파일명, 스토어엔 절대 URI (Photo와 동일 규칙)
+  createdAt: number;
+}
+
 export interface CountryStat {
   code: string; // ISO 2글자 (예: 'KR')
   name: string;
