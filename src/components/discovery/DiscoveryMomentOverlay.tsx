@@ -14,6 +14,7 @@ import { CONFIG } from '../../constants/config';
 import { FONT } from '../../constants/fonts';
 import { landmarkDisplayName, landmarkXp, rarityColor } from '../../constants/landmarks';
 import { useDiscoveryPopupStore } from '../../store/discoveryPopupStore';
+import ConfettiField from './ConfettiField';
 
 /**
  * 02 발견 순간 — 등급색 라이트 버스트 + 확장 링 + 콘페티 풀스크린 연출.
@@ -21,7 +22,6 @@ import { useDiscoveryPopupStore } from '../../store/discoveryPopupStore';
  */
 
 const AUTO_ADVANCE_MS = 2500;
-const CONFETTI_PALETTE = [COLORS.lime, COLORS.teal, COLORS.hotpink, COLORS.gold, '#F4EFE6'];
 
 function rarityTag(rarity?: string): string {
   if (rarity === 'legendary') return '★ LEGENDARY';
@@ -65,59 +65,6 @@ function BurstRing({ color, delay }: { color: string; delay: number }) {
   );
 }
 
-/** 낙하 콘페티 조각 1개. */
-function ConfettiPiece({
-  left,
-  w,
-  h,
-  color,
-  duration,
-  delay,
-  round,
-  fallH,
-}: {
-  left: number;
-  w: number;
-  h: number;
-  color: string;
-  duration: number;
-  delay: number;
-  round: boolean;
-  fallH: number;
-}) {
-  const v = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const anim = Animated.sequence([
-      Animated.delay(delay),
-      Animated.loop(
-        Animated.timing(v, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true })
-      ),
-    ]);
-    anim.start();
-    return () => anim.stop();
-  }, [v, duration, delay]);
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top: -24,
-        left: `${left}%`,
-        width: w,
-        height: h,
-        backgroundColor: color,
-        borderRadius: round ? w / 2 : 2,
-        opacity: v.interpolate({ inputRange: [0, 0.12, 1], outputRange: [0, 1, 0.85] }),
-        transform: [
-          { translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, fallH] }) },
-          { rotate: v.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '620deg'] }) },
-        ],
-      }}
-    />
-  );
-}
-
 export default function DiscoveryMomentOverlay() {
   const { width, height } = useWindowDimensions();
   const hero = useDiscoveryPopupStore((s) => s.hero);
@@ -125,19 +72,6 @@ export default function DiscoveryMomentOverlay() {
 
   const corePulse = useRef(new Animated.Value(0)).current;
   const fadeIn = useRef(new Animated.Value(0)).current;
-
-  // 콘페티 배치는 마운트 시 1회 생성
-  const confetti = useRef(
-    Array.from({ length: 24 }, (_, i) => ({
-      left: Math.random() * 100,
-      w: 5 + Math.random() * 5,
-      h: 8 + Math.random() * 8,
-      color: CONFETTI_PALETTE[i % CONFETTI_PALETTE.length],
-      duration: 2200 + Math.random() * 1800,
-      delay: Math.random() * 2200,
-      round: Math.random() > 0.6,
-    }))
-  ).current;
 
   useEffect(() => {
     Animated.timing(fadeIn, { toValue: 1, duration: 300, useNativeDriver: true }).start();
@@ -198,10 +132,8 @@ export default function DiscoveryMomentOverlay() {
           </Animated.Text>
         </View>
 
-        {/* 콘페티 */}
-        {confetti.map((c, i) => (
-          <ConfettiPiece key={i} {...c} fallH={height + 60} />
-        ))}
+        {/* 콘페티 (버스트 위, 타이틀 아래) */}
+        <ConfettiField count={30} />
 
         {/* 타이틀 블록 */}
         <View style={styles.titleBlock}>

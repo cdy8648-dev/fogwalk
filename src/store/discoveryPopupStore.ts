@@ -1,18 +1,18 @@
 import { create } from 'zustand';
 
+import type { BadgeDef } from '../constants/badges';
 import type { Landmark } from '../types';
 
 /**
- * 발견 보상 팝업 상태 (디자인: 02 발견 순간 → 03 발견 카드).
- * live=true(포그라운드 실시간): 02 연출 후 카드, 액션 버튼 있음.
- * live=false(백그라운드 복귀 요약): 02 생략, 카드만·버튼 없음·탭/스와이프로 넘김.
+ * 보상 팝업 상태 (디자인: 02 발견 순간 → 03 카드 스택).
+ * 카드는 랜드마크 발견과 뱃지 획득이 한 스택에 섞인다(틴더 스와이프).
+ * live=true(포그라운드 실시간): 02 연출 후 카드, 랜드마크 카드에 액션 버튼.
+ * live=false(복귀 요약): 02 생략, 카드만.
  */
 
-/** 카드 1장: main(희귀 이상 상세) + '함께 발견' 일반 목록. main=null이면 일반만 담은 컴팩트 카드. */
-export interface DiscoveryCardPage {
-  main: Landmark | null;
-  extras: Landmark[];
-}
+export type PopupPage =
+  | { kind: 'landmark'; main: Landmark | null; extras: Landmark[] }
+  | { kind: 'badge'; badge: BadgeDef };
 
 const TIER: Record<string, number> = { legendary: 3, epic: 2, rare: 1 };
 
@@ -24,22 +24,27 @@ export function isDetailGrade(lm: Landmark): boolean {
 
 // 상세는 등급 내림차순으로 각 1장, 일반은 첫 카드의 '함께 발견'에 병합.
 // 상세가 없으면 리스트만 담긴 컴팩트 카드 1장.
-function buildPages(batch: Landmark[]): DiscoveryCardPage[] {
+function buildLandmarkPages(batch: Landmark[]): PopupPage[] {
   const details = batch
     .filter(isDetailGrade)
     .sort((a, b) => (TIER[b.rarity ?? ''] ?? 0) - (TIER[a.rarity ?? ''] ?? 0));
   const commons = batch.filter((lm) => !isDetailGrade(lm));
-  if (details.length === 0) return [{ main: null, extras: commons }];
-  return details.map((d, i) => ({ main: d, extras: i === 0 ? commons : [] }));
+  if (details.length === 0) return [{ kind: 'landmark', main: null, extras: commons }];
+  return details.map((d, i) => ({
+    kind: 'landmark',
+    main: d,
+    extras: i === 0 ? commons : [],
+  }));
 }
 
 interface DiscoveryPopupState {
   phase: 'moment' | 'cards' | null;
   live: boolean;
   hero: Landmark | null; // 02 연출 주인공(최고 등급)
-  pages: DiscoveryCardPage[];
-  showLive: (batch: Landmark[]) => void; // 포그라운드 발견(희귀 이상 포함 배치)
+  pages: PopupPage[];
+  showLive: (batch: Landmark[]) => void; // 포그라운드 발견 — 랜드마크 카드를 앞에, 대기 중 뱃지 카드는 뒤에 유지
   showRecap: (batch: Landmark[]) => void; // 백그라운드 발견 복귀 요약
+  enqueueBadges: (badges: BadgeDef[]) => void; // 뱃지 카드를 끝에 추가 (닫혀 있으면 열기)
   advance: () => void; // 02 → 03
   dismiss: () => void;
 }
@@ -50,13 +55,41 @@ export const useDiscoveryPopupStore = create<DiscoveryPopupState>((set) => ({
   hero: null,
   pages: [],
 
-  showLive: (batch) => {
-    const pages = buildPages(batch);
-    set({ phase: 'moment', live: true, hero: pages[0]?.main ?? null, pages });
-  },
+  showLive: (batch) =>
+    set((s) => {
+      const lmPages = buildLandmarkPages(batch);
+      const hero = lmPages[0]?.kind === 'landmark' ? lmPages[0].main : null;
+      // 이미 큐에 있던 뱃지 카드(발견 순간 함께 해금분)는 랜드마크 뒤에 유지
+      const badgePages = s.pages.filter((p) => p.kind === 'badge');
+      return { phase: 'moment', live: true, hero, pages: [...lmPages, ...badgePages] };
+    }),
 
   showRecap: (batch) =>
-    set({ phase: 'cards', live: false, hero: null, pages: buildPages(batch) }),
+    set((s) => {
+      const badgePages = s.pages.filter((p) => p.kind === 'badge');
+      return {
+        phase: 'cards',
+        live: s.phase != null ? s.live : false,
+        hero: null,
+        pages: [...buildLandmarkPages(batch), ...badgePages],
+      };
+    }),
+
+  enqueueBadges: (badges) =>
+    set((s) => {
+      const queued = new Set(
+        s.pages.filter((p) => p.kind === 'badge').map((p) => p.badge.id)
+      );
+      const add: PopupPage[] = badges
+        .filter((b) => !queued.has(b.id))
+        .map((b) => ({ kind: 'badge', badge: b }));
+      if (add.length === 0) return s;
+      return {
+        ...s,
+        phase: s.phase ?? 'cards', // 닫혀 있으면 카드로 바로 열기 (02 연출은 발견 전용)
+        pages: [...s.pages, ...add],
+      };
+    }),
 
   advance: () => set({ phase: 'cards' }),
 

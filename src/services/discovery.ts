@@ -50,7 +50,10 @@ export function checkLandmarkDiscoveries(lat: number, lng: number): void {
     discover(lm, now);
     found.push({ ...lm, discoveredAt: now });
   }
-  if (found.length) routeCelebration(found);
+  if (found.length) {
+    routeCelebration(found); // 발견 팝업/토스트 (뱃지 카드보다 앞)
+    checkBadges('discover'); // 발견 배치당 1회 — 해금 뱃지 카드는 발견 카드 뒤 스택에 쌓임
+  }
 }
 
 function discover(lm: Landmark, now: number): void {
@@ -76,9 +79,7 @@ function discover(lm: Landmark, now: number): void {
 
   // 현지어 원문이면 Wikidata로 표시 이름 업그레이드 (해외 발견) — 조용히 백그라운드
   void upgradeDiscoveryName({ ...lm, discoveredAt: now });
-
-  // 발견 관련 뱃지(첫 발견·전설·수집·컬렉션) 판정
-  checkBadges('discover');
+  // (뱃지 판정은 checkLandmarkDiscoveries 에서 배치당 1회 — 풀스캔 중복 방지)
 }
 
 /**

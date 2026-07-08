@@ -1,7 +1,10 @@
-import { BADGES, type BadgeAxis, type BadgeMetricKey } from '../constants/badges';
+import { AppState } from 'react-native';
+
+import { BADGES, type BadgeAxis, type BadgeDef, type BadgeMetricKey } from '../constants/badges';
 import { matchCurated } from '../constants/curatedLandmarks';
 import { regionKey } from '../constants/regionAreas';
 import { useAchievementStore } from '../store/achievementStore';
+import { useDiscoveryPopupStore } from '../store/discoveryPopupStore';
 import { useMapStore } from '../store/mapStore';
 import { useUserStore } from '../store/userStore';
 import type { Landmark } from '../types';
@@ -11,7 +14,9 @@ import {
   getDiscoveredLandmarks,
   getProgress,
   getRegionStats,
+  getSetting,
   insertAchievement,
+  setSetting,
   updateProgress,
 } from './db';
 
@@ -106,10 +111,6 @@ function currentValue(metric: BadgeMetricKey, m: BadgeMetrics): number {
   }
 }
 
-function tierEmoji(tier: string): string {
-  return tier === 'gold' ? '🏆' : tier === 'silver' ? '🥈' : '🥉';
-}
-
 /** 뱃지 XP 보상: DB 반영 + userStore(레벨/게이지) 즉시 동기화 (재귀 refresh 없이). */
 function awardXp(amount: number): void {
   const total = getProgress().totalXp + amount;
@@ -118,9 +119,33 @@ function awardXp(amount: number): void {
   useUserStore.setState({ totalXp: total, level: prog.level, levelRatio: prog.ratio });
 }
 
+// 팝업으로 못 보여준 획득분(백그라운드 등) — 프로세스가 죽어도 복귀 시 보여주도록 DB에 영속
+const PENDING_POPUP_KEY = 'pending_badge_popups';
+
+function readPendingIds(): string[] {
+  try {
+    const raw = getSetting(PENDING_POPUP_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 대기 중인 뱃지 획득 카드를 보상 팝업 스택에 올린다. 앱 시작·활성화·해금 직후 호출. */
+export function flushPendingBadgePopups(): void {
+  const ids = readPendingIds();
+  if (ids.length === 0) return;
+  setSetting(PENDING_POPUP_KEY, '[]');
+  const defs = ids
+    .map((id) => BADGES.find((b) => b.id === id))
+    .filter((b): b is BadgeDef => b != null);
+  if (defs.length) useDiscoveryPopupStore.getState().enqueueBadges(defs);
+}
+
 /**
- * 이벤트 발생 시 관련 축의 미획득 뱃지만 검사 → 달성분 해금(DB+스토어+축하+XP).
- * 이미 획득한 뱃지는 재획득/재알림하지 않는다.
+ * 이벤트 발생 시 관련 축의 미획득 뱃지만 검사 → 달성분 해금(DB+스토어+XP+보상 팝업).
+ * 이미 획득한 뱃지는 재획득/재알림하지 않는다. 획득 카드는 발견 팝업과 같은 스택에 쌓이고,
+ * 백그라운드 해금분은 pending 큐(DB)로 남겨 앱을 켰을 때 보여준다.
  */
 export function checkBadges(trigger: BadgeTrigger): void {
   const store = useAchievementStore.getState();
@@ -133,22 +158,25 @@ export function checkBadges(trigger: BadgeTrigger): void {
   const m = computeMetrics(new Set(candidates.map((b) => b.metric)));
   const now = Date.now();
   let xpAward = 0;
+  const fresh: string[] = [];
 
   for (const b of candidates) {
     if (currentValue(b.metric, m) < b.threshold) continue;
-    // DB에 실제로 새로 들어갔을 때만 축하 (백그라운드 재실행에서 중복 알림 방지)
+    // DB에 실제로 새로 들어갔을 때만 보상 (백그라운드 재실행에서 중복 방지)
     const isNew = insertAchievement({
       id: b.id, type: b.id, value: String(b.threshold), unlockedAt: now,
     });
     store.markUnlocked(b.id);
     if (isNew) {
       xpAward += b.xpReward;
-      store.celebrate({
-        emoji: tierEmoji(b.tier),
-        title: '뱃지 획득!',
-        subtitle: `${b.name} · ${b.celebrationText}`,
-      });
+      fresh.push(b.id);
     }
   }
   if (xpAward > 0) awardXp(xpAward);
+
+  if (fresh.length) {
+    setSetting(PENDING_POPUP_KEY, JSON.stringify([...readPendingIds(), ...fresh]));
+    // 포그라운드면 즉시 팝업, 백그라운드면 pending 으로 남겨 복귀 시 표시
+    if (AppState.currentState === 'active') flushPendingBadgePopups();
+  }
 }

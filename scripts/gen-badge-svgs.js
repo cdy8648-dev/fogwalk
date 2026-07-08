@@ -30,6 +30,12 @@ const entries = files.map((f) => {
   const prefix = 'b' + key.split('-')[0] + '_'; // '11-streak-7' → 'b11_'
   let xml = fs.readFileSync(path.join(SRC, f), 'utf8').trim();
   xml = namespaceIds(xml, prefix);
+  // react-native-svg는 stop-color의 rgba 알파를 무시(불투명 렌더) → stop-opacity로 분리
+  xml = xml.replace(
+    /stop-color="rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)"/g,
+    (_, r, g, b, a) =>
+      `stop-color="rgb(${r.trim()},${g.trim()},${b.trim()})" stop-opacity="${a.trim()}"`
+  );
   xml = xml.replace(/\r?\n/g, ''); // 한 줄로
   return `  '${key}': ${JSON.stringify(xml)},`;
 });

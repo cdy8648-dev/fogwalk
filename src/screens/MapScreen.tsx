@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Camera, MapView, PointAnnotation } from '@rnmapbox/maps';
@@ -25,7 +26,7 @@ import LandmarkMarkers from '../components/map/LandmarkMarkers';
 import LocationMarker from '../components/map/LocationMarker';
 import PhotoMarkers from '../components/map/PhotoMarkers';
 import PlaceMarkers from '../components/map/PlaceMarkers';
-import PlaceDetailCard from '../components/place/PlaceDetailCard';
+import PlaceFloatingCard from '../components/place/PlaceFloatingCard';
 import PlaceEditorSheet from '../components/place/PlaceEditorSheet';
 import PhotoViewer from '../components/ui/PhotoViewer';
 import Tape from '../components/ui/Tape';
@@ -99,6 +100,7 @@ function sameVis(a: MarkerVis, b: MarkerVis): boolean {
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const { height: screenH } = useWindowDimensions();
   const navigation = useNavigation<BottomTabNavigationProp<ParamListBase>>();
   const { status } = useTracking();
   // 주의: 원시 위치·소수 잉크를 그대로 구독하면 GPS 픽스마다 화면 전체가 재렌더된다.
@@ -214,6 +216,11 @@ export default function MapScreen() {
   const pencilRef = useRef<ComponentRef<typeof PointAnnotation>>(null);
   const didAutoCenter = useRef(false);
 
+  // 마커를 화면 중앙으로 이동시키고 카드를 그 위에 띄운다(꼬리가 마커를 가리킴).
+  const focusPlace = useCallback((lng: number, lat: number) => {
+    cameraRef.current?.setCamera({ centerCoordinate: [lng, lat], animationDuration: 350 });
+  }, []);
+
   // 스토어에서 최신 위치를 읽어 카메라 이동(스테일 클로저 방지).
   const recenter = useCallback((animated: boolean) => {
     const loc = useMapStore.getState().currentLocation;
@@ -264,6 +271,10 @@ export default function MapScreen() {
         logoEnabled={false}
         attributionEnabled={false}
         onDidFinishLoadingMap={handleMapLoaded}
+        onPress={() => {
+          // 지도 빈 곳 탭 → 열린 장소 카드 닫기 (팬/줌엔 onPress 안 옴 → 맵 흐름 유지)
+          if (selectedPlace) setSelectedPlace(null);
+        }}
         onLongPress={(e) => {
           const g = e.geometry;
           if (g.type !== 'Point') return;
@@ -317,9 +328,19 @@ export default function MapScreen() {
         <PlaceMarkers
           visible={vis.photos}
           hideId={movingPlace?.id}
+          selectedId={selectedPlace?.id}
           onSelect={(p) => {
             removePencil();
             setSelectedPlace(p);
+            focusPlace(p.lng, p.lat); // 마커를 화면 중앙으로 → 카드가 그 위에 뜸
+          }}
+          onLongPress={(p) => {
+            // 길게 누르면 위치 이동 모드
+            removePencil();
+            setSelectedPlace(null);
+            setMovingPlace(p);
+            setMoveCoord([p.lng, p.lat]);
+            focusPlace(p.lng, p.lat);
           }}
         />
         {/* 위치 이동 모드 — 드래그 가능한 핀으로 정밀 배치 */}
@@ -512,20 +533,16 @@ export default function MapScreen() {
           );
         })()}
 
-      {/* 나만의 장소 상세 카드 (이동 모드/에디터 열림 중엔 숨김) */}
-      {selectedPlace && !movingPlace && (
+      {/* 나만의 장소 플로팅 카드 — 화면 중앙의 마커 위에 뜨고 꼬리가 마커를 가리킴
+          (마커는 onSelect에서 카메라로 화면 중앙에 정렬됨) */}
+      {selectedPlace && !movingPlace && !editingPlace && (
         <View
-          style={[styles.placeCardWrap, { bottom: insets.bottom + 96 }]}
+          style={[styles.placeCardWrap, { bottom: screenH / 2 + 26 }]}
           pointerEvents="box-none"
         >
-          <PlaceDetailCard
+          <PlaceFloatingCard
             place={selectedPlace}
             onEdit={() => setEditingPlace(selectedPlace)}
-            onMove={() => {
-              setMovingPlace(selectedPlace);
-              setMoveCoord([selectedPlace.lng, selectedPlace.lat]);
-              setSelectedPlace(null);
-            }}
             onClose={() => setSelectedPlace(null)}
           />
         </View>
@@ -697,8 +714,8 @@ const styles = StyleSheet.create({
   },
   pinPopupCloseText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
 
-  // 나만의 장소 — 상세 카드/이동 모드
-  placeCardWrap: { position: 'absolute', left: 0, right: 0 },
+  // 나만의 장소 — 플로팅 카드(중앙 마커 위)/이동 모드
+  placeCardWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   movePin: {
     width: 40,
     height: 40,

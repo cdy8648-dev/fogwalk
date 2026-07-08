@@ -15,6 +15,7 @@ import DiscoveryOverlayHost from './src/components/discovery/DiscoveryOverlayHos
 import { COLORS } from './src/constants/colors';
 import { hydrateCountry, refreshCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
+import { flushPendingBadgePopups } from './src/services/badges';
 import { flushPendingDiscoveries } from './src/services/discovery';
 import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
 import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
@@ -73,6 +74,7 @@ export default function App() {
     useLandmarkStore.getState().hydrate(); // DB → 발견 랜드마크 복원
     useSettingsStore.getState().hydrate(); // DB → 설정(지도 스타일) 복원
     flushPendingDiscoveries(); // 백그라운드/이전 세션 발견 → 요약 카드
+    flushPendingBadgePopups(); // 백그라운드/이전 세션 뱃지 획득 → 보상 카드 (발견 뒤에 이어짐)
     void migrateDiscoveryDisplayNames(); // 현지어로 저장된 발견 이름 → 유저 언어로 보강(백그라운드)
     setReady(true);
   }, []);
@@ -84,6 +86,7 @@ export default function App() {
         useMapStore.getState().hydrate();
         refreshProgressStore();
         flushPendingDiscoveries(); // 백그라운드 발견 → 요약 카드
+        flushPendingBadgePopups(); // 백그라운드 뱃지 획득 → 보상 카드
         void refreshCountry(); // 해외 도착 등 먼 이동 시 국가 선제 감지
       }
     });

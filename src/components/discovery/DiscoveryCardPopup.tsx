@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  FlatList,
+  PanResponder,
   Pressable,
   Share,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -22,10 +23,9 @@ import {
   rarityColor,
 } from '../../constants/landmarks';
 import { capturePhotoAt } from '../../services/photos';
-import {
-  useDiscoveryPopupStore,
-  type DiscoveryCardPage,
-} from '../../store/discoveryPopupStore';
+import { useDiscoveryPopupStore, type PopupPage } from '../../store/discoveryPopupStore';
+import BadgeRewardCard from './BadgeRewardCard';
+import ConfettiField from './ConfettiField';
 import type { Landmark } from '../../types';
 
 /**
@@ -185,13 +185,22 @@ function CompactCard({ extras }: { extras: Landmark[] }) {
   );
 }
 
+/** 페이지 종류별 카드 렌더 — 랜드마크(상세/컴팩트) 또는 뱃지 획득. */
+function renderPage(page: PopupPage, live: boolean) {
+  if (page.kind === 'badge') return <BadgeRewardCard def={page.badge} />;
+  return page.main ? (
+    <DetailCard lm={page.main} extras={page.extras} live={live} />
+  ) : (
+    <CompactCard extras={page.extras} />
+  );
+}
+
 export default function DiscoveryCardPopup() {
   const { width: W } = useWindowDimensions();
   const pages = useDiscoveryPopupStore((s) => s.pages);
   const live = useDiscoveryPopupStore((s) => s.live);
   const dismiss = useDiscoveryPopupStore((s) => s.dismiss);
-  const [page, setPage] = useState(0);
-  const listRef = useRef<FlatList<DiscoveryCardPage>>(null);
+  const [index, setIndex] = useState(0);
 
   const scale = useRef(new Animated.Value(0.92)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -202,60 +211,94 @@ export default function DiscoveryCardPopup() {
     ]).start();
   }, [scale, opacity]);
 
-  if (pages.length === 0) return null;
+  // 틴더 스와이프 (hanja MainCardSwiper 패턴: 25% 임계 + 회전 + 스프링 복귀).
+  // PanResponder는 1회 생성이라 최신 index/개수/폭은 ref로 참조.
+  const pan = useRef(new Animated.ValueXY()).current;
+  const stateRef = useRef({ index: 0, count: 0, width: 375 });
+  stateRef.current = { index, count: pages.length, width: W };
 
-  const goNext = () => {
-    if (page + 1 < pages.length) {
-      listRef.current?.scrollToIndex({ index: page + 1, animated: true });
-    } else {
-      dismiss();
-    }
-  };
+  const panResponder = useRef(
+    PanResponder.create({
+      // 가로 드래그일 때만, 카드 2장 이상일 때만 (버튼 탭은 통과)
+      onMoveShouldSetPanResponder: (_, g) =>
+        stateRef.current.count > 1 &&
+        Math.abs(g.dx) > 12 &&
+        Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
+        useNativeDriver: false,
+      }),
+      onPanResponderRelease: (_, g) => {
+        const { index: i, count, width } = stateRef.current;
+        if (Math.abs(g.dx) > width * 0.25) {
+          // 화면 밖으로 날리고 다음 카드 (마지막 카드면 닫기)
+          Animated.timing(pan, {
+            toValue: { x: Math.sign(g.dx) * width * 1.4, y: g.dy },
+            duration: 200,
+            useNativeDriver: false,
+          }).start(() => {
+            if (i + 1 >= count) {
+              useDiscoveryPopupStore.getState().dismiss();
+              return;
+            }
+            pan.setValue({ x: 0, y: 0 });
+            setIndex(i + 1);
+          });
+        } else {
+          Animated.spring(pan, { toValue: { x: 0, y: 0 }, friction: 6, useNativeDriver: false }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(pan, { toValue: { x: 0, y: 0 }, friction: 6, useNativeDriver: false }).start();
+      },
+    })
+  ).current;
+
+  if (pages.length === 0) return null;
+  const current = pages[Math.min(index, pages.length - 1)];
+  const behind = pages[index + 1];
+  const rotate = pan.x.interpolate({
+    inputRange: [-W / 2, 0, W / 2],
+    outputRange: ['-12deg', '0deg', '12deg'],
+    extrapolate: 'clamp',
+  });
 
   return (
     <View style={styles.overlay}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
+      {/* 콘페티 — 딤 배경 위, 카드 아래 (레이어: 배경 < 콘페티 < 카드) */}
+      <ConfettiField />
+
       {pages.length > 1 ? (
         <Text style={styles.pageIndicator}>
-          {page + 1}/{pages.length}
+          {index + 1}/{pages.length}
         </Text>
       ) : null}
 
-      <Animated.View style={[styles.centerArea, { opacity, transform: [{ scale }] }]}>
-        <FlatList
-          ref={listRef}
-          data={pages}
-          keyExtractor={(_, i) => String(i)}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEnabled={pages.length > 1}
-          getItemLayout={(_, index) => ({ length: W, offset: W * index, index })}
-          onMomentumScrollEnd={(e) =>
-            setPage(Math.round(e.nativeEvent.contentOffset.x / W))
-          }
-          style={styles.list}
-          renderItem={({ item }) => (
-            <Pressable
-              disabled={live}
-              onPress={goNext}
-              style={[styles.page, { width: W }]}
-            >
-              {item.main ? (
-                <DetailCard lm={item.main} extras={item.extras} live={live} />
-              ) : (
-                <CompactCard extras={item.extras} />
-              )}
-            </Pressable>
-          )}
-        />
+      <Animated.View style={[styles.stack, { opacity, transform: [{ scale }] }]}>
+        {/* 뒷카드 살짝 보이게 (스택 느낌) */}
+        {behind ? (
+          <View style={styles.cardBehind} pointerEvents="none">
+            {renderPage(behind, live)}
+          </View>
+        ) : null}
+
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={{ transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate }] }}
+        >
+          {renderPage(current, live)}
+          {/* 실수 방지: 배경/카드 탭으로는 닫히지 않고 X로만 닫기 */}
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={dismiss}
+            hitSlop={8}
+            accessibilityLabel="발견 카드 닫기"
+          >
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </Animated.View>
 
-      {!live ? (
-        <Text style={styles.hint}>
-          {page + 1 < pages.length ? '탭하여 다음' : '탭하여 닫기'}
-        </Text>
-      ) : null}
+      {pages.length > 1 ? <Text style={styles.hint}>옆으로 밀어 다음 카드</Text> : null}
     </View>
   );
 }
@@ -272,9 +315,29 @@ const styles = StyleSheet.create({
     zIndex: 1100,
     elevation: 1100,
   },
-  centerArea: { flexGrow: 0 },
-  list: { flexGrow: 0 },
-  page: { paddingHorizontal: 24, justifyContent: 'center' },
+  stack: { marginHorizontal: 24 },
+  cardBehind: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    opacity: 0.55,
+    transform: [{ scale: 0.95 }, { translateY: 14 }],
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(13,15,26,0.72)',
+    borderWidth: 1,
+    borderColor: '#2E3450',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   pageIndicator: {
     position: 'absolute',
     top: 64,
