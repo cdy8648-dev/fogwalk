@@ -147,6 +147,7 @@ export default function MapScreen() {
   // 연필 핀 배치/이동 시 대상 판별(분류 + 지울 타일 계산) 후 팝업 표시.
   // 핀은 육각타일 중심으로 스냅 — 어느 칸을 가리키는지 명확하게.
   const showPencil = useCallback((lng: number, lat: number) => {
+    setSelectedPlace(null); // 연필과 장소 카드 상호배제 (겹침 방지)
     setPinCoord(tileCenterCoord(lat, lng));
     const visited = useMapStore.getState().visitedTileIds;
     const cls = fogClassAt(lat, lng, visited);
@@ -215,11 +216,23 @@ export default function MapScreen() {
   const cameraRef = useRef<ComponentRef<typeof Camera>>(null);
   const pencilRef = useRef<ComponentRef<typeof PointAnnotation>>(null);
   const didAutoCenter = useRef(false);
+  const isFocusingRef = useRef(false); // 프로그램적 카메라 이동 중 — 지도이동 닫힘 무시
 
-  // 마커를 화면 중앙으로 이동시키고 카드를 그 위에 띄운다(꼬리가 마커를 가리킴).
-  const focusPlace = useCallback((lng: number, lat: number) => {
-    cameraRef.current?.setCamera({ centerCoordinate: [lng, lat], animationDuration: 350 });
-  }, []);
+  // 마커를 화면 상단 2/3 지점에 놓아 카드가 화면 중앙에 오게 한다(paddingTop=H/3 → center 아래로).
+  const focusPlace = useCallback(
+    (lng: number, lat: number) => {
+      isFocusingRef.current = true;
+      cameraRef.current?.setCamera({
+        centerCoordinate: [lng, lat],
+        padding: { paddingTop: screenH / 3, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 },
+        animationDuration: 350,
+      });
+      setTimeout(() => {
+        isFocusingRef.current = false;
+      }, 450);
+    },
+    [screenH]
+  );
 
   // 스토어에서 최신 위치를 읽어 카메라 이동(스테일 클로저 방지).
   const recenter = useCallback((animated: boolean) => {
@@ -228,6 +241,7 @@ export default function MapScreen() {
       cameraRef.current.setCamera({
         centerCoordinate: [loc.lng, loc.lat],
         zoomLevel: 15,
+        padding: { paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 }, // 장소 focus의 padding 잔류 리셋
         animationDuration: animated ? 500 : 0,
       });
     }
@@ -284,6 +298,8 @@ export default function MapScreen() {
         onCameraChanged={(e) => {
           const next = visForZoom(e.properties?.zoom ?? 15);
           setVis((prev) => (sameVis(prev, next) ? prev : next));
+          // 사용자가 지도를 움직이면 장소 카드 닫기 (focus 애니 중은 isFocusingRef로 무시)
+          if (!isFocusingRef.current && selectedPlace) setSelectedPlace(null);
         }}
       >
         <Camera
@@ -327,16 +343,19 @@ export default function MapScreen() {
         {/* 나만의 장소 (이동 중인 건 드래그 핀으로 대체) */}
         <PlaceMarkers
           visible={vis.photos}
+          full={vis.thumbs}
           hideId={movingPlace?.id}
           selectedId={selectedPlace?.id}
           onSelect={(p) => {
             removePencil();
+            setMenuOpen(false); // 마커 선택 시 메뉴 닫기
             setSelectedPlace(p);
             focusPlace(p.lng, p.lat); // 마커를 화면 중앙으로 → 카드가 그 위에 뜸
           }}
           onLongPress={(p) => {
             // 길게 누르면 위치 이동 모드
             removePencil();
+            setMenuOpen(false);
             setSelectedPlace(null);
             setMovingPlace(p);
             setMoveCoord([p.lng, p.lat]);
@@ -537,7 +556,7 @@ export default function MapScreen() {
           (마커는 onSelect에서 카메라로 화면 중앙에 정렬됨) */}
       {selectedPlace && !movingPlace && !editingPlace && (
         <View
-          style={[styles.placeCardWrap, { bottom: screenH / 2 + 26 }]}
+          style={[styles.placeCardWrap, { bottom: screenH / 3 + 26 }]}
           pointerEvents="box-none"
         >
           <PlaceFloatingCard

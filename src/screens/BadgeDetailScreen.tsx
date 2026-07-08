@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { ParamListBase } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -7,6 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BadgeIcon from '../components/BadgeIcon';
+import BadgeDetailModal from '../components/BadgeDetailModal';
 import {
   AXIS_LABEL,
   AXIS_ORDER,
@@ -53,6 +54,9 @@ export default function BadgeDetailScreen() {
   const unlockedCount = BADGES.filter((b) => unlocked.has(b.id)).length;
   const overallPct = Math.round((unlockedCount / BADGES.length) * 100);
 
+  // 뱃지 탭 → 달성 조건·진행도 설명 팝업
+  const [detail, setDetail] = useState<BadgeDef | null>(null);
+
   return (
     <ScrollView
       style={styles.container}
@@ -88,12 +92,27 @@ export default function BadgeDetailScreen() {
             </View>
             <View style={styles.grid}>
               {list.map((b) => (
-                <BadgeCell key={b.id} badge={b} unlocked={unlocked.has(b.id)} metrics={metrics} />
+                <BadgeCell
+                  key={b.id}
+                  badge={b}
+                  unlocked={unlocked.has(b.id)}
+                  metrics={metrics}
+                  onPress={() => setDetail(b)}
+                />
               ))}
             </View>
           </View>
         );
       })}
+
+      {detail && (
+        <BadgeDetailModal
+          def={detail}
+          metrics={metrics}
+          unlocked={unlocked.has(detail.id)}
+          onClose={() => setDetail(null)}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -102,10 +121,12 @@ function BadgeCell({
   badge,
   unlocked,
   metrics,
+  onPress,
 }: {
   badge: BadgeDef;
   unlocked: boolean;
   metrics: ReturnType<typeof badgeMetricsSnapshot>;
+  onPress: () => void;
 }) {
   const hiddenLocked = !unlocked && badge.hidden;
   const cur = badgeCurrentValue(badge.metric, metrics);
@@ -115,7 +136,7 @@ function BadgeCell({
   const curText = badge.unit === 'km' ? curCapped.toFixed(1) : abbrev(Math.floor(curCapped));
 
   return (
-    <View style={styles.cell}>
+    <TouchableOpacity style={styles.cell} activeOpacity={0.8} onPress={onPress}>
       <View style={styles.iconWrap}>
         <BadgeIcon icon={badge.icon} size={64} locked={!unlocked} />
       </View>
@@ -144,7 +165,7 @@ function BadgeCell({
           </View>
         </>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 

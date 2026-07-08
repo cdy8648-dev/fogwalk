@@ -217,6 +217,17 @@ export default function DiscoveryCardPopup() {
   const stateRef = useRef({ index: 0, count: 0, width: 375 });
   stateRef.current = { index, count: pages.length, width: W };
 
+  // 다음 카드로 넘기거나(남은 카드 있으면) 전체 닫기(마지막 카드면). 스와이프·X 버튼 공용.
+  const advanceOrClose = () => {
+    const { index: i, count } = stateRef.current;
+    if (i + 1 >= count) {
+      dismiss();
+    } else {
+      pan.setValue({ x: 0, y: 0 });
+      setIndex(i + 1);
+    }
+  };
+
   const panResponder = useRef(
     PanResponder.create({
       // 가로 드래그일 때만, 카드 2장 이상일 때만 (버튼 탭은 통과)
@@ -228,21 +239,14 @@ export default function DiscoveryCardPopup() {
         useNativeDriver: false,
       }),
       onPanResponderRelease: (_, g) => {
-        const { index: i, count, width } = stateRef.current;
+        const { width } = stateRef.current;
         if (Math.abs(g.dx) > width * 0.25) {
-          // 화면 밖으로 날리고 다음 카드 (마지막 카드면 닫기)
+          // 화면 밖으로 날린 뒤 다음 카드(마지막이면 닫기)
           Animated.timing(pan, {
             toValue: { x: Math.sign(g.dx) * width * 1.4, y: g.dy },
             duration: 200,
             useNativeDriver: false,
-          }).start(() => {
-            if (i + 1 >= count) {
-              useDiscoveryPopupStore.getState().dismiss();
-              return;
-            }
-            pan.setValue({ x: 0, y: 0 });
-            setIndex(i + 1);
-          });
+          }).start(() => advanceOrClose());
         } else {
           Animated.spring(pan, { toValue: { x: 0, y: 0 }, friction: 6, useNativeDriver: false }).start();
         }
@@ -256,6 +260,7 @@ export default function DiscoveryCardPopup() {
   if (pages.length === 0) return null;
   const current = pages[Math.min(index, pages.length - 1)];
   const behind = pages[index + 1];
+  const isLast = index + 1 >= pages.length;
   const rotate = pan.x.interpolate({
     inputRange: [-W / 2, 0, W / 2],
     outputRange: ['-12deg', '0deg', '12deg'],
@@ -286,14 +291,14 @@ export default function DiscoveryCardPopup() {
           style={{ transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate }] }}
         >
           {renderPage(current, live)}
-          {/* 실수 방지: 배경/카드 탭으로는 닫히지 않고 X로만 닫기 */}
+          {/* 실수 방지: 배경/카드 탭으로는 안 닫힘. 버튼은 다음 카드로(마지막이면 닫기) */}
           <TouchableOpacity
             style={styles.closeBtn}
-            onPress={dismiss}
+            onPress={advanceOrClose}
             hitSlop={8}
-            accessibilityLabel="발견 카드 닫기"
+            accessibilityLabel={isLast ? '닫기' : '다음 카드'}
           >
-            <Text style={styles.closeBtnText}>✕</Text>
+            <Text style={styles.closeBtnText}>{isLast ? '✕' : '›'}</Text>
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>

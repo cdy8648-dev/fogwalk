@@ -13,8 +13,10 @@ import {
 
 import { COLORS } from '../../constants/colors';
 import { FONT } from '../../constants/fonts';
+import { POPUP } from '../../constants/popup';
 import { removePlace } from '../../services/places';
 import type { Place } from '../../types';
+import GlassPanel from '../ui/GlassPanel';
 
 interface Props {
   place: Place;
@@ -25,7 +27,6 @@ interface Props {
 // 핸드오프 토큰
 const CARD_W = 296;
 const PINK = '#FF6BB5';
-const CARD_BG = '#11131F';
 const INNER = '#0F1120';
 
 function formatDate(ts: number): string {
@@ -88,9 +89,7 @@ export default function PlaceFloatingCard({ place, onEdit, onClose }: Props) {
     <Animated.View
       style={[styles.stack, { opacity: enter, transform: [{ translateY }, { scale }] }]}
     >
-      <View style={styles.card}>
-        {/* 워시테이프 */}
-        <View style={styles.tape} />
+      <GlassPanel radius={POPUP.md.radius} shadow style={styles.card}>
         {/* 닫기 */}
         <TouchableOpacity style={styles.close} onPress={onClose} hitSlop={8} accessibilityLabel="닫기">
           <Text style={styles.closeText}>✕</Text>
@@ -143,7 +142,9 @@ export default function PlaceFloatingCard({ place, onEdit, onClose }: Props) {
             <Text style={styles.delText}>🗑</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </GlassPanel>
+      {/* 워시테이프 — 블러 클립 밖(카드 위 레이어) */}
+      <View style={styles.tape} pointerEvents="none" />
       {/* 카드 꼬리 — 아래 마커를 가리킴 */}
       <View style={styles.cardTail} />
     </Animated.View>
@@ -151,19 +152,8 @@ export default function PlaceFloatingCard({ place, onEdit, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  stack: { width: CARD_W, alignItems: 'center' },
-  card: {
-    width: CARD_W,
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: '#2E3450',
-    borderRadius: 20,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.6,
-    shadowRadius: 25,
-    shadowOffset: { width: 0, height: 20 },
-  },
+  stack: { width: CARD_W, alignItems: 'center' }, // 그림자는 GlassPanel 내부 레이어가 담당
+  card: { width: CARD_W, padding: 14 },
   tape: {
     position: 'absolute',
     top: -11,
@@ -277,6 +267,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 14,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: CARD_BG,
+    borderTopColor: 'rgba(20,23,38,0.82)', // 글래스 틴트 근사(삼각형은 블러 불가)
   },
 });
