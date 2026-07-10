@@ -1,6 +1,6 @@
 import { AppState } from 'react-native';
 
-import { BADGES, type BadgeAxis, type BadgeDef, type BadgeMetricKey } from '../constants/badges';
+import { BADGES, type BadgeDef, type BadgeMetricKey } from '../constants/badges';
 import { matchCurated } from '../constants/curatedLandmarks';
 import { regionKey } from '../constants/regionAreas';
 import { useAchievementStore } from '../store/achievementStore';
@@ -27,11 +27,23 @@ import {
 
 export type BadgeTrigger = 'progress' | 'discover' | 'photo';
 
-// 트리거 → 검사할 축. (first 축은 여러 트리거에 걸쳐 있어도 무해 — 이미 획득분은 스킵)
-const TRIGGER_AXES: Record<BadgeTrigger, BadgeAxis[]> = {
-  progress: ['first', 'distance', 'streak', 'area'],
-  discover: ['first', 'discover', 'collection'],
-  photo: ['first'],
+/**
+ * 지표(metric) → 어느 트리거에서 검사할지. 축(UI 그룹)이 아니라 "값의 출처"로 나눈다.
+ * 핵심: progress 트리거(매 위치 콜백)는 discovered 기반 뱃지를 검사하지 않아
+ * getDiscoveredLandmarks() 풀 로드를 피한다(발열 원인이던 부분).
+ *   progress = 이동/타일/스트릭/지역(가벼운 소스) · discover = 발견 목록 · photo = 사진
+ */
+const METRIC_TRIGGER: Record<BadgeMetricKey, BadgeTrigger> = {
+  tiles: 'progress',
+  distanceKm: 'progress',
+  streak: 'progress',
+  seoulTiles: 'progress',
+  photos: 'photo',
+  discovered: 'discover',
+  legendary: 'discover',
+  unesco: 'discover',
+  'cat:palace': 'discover',
+  'cat:temple': 'discover',
 };
 
 interface BadgeMetrics {
@@ -149,9 +161,8 @@ export function flushPendingBadgePopups(): void {
  */
 export function checkBadges(trigger: BadgeTrigger): void {
   const store = useAchievementStore.getState();
-  const axes = TRIGGER_AXES[trigger];
   const candidates = BADGES.filter(
-    (b) => axes.includes(b.axis) && !store.unlockedTypes.has(b.id)
+    (b) => METRIC_TRIGGER[b.metric] === trigger && !store.unlockedTypes.has(b.id)
   );
   if (candidates.length === 0) return;
 

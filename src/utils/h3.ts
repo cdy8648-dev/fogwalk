@@ -3,6 +3,7 @@ import {
   cellToLatLng,
   getHexagonAreaAvg,
   gridDisk,
+  gridPathCells,
   latLngToCell,
 } from 'h3-js';
 
@@ -26,6 +27,27 @@ export function tileCenterCoord(lat: number, lng: number): [number, number] {
 export function revealTilesFor(lat: number, lng: number): string[] {
   const tile = coordToTile(lat, lng);
   return gridDisk(tile, CONFIG.REVEAL_RADIUS_K);
+}
+
+/**
+ * 두 좌표 사이 H3 직선 경로 타일(+걷기와 같은 reveal 폭 k).
+ * 백그라운드처럼 픽스가 드문드문 올 때 사이 구멍을 메운다(경로 보간).
+ * 같은 타일이면 [] (보간 불필요), gridPathCells 실패(펜타곤 경유 등) 시에도 [].
+ */
+export function pathRevealTiles(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number
+): string[] {
+  const a = coordToTile(aLat, aLng);
+  const b = coordToTile(bLat, bLng);
+  if (a === b) return [];
+  try {
+    return dilateTiles(gridPathCells(a, b), CONFIG.REVEAL_RADIUS_K);
+  } catch {
+    return [];
+  }
 }
 
 /**

@@ -108,6 +108,45 @@ export async function stopBackgroundTracking(): Promise<void> {
   if (already) await Location.stopLocationUpdatesAsync(LOCATION_TASK);
 }
 
+// ── 브레드크럼 지오펜스 ─────────────────────────────────────────
+// 일반 백그라운드 추적은 앱이 (강제)종료되면 끝. 지오펜스 이탈/진입은 종료된 앱도
+// iOS가 다시 깨워줘서, 그 짧은 시간에 좌표 1점을 기록하고 펜스를 새 위치로 옮긴다.
+// → 앱이 꺼져 있어도 FENCE_RADIUS_M 단위의 브레드크럼이 쌓이고, 경로 보간이 이어붙인다.
+
+export const GEOFENCE_TASK = 'fogwalk-breadcrumb-fence';
+
+/** 브레드크럼용 현재 위치 1회 — 깨어난 짧은 실행 시간 안에 잡히도록 Balanced. */
+export async function getBreadcrumbFix(): Promise<{
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  speed: number | null;
+}> {
+  const pos = await Location.getCurrentPositionAsync({
+    accuracy: Location.Accuracy.Balanced,
+  });
+  return {
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude,
+    accuracy: pos.coords.accuracy ?? null,
+    speed: pos.coords.speed ?? null,
+  };
+}
+
+/** 브레드크럼 지오펜스를 (lat, lng) 중심으로 (재)설치 — 같은 태스크명 호출은 교체된다. */
+export async function centerBreadcrumbFence(lat: number, lng: number): Promise<void> {
+  await Location.startGeofencingAsync(GEOFENCE_TASK, [
+    {
+      identifier: 'breadcrumb',
+      latitude: lat,
+      longitude: lng,
+      radius: CONFIG.FENCE_RADIUS_M,
+      notifyOnEnter: true, // 이탈 처리 실패 시 재진입이 재시도 기회
+      notifyOnExit: true,
+    },
+  ]);
+}
+
 /**
  * 포그라운드 전용 위치 구독 (백그라운드 권한 미허용 시 폴백).
  * distance/time 임계치마다 onMove 콜백.

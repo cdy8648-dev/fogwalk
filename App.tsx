@@ -15,7 +15,7 @@ import DiscoveryOverlayHost from './src/components/discovery/DiscoveryOverlayHos
 import { COLORS } from './src/constants/colors';
 import { hydrateCountry, refreshCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
-import { flushPendingBadgePopups } from './src/services/badges';
+import { checkBadges, flushPendingBadgePopups } from './src/services/badges';
 import { flushPendingDiscoveries } from './src/services/discovery';
 import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
 import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
@@ -73,6 +73,11 @@ export default function App() {
     usePlaceStore.getState().hydrate(); // DB → 나만의 장소 복원
     useLandmarkStore.getState().hydrate(); // DB → 발견 랜드마크 복원
     useSettingsStore.getState().hydrate(); // DB → 설정(지도 스타일) 복원
+    // 발견·사진 기반 뱃지 소급 1회 (progress는 refreshProgressStore가 담당).
+    // 위치 콜백에서 발견 뱃지를 빼 발열을 줄인 대신, 시작 시 1회만 훑는다.
+    // (active 상태라 checkBadges 내부에서 해금분을 자체 flush → 카드로)
+    checkBadges('discover');
+    checkBadges('photo');
     flushPendingDiscoveries(); // 백그라운드/이전 세션 발견 → 요약 카드
     flushPendingBadgePopups(); // 백그라운드/이전 세션 뱃지 획득 → 보상 카드 (발견 뒤에 이어짐)
     void migrateDiscoveryDisplayNames(); // 현지어로 저장된 발견 이름 → 유저 언어로 보강(백그라운드)

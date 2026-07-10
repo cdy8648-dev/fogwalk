@@ -119,6 +119,11 @@ CREATE TABLE IF NOT EXISTS subregion_stats (
   first_visited_at INTEGER,
   PRIMARY KEY (country_code, region, subregion)
 );
+
+-- 근접 발견 판정(getUndiscoveredLandmarksNear)이 매 위치 콜백마다 lat/lng bbox로 조회한다.
+-- 인덱스가 없으면 landmarks 전체 풀스캔 → 걷는 동안 발열. 미발견분만 부분 인덱스.
+CREATE INDEX IF NOT EXISTS idx_landmarks_undiscovered
+  ON landmarks(lat, lng) WHERE discovered_at IS NULL;
 `;
 
 /** 앱 시작 시 1회 호출. 테이블 생성 + 단일 진행도 행 보장, 생성된 테이블 목록 출력. */

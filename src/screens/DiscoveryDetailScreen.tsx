@@ -2,21 +2,23 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { CategoryCoin, CategoryGlyph } from '../components/CategoryIcon';
 import EmptyHint from '../components/ui/EmptyHint';
+import { CATEGORY_ICON, FILTER_ICON } from '../constants/categoryIcons';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
-import { CATEGORY_EMOJI, landmarkDisplayName, rarityLabel } from '../constants/landmarks';
+import { landmarkDisplayName, rarityColor, rarityLabel } from '../constants/landmarks';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { useLandmarkStore } from '../store/landmarkStore';
 import type { Landmark } from '../types';
 import { formatDate } from '../utils/date';
 
-const FILTERS: { key: DiscoveryFilter; label: string; emoji: string }[] = [
-  { key: 'all', label: '전체', emoji: '✨' },
-  { key: 'park', label: '공원', emoji: '🌳' },
-  { key: 'landmark', label: '랜드마크', emoji: '🏛️' },
-  { key: 'peak', label: '산', emoji: '⛰️' },
-  { key: 'subway', label: '지하철', emoji: '🚇' },
+const FILTERS: { key: DiscoveryFilter; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'park', label: '공원' },
+  { key: 'landmark', label: '랜드마크' },
+  { key: 'peak', label: '산' },
+  { key: 'subway', label: '지하철' },
 ];
 
 function matches(lm: Landmark, f: DiscoveryFilter): boolean {
@@ -48,9 +50,8 @@ export default function DiscoveryDetailScreen({ route }: Props) {
               onPress={() => setFilter(f.key)}
               style={[styles.chip, active && styles.chipOn]}
             >
-              <Text style={[styles.chipText, active && styles.chipTextOn]}>
-                {f.emoji} {f.label}
-              </Text>
+              <CategoryCoin icon={FILTER_ICON[f.key]} size={18} shadow={false} />
+              <Text style={[styles.chipText, active && styles.chipTextOn]}>{f.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -62,7 +63,11 @@ export default function DiscoveryDetailScreen({ route }: Props) {
         <View style={styles.list}>
           {shown.map((lm) => (
             <View key={lm.osmId} style={styles.row}>
-              <Text style={styles.emoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
+              <CategoryGlyph
+                icon={CATEGORY_ICON[lm.category] ?? 'detail-pin'}
+                size={30}
+                ringColor={rarityColor(lm.rarity)}
+              />
               <View style={styles.mid}>
                 <Text style={styles.name} numberOfLines={1}>
                   {landmarkDisplayName(lm)}
@@ -85,8 +90,11 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 110 }, // 플로팅 탭바 공간 확보
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -99,6 +107,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -106,7 +115,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  emoji: { fontSize: 22, marginRight: 12 },
   mid: { flex: 1 },
   name: { color: COLORS.text, fontSize: 15 },
   date: { color: COLORS.muted, fontSize: 11, marginTop: 2, fontFamily: FONT.mono },

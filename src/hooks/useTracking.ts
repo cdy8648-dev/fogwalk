@@ -1,32 +1,21 @@
 import { useEffect, useState } from 'react';
 
-import { insertVisitedTiles } from '../services/db';
 import {
+  centerBreadcrumbFence,
   getCurrentOnce,
   requestBackgroundPermission,
   requestPermission,
   startBackgroundTracking,
   startWatch,
 } from '../services/gps';
-import { recordMovement, refreshProgressStore } from '../services/progress';
-import { useMapStore } from '../store/mapStore';
-import { revealTilesFor } from '../utils/h3';
+import { processFixes } from '../services/locationPipeline';
 
 type TrackingStatus = 'loading' | 'granted' | 'denied';
 
-/** 좌표 1건 처리: 위치 갱신 + 타일 reveal + 진행도 기록 + 스토어 반영 (포그라운드 경로용). */
-function handle(lat: number, lng: number, speed: number | null): void {
-  const store = useMapStore.getState();
-  store.setLocation({ lat, lng });
-  const fresh = insertVisitedTiles(revealTilesFor(lat, lng));
-  recordMovement(lat, lng, speed, fresh.length);
-  if (fresh.length) store.addVisitedTiles(fresh);
-  refreshProgressStore(true);
-}
-
 /**
  * 추적 부트스트랩. MapScreen mount 시 1회.
- * 권한 → 초기 위치 → "항상 허용"이면 백그라운드 태스크, 아니면 포그라운드 watch 폴백.
+ * 권한 → 초기 위치 → "항상 허용"이면 백그라운드 태스크 + 브레드크럼 지오펜스,
+ * 아니면 포그라운드 watch 폴백. 픽스 처리는 공용 파이프라인(locationPipeline).
  * 백그라운드 추적은 언마운트해도 멈추지 않는다(계속 기록).
  */
 export function useTracking(): { status: TrackingStatus } {
@@ -45,11 +34,12 @@ export function useTracking(): { status: TrackingStatus } {
       }
       setStatus('granted');
 
-      // 즉시 초기 위치 (카메라 센터 + 첫 reveal)
+      // 즉시 초기 위치 (카메라 센터 + 첫 reveal). accuracy=null → 신뢰(단발 조회).
+      let initial: { lat: number; lng: number } | null = null;
       try {
-        const c = await getCurrentOnce();
+        initial = await getCurrentOnce();
         if (cancelled) return;
-        handle(c.lat, c.lng, null);
+        processFixes([{ lat: initial.lat, lng: initial.lng, accuracy: null, speed: null }]);
       } catch {
         // 초기 위치 실패는 무시 — 추적이 곧 위치를 잡는다.
       }
@@ -60,14 +50,16 @@ export function useTracking(): { status: TrackingStatus } {
       if (bgGranted) {
         try {
           await startBackgroundTracking(); // 위치 처리는 locationTask가 담당
+          // 브레드크럼 지오펜스 — 앱 종료 후에도 이탈마다 깨어나 1점씩 기록
+          if (initial) centerBreadcrumbFence(initial.lat, initial.lng).catch(() => {});
           return;
         } catch (e) {
           console.warn('[useTracking] background start failed, fallback:', e);
         }
       }
-      // 폴백: 포그라운드에서만 추적
+      // 폴백: 포그라운드에서만 추적 (startWatch가 정확도 필터를 이미 거침 → accuracy=null)
       foregroundSub = await startWatch((lat, lng, speed) =>
-        handle(lat, lng, speed)
+        processFixes([{ lat, lng, accuracy: null, speed }])
       );
       if (cancelled) foregroundSub.remove();
     })();

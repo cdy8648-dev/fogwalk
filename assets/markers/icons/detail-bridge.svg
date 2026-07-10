@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs>
+<radialGradient id="face" cx="38%" cy="28%" r="90%">
+<stop offset="0%" stop-color="#2E3B66"></stop><stop offset="55%" stop-color="#1D2748"></stop><stop offset="100%" stop-color="#10162C"></stop>
+</radialGradient>
+<linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#3A4977"></stop><stop offset="100%" stop-color="#0C1122"></stop>
+</linearGradient>
+<linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#FFFFFF" stop-opacity=".34"></stop><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"></stop>
+</linearGradient>
+<filter id="soft" x="-25%" y="-25%" width="150%" height="160%">
+<feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#05070F" flood-opacity=".55"></feDropShadow>
+</filter>
+<clipPath id="faceclip"><circle cx="100" cy="98" r="86"></circle></clipPath>
+</defs>
+<g filter="url(#soft)">
+<circle cx="100" cy="102" r="90" fill="url(#rim)"></circle>
+<circle cx="100" cy="98" r="86" fill="url(#face)"></circle>
+</g>
+<circle cx="100" cy="98" r="79" fill="none" stroke="#FFFFFF" stroke-opacity=".07" stroke-width="2"></circle>
+<g clip-path="url(#faceclip)">
+<g opacity=".45" transform="translate(0,3.5)">
+<path fill="#080D1E" d="M62,140 A38,38 0 0 1 138,140 L126,140 A26,26 0 0 0 74,140 Z"></path>
+<rect fill="#080D1E" x="52" y="106" width="96" height="9" rx="4"></rect>
+<rect fill="#080D1E" x="64" y="94" width="7" height="12" rx="2"></rect>
+<rect fill="#080D1E" x="96.5" y="94" width="7" height="12" rx="2"></rect>
+<rect fill="#080D1E" x="129" y="94" width="7" height="12" rx="2"></rect>
+<path fill="none" stroke="#080D1E" stroke-width="4" stroke-linecap="round" d="M58,150 Q68,144 78,150 T98,150 T118,150 T138,150"></path></g>
+
+<path fill="#F4EFE6" d="M62,140 A38,38 0 0 1 138,140 L126,140 A26,26 0 0 0 74,140 Z"></path>
+<rect fill="#F4EFE6" x="52" y="106" width="96" height="9" rx="4"></rect>
+<rect fill="#F4EFE6" x="64" y="94" width="7" height="12" rx="2"></rect>
+<rect fill="#F4EFE6" x="96.5" y="94" width="7" height="12" rx="2"></rect>
+<rect fill="#F4EFE6" x="129" y="94" width="7" height="12" rx="2"></rect>
+<path fill="none" stroke="#E0A458" stroke-width="4" stroke-linecap="round" d="M58,150 Q68,144 78,150 T98,150 T118,150 T138,150"></path>
+<ellipse cx="100" cy="48" rx="58" ry="22" fill="url(#gloss)"></ellipse>
+</g>
+</svg>

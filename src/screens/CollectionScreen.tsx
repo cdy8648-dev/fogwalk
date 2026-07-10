@@ -11,7 +11,9 @@ import PhotoViewer from '../components/ui/PhotoViewer';
 import SectionPill from '../components/ui/SectionPill';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
-import { CATEGORY_EMOJI, landmarkDisplayName, rarityLabel } from '../constants/landmarks';
+import { CategoryCoin, CategoryGlyph } from '../components/CategoryIcon';
+import { CATEGORY_ICON, FILTER_ICON } from '../constants/categoryIcons';
+import { landmarkDisplayName, rarityColor, rarityLabel } from '../constants/landmarks';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { getAllCountryStats } from '../services/db';
 import { useLandmarkStore } from '../store/landmarkStore';
@@ -68,17 +70,16 @@ export default function CollectionScreen() {
   const parkCount = landmarks.filter((l) => l.category === 'park').length;
   const peakCount = landmarks.filter((l) => l.category === 'peak').length;
   const subwayCount = landmarks.filter((l) => l.category === 'subway').length;
-  const discTiles: { emoji: string; name: string; count: number; rot: number; filter: DiscoveryFilter }[] = [
-    { emoji: '🌳', name: '공원', count: parkCount, rot: -1.5, filter: 'park' },
+  const discTiles: { name: string; count: number; rot: number; filter: DiscoveryFilter }[] = [
+    { name: '공원', count: parkCount, rot: -1.5, filter: 'park' },
     {
-      emoji: '🏛️',
       name: '랜드마크',
       count: landmarks.length - parkCount - peakCount - subwayCount,
       rot: 1.5,
       filter: 'landmark',
     },
-    { emoji: '⛰️', name: '산', count: peakCount, rot: -1, filter: 'peak' },
-    { emoji: '🚇', name: '지하철', count: subwayCount, rot: 1, filter: 'subway' },
+    { name: '산', count: peakCount, rot: -1, filter: 'peak' },
+    { name: '지하철', count: subwayCount, rot: 1, filter: 'subway' },
   ];
 
   const colA = photos.filter((_, i) => i % 2 === 0);
@@ -175,7 +176,7 @@ export default function CollectionScreen() {
               t.count === 0 && styles.dim,
             ]}
           >
-            <Text style={styles.discEmoji}>{t.emoji}</Text>
+            <CategoryCoin icon={FILTER_ICON[t.filter]} size={38} />
             <Text style={styles.discCount}>{t.count}</Text>
           </TouchableOpacity>
         ))}
@@ -184,7 +185,11 @@ export default function CollectionScreen() {
         <View style={styles.lmList}>
           {landmarks.slice(0, LANDMARK_TEASER).map((lm) => (
             <View key={lm.osmId} style={styles.lmRow}>
-              <Text style={styles.lmEmoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
+              <CategoryGlyph
+                icon={CATEGORY_ICON[lm.category] ?? 'detail-pin'}
+                size={24}
+                ringColor={rarityColor(lm.rarity)}
+              />
               <Text style={styles.lmName} numberOfLines={1}>
                 {landmarkDisplayName(lm)}
               </Text>
@@ -258,13 +263,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dim: { opacity: 0.55 },
-  discEmoji: { fontSize: 30 },
   discCount: { color: COLORS.amber, fontSize: 16, fontFamily: FONT.display, marginTop: 6 },
 
   lmList: { gap: 8, marginTop: 12 },
   lmRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -272,7 +277,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  lmEmoji: { fontSize: 20, marginRight: 10 },
   lmName: { color: COLORS.text, fontSize: 14, flex: 1 },
   lmRarity: { color: COLORS.amber, fontSize: 12, fontWeight: '700' },
 

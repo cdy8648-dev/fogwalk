@@ -1,0 +1,127 @@
+[
+ {
+  "id": "detail-palace",
+  "name": "궁궐",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-temple",
+  "name": "사찰",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-tower",
+  "name": "타워",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-ruins",
+  "name": "유적",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-monument",
+  "name": "기념물",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-museum",
+  "name": "박물관",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-bridge",
+  "name": "다리",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-landmark",
+  "name": "명소",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-market",
+  "name": "시장",
+  "group": "건축·문화"
+ },
+ {
+  "id": "detail-park",
+  "name": "공원",
+  "group": "자연"
+ },
+ {
+  "id": "detail-mountain",
+  "name": "산",
+  "group": "자연"
+ },
+ {
+  "id": "detail-lake",
+  "name": "호수",
+  "group": "자연"
+ },
+ {
+  "id": "detail-beach",
+  "name": "해변",
+  "group": "자연"
+ },
+ {
+  "id": "detail-forest",
+  "name": "숲",
+  "group": "자연"
+ },
+ {
+  "id": "detail-metro",
+  "name": "지하철",
+  "group": "교통"
+ },
+ {
+  "id": "detail-station",
+  "name": "기차역",
+  "group": "교통"
+ },
+ {
+  "id": "detail-airport",
+  "name": "공항",
+  "group": "교통"
+ },
+ {
+  "id": "detail-harbor",
+  "name": "항구",
+  "group": "교통"
+ },
+ {
+  "id": "detail-cablecar",
+  "name": "케이블카",
+  "group": "교통"
+ },
+ {
+  "id": "detail-pin",
+  "name": "기타 (핀)",
+  "group": "기타"
+ },
+ {
+  "id": "filter-all",
+  "name": "전체",
+  "group": "상위 필터"
+ },
+ {
+  "id": "filter-culture",
+  "name": "건축·문화",
+  "group": "상위 필터"
+ },
+ {
+  "id": "filter-nature",
+  "name": "자연",
+  "group": "상위 필터"
+ },
+ {
+  "id": "filter-transport",
+  "name": "교통",
+  "group": "상위 필터"
+ },
+ {
+  "id": "filter-etc",
+  "name": "기타",
+  "group": "상위 필터"
+ }
+]

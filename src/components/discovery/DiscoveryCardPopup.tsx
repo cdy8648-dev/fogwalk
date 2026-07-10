@@ -15,13 +15,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
 import { FONT } from '../../constants/fonts';
 import { matchCurated } from '../../constants/curatedLandmarks';
+import { CATEGORY_ICON } from '../../constants/categoryIcons';
 import {
-  CATEGORY_EMOJI,
   CATEGORY_LABEL,
   landmarkDisplayName,
   landmarkXp,
   rarityColor,
 } from '../../constants/landmarks';
+import { CategoryCoin, CategoryGlyph } from '../CategoryIcon';
 import { capturePhotoAt } from '../../services/photos';
 import { useDiscoveryPopupStore, type PopupPage } from '../../store/discoveryPopupStore';
 import BadgeRewardCard from './BadgeRewardCard';
@@ -71,7 +72,11 @@ function ExtrasList({ items }: { items: Landmark[] }) {
           const xp = landmarkXp(lm);
           return (
             <View key={lm.osmId} style={styles.extrasRow}>
-              <Text style={styles.extrasEmoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
+              <CategoryGlyph
+                icon={CATEGORY_ICON[lm.category] ?? 'detail-pin'}
+                size={22}
+                ringColor={rarityColor(lm.rarity)}
+              />
               <Text style={styles.extrasName} numberOfLines={1}>
                 {landmarkDisplayName(lm)}
               </Text>
@@ -121,11 +126,15 @@ function DetailCard({
 
   return (
     <View style={styles.card}>
-      {/* 일러스트 헤더 (등급 그라디언트 + 카테고리 이모지) */}
+      {/* 일러스트 헤더 (등급 그라디언트 + 카테고리 코인, 등급색 링은 코인 바깥) */}
       <LinearGradient colors={gradient} style={styles.header}>
         <Text style={styles.headerLabel}>DISCOVERED</Text>
         <View style={[styles.emojiGlow, { backgroundColor: accent }]} />
-        <Text style={styles.headerEmoji}>{CATEGORY_EMOJI[lm.category] ?? '📍'}</Text>
+        <CategoryCoin
+          icon={CATEGORY_ICON[lm.category] ?? 'detail-pin'}
+          size={92}
+          ringColor={accent}
+        />
       </LinearGradient>
 
       <View style={styles.body}>

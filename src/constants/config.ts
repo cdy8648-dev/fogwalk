@@ -5,6 +5,11 @@ export const CONFIG = {
   GPS_TIME_INTERVAL_MS: 4000,
   GPS_ACCURACY_MAX_M: 50, // 정확도가 이보다 나쁜(값이 큰) fix는 무시 — GPS 튐 방지
 
+  // 경로 보간 + 브레드크럼 (드문 픽스 사이 구멍 메움 / 앱 종료 후 기록)
+  PATH_FILL_MAX_M: 1000, // 두 픽스 사이 H3 직선 보간 상한 — 초과는 점프(터널·비행)로 보고 안 채움
+  FENCE_RADIUS_M: 250, // 브레드크럼 지오펜스 반경 — 종료돼도 이탈마다 iOS가 앱을 깨워 1점 기록
+  FENCE_ACCURACY_MAX_M: 120, // 브레드크럼 픽스 허용 정확도(느슨 — 130m 헥사 기록엔 충분)
+
   // 2단계 안개 (밝힌영역=선명 / 버퍼=옅은안개 / 그 외=어둠)
   FOG_NEAR_RADIUS_K: 3, // 밝힌 영역에서 이 타일 수까지는 옅은 안개(프론티어, ≈400m)
   FOG_NEAR_OPACITY: 0.6, // 옅은 안개(버퍼) — 지도 희미하게 보임

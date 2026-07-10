@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs>
+<radialGradient id="face" cx="38%" cy="28%" r="90%">
+<stop offset="0%" stop-color="#2E3B66"></stop><stop offset="55%" stop-color="#1D2748"></stop><stop offset="100%" stop-color="#10162C"></stop>
+</radialGradient>
+<linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#3A4977"></stop><stop offset="100%" stop-color="#0C1122"></stop>
+</linearGradient>
+<linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#FFFFFF" stop-opacity=".34"></stop><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"></stop>
+</linearGradient>
+<filter id="soft" x="-25%" y="-25%" width="150%" height="160%">
+<feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#05070F" flood-opacity=".55"></feDropShadow>
+</filter>
+<clipPath id="faceclip"><circle cx="100" cy="98" r="86"></circle></clipPath>
+</defs>
+<g filter="url(#soft)">
+<circle cx="100" cy="102" r="90" fill="url(#rim)"></circle>
+<circle cx="100" cy="98" r="86" fill="url(#face)"></circle>
+</g>
+<circle cx="100" cy="98" r="79" fill="none" stroke="#FFFFFF" stroke-opacity=".07" stroke-width="2"></circle>
+<g clip-path="url(#faceclip)">
+<g opacity=".45" transform="translate(0,3.5)">
+<path fill="#080D1E" d="M100,58 L110,90 L142,100 L110,110 L100,142 L90,110 L58,100 L90,90 Z"></path>
+<path fill="#080D1E" d="M133,60 l4,11 11,4 -11,4 -4,11 -4,-11 -11,-4 11,-4 Z"></path></g>
+
+<path fill="#F4EFE6" d="M100,58 L110,90 L142,100 L110,110 L100,142 L90,110 L58,100 L90,90 Z"></path>
+<path fill="#E0A458" d="M133,60 l4,11 11,4 -11,4 -4,11 -4,-11 -11,-4 11,-4 Z"></path>
+<ellipse cx="100" cy="48" rx="58" ry="22" fill="url(#gloss)"></ellipse>
+</g>
+</svg>

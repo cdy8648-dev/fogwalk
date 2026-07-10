@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  body { margin:0; background:#07080e; font-family:'Pretendard',sans-serif; }
+  a { color:#C8F560; text-decoration:none; }
+  a:hover { color:#5BC0BE; }
+</style>
+</helmet>
+
+<section id="1a" style="display:flex; flex-direction:column; gap:36px; padding:56px 64px 96px; max-width:1180px;">
+  <div style="display:flex; flex-direction:column; gap:8px;">
+    <div style="font-family:'DM Mono',monospace; font-size:12px; letter-spacing:.25em; color:#7C8294;">FOGWALK · DISCOVERY ICON SET</div>
+    <div style="font-size:26px; font-weight:800; color:#F4EFE6;">발견 카테고리 아이콘 — 3D 클레이 코인 25종</div>
+    <div style="font-size:14px; color:#8A90A6; line-height:1.6;">딥네이비 face + 아이보리 글리프 + 상단 gloss, 등급 중립 (테두리는 앱에서). 요청 20종 + 빠진 요소 5종 추가: <span style="color:#C8F560;">호수 · 해변 · 숲 · 시장 · 케이블카</span> · SVG 200×200, 투명 배경 · <code style="font-family:'DM Mono',monospace; font-size:12px; color:#5BC0BE;">icons/</code> 폴더</div>
+  </div>
+
+  <!-- 상위 필터 -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.25em; color:#5B617A;">TOP FILTERS · 5</div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+      <sc-for list="{{ filters }}" as="ic" hint-placeholder-count="5">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px; background:#11131F; border:1px solid #232844; border-radius:20px; padding:22px 26px 16px;">
+          <img src="icons/{{ ic.id }}.svg" alt="{{ ic.name }}" style="width:110px; height:110px;">
+          <div style="font-size:14px; font-weight:700; color:#E2E5EE;">{{ ic.name }}</div>
+          <div style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.12em; color:#5B617A;">{{ ic.id }}.svg</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 세부 그룹 -->
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:10px; height:10px; border-radius:50%; background:{{ g.color }};"></div>
+        <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.25em; color:#5B617A;">{{ g.label }}</div>
+      </div>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <sc-for list="{{ g.items }}" as="ic" hint-placeholder-count="5">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; background:#11131F; border:1px solid #232844; border-radius:16px; padding:16px 18px 12px; width:118px;">
+            <img src="icons/{{ ic.id }}.svg" alt="{{ ic.name }}" style="width:84px; height:84px;">
+            <div style="font-size:13px; font-weight:700; color:#E2E5EE;">{{ ic.name }}</div>
+            <div style="font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.08em; color:#5B617A;">{{ ic.id }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+
+  <!-- 글리프 온리 (마커 축소용) -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.25em; color:#5B617A;">GLYPH ONLY · 마커 축소 상태용 · <span style="color:#5BC0BE;">icons/glyph/</span></div>
+    <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; background:#11131F; border:1px solid #232844; border-radius:16px; padding:18px 22px;">
+      <sc-for list="{{ allIcons }}" as="ic" hint-placeholder-count="8">
+        <img src="icons/glyph/{{ ic.id }}.svg" alt="{{ ic.name }}" title="{{ ic.name }}" style="width:36px; height:36px;">
+      </sc-for>
+    </div>
+    <!-- 축소 마커 시뮬레이션 -->
+    <div style="display:flex; gap:20px; align-items:center; background:#E7E3D6; border-radius:16px; padding:20px 28px; align-self:flex-start;">
+      <div style="width:34px; height:34px; border-radius:50%; background:#1D2748; border:2px solid #F4EFE6; box-shadow:0 3px 8px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center;"><img src="icons/glyph/detail-palace.svg" alt="궁궐" style="width:24px; height:24px;"></div>
+      <div style="width:34px; height:34px; border-radius:50%; background:#1D2748; border:2px solid #E0A458; box-shadow:0 3px 8px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center;"><img src="icons/glyph/detail-lake.svg" alt="호수" style="width:24px; height:24px;"></div>
+      <div style="width:34px; height:34px; border-radius:50%; background:#1D2748; border:2px solid #8B7CFF; box-shadow:0 3px 8px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center;"><img src="icons/glyph/detail-metro.svg" alt="지하철" style="width:24px; height:24px;"></div>
+      <div style="font-size:12px; color:#6B6455;">← 축소 마커 예시 (앱에서 배경원+등급링)</div>
+    </div>
+  </div>
+
+  <!-- 투명 배경 확인 -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <div style="font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.25em; color:#5B617A;">TRANSPARENCY CHECK · 라이트 / 맵 배경</div>
+    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+      <div style="display:flex; gap:24px; align-items:center; background:#F4EFE6; border-radius:16px; padding:20px 28px;">
+        <img src="icons/detail-palace.svg" alt="궁궐" style="width:72px; height:72px;">
+        <img src="icons/detail-lake.svg" alt="호수" style="width:72px; height:72px;">
+        <img src="icons/filter-all.svg" alt="전체" style="width:72px; height:72px;">
+      </div>
+      <div style="display:flex; gap:24px; align-items:center; background:#E7E3D6; border-radius:16px; padding:20px 28px;">
+        <img src="icons/detail-metro.svg" alt="지하철" style="width:72px; height:72px;">
+        <img src="icons/detail-market.svg" alt="시장" style="width:72px; height:72px;">
+        <img src="icons/detail-pin.svg" alt="핀" style="width:72px; height:72px;">
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const icons = [
+      { id: 'detail-palace', name: '궁궐', group: '건축·문화' },
+      { id: 'detail-temple', name: '사찰', group: '건축·문화' },
+      { id: 'detail-tower', name: '타워', group: '건축·문화' },
+      { id: 'detail-ruins', name: '유적', group: '건축·문화' },
+      { id: 'detail-monument', name: '기념물', group: '건축·문화' },
+      { id: 'detail-museum', name: '박물관', group: '건축·문화' },
+      { id: 'detail-bridge', name: '다리', group: '건축·문화' },
+      { id: 'detail-landmark', name: '명소', group: '건축·문화' },
+      { id: 'detail-market', name: '시장', group: '건축·문화' },
+      { id: 'detail-park', name: '공원', group: '자연' },
+      { id: 'detail-mountain', name: '산', group: '자연' },
+      { id: 'detail-lake', name: '호수', group: '자연' },
+      { id: 'detail-beach', name: '해변', group: '자연' },
+      { id: 'detail-forest', name: '숲', group: '자연' },
+      { id: 'detail-metro', name: '지하철', group: '교통' },
+      { id: 'detail-station', name: '기차역', group: '교통' },
+      { id: 'detail-airport', name: '공항', group: '교통' },
+      { id: 'detail-harbor', name: '항구', group: '교통' },
+      { id: 'detail-cablecar', name: '케이블카', group: '교통' },
+      { id: 'detail-pin', name: '기타 (핀)', group: '기타' },
+      { id: 'filter-all', name: '전체', group: '상위 필터' },
+      { id: 'filter-culture', name: '건축·문화', group: '상위 필터' },
+      { id: 'filter-nature', name: '자연', group: '상위 필터' },
+      { id: 'filter-transport', name: '교통', group: '상위 필터' },
+      { id: 'filter-etc', name: '기타', group: '상위 필터' },
+    ];
+    const groupDefs = [
+      { label: '건축·문화 · 9 (GOLD ACCENT)', key: '건축·문화', color: '#E0A458' },
+      { label: '자연 · 5 (LIME ACCENT)', key: '자연', color: '#C8F560' },
+      { label: '교통 · 5 (TEAL ACCENT)', key: '교통', color: '#5BC0BE' },
+      { label: '기타 · 1 (VIOLET ACCENT)', key: '기타', color: '#8B7CFF' },
+    ];
+    return {
+      allIcons: icons,
+      filters: icons.filter(i => i.group === '상위 필터'),
+      groups: groupDefs.map(g => ({
+        label: g.label, color: g.color,
+        items: icons.filter(i => i.group === g.key),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>
