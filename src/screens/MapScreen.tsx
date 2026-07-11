@@ -39,6 +39,7 @@ import { capturePhotoAt } from '../services/photos';
 import { createPlace, movePlace, updatePlaceInfo, type PlaceDraft } from '../services/places';
 import { useMapStore } from '../store/mapStore';
 import { useMapUiStore } from '../store/mapUiStore';
+import { useRecapStore } from '../store/recapStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
 import type { Photo, Place } from '../types';
@@ -111,6 +112,9 @@ export default function MapScreen() {
   const streak = useUserStore((s) => s.streak);
   const level = useUserStore((s) => s.level);
   const ink = useUserStore((s) => Math.floor(s.ink)); // 정수 비용과 floor(x)≥c ⟺ x≥c 로 판정 동일
+  // 탐험 일지(별자리 리캡) — 도착 시 편지함에 뱃지, 탭하면 재생
+  const recapReady = useRecapStore((s) => s.data != null);
+  const playRecap = useRecapStore((s) => s.play);
   const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
@@ -416,6 +420,7 @@ export default function MapScreen() {
               <View style={styles.menuBar} />
             </View>
           )}
+          {recapReady && !menuOpen && <View style={styles.mailDot} />}
         </TouchableOpacity>
 
         {menuOpen && (
@@ -448,15 +453,20 @@ export default function MapScreen() {
               activeOpacity={0.85}
               onPress={() => {
                 setMenuOpen(false);
-                Alert.alert('편지함', '준비 중입니다 💌');
+                if (recapReady) {
+                  playRecap(); // 탐험 일지(별자리 리캡) 재생
+                } else {
+                  Alert.alert('편지함', '아직 새 소식이 없어요 💌\n더 걸으면 탐험 일지가 도착해요!');
+                }
               }}
-              accessibilityLabel="편지함 (준비 중)"
+              accessibilityLabel={recapReady ? '탐험 일지 도착' : '편지함'}
             >
               <Image
                 source={require('../../assets/mail.png')}
                 style={styles.menuIcon}
                 resizeMode="contain"
               />
+              {recapReady && <View style={styles.mailDot} />}
             </TouchableOpacity>
           </View>
         )}
@@ -678,6 +688,18 @@ const styles = StyleSheet.create({
   },
   menuItem: { width: 48, height: 48 },
   menuIcon: { width: 48, height: 48 },
+  // 탐험 일지 도착 표시 (핫핑크 점 + 흰 테두리)
+  mailDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    backgroundColor: COLORS.hotpink,
+    borderWidth: 1.5,
+    borderColor: '#F4EFE6',
+  },
   inkBadge: {
     position: 'absolute',
     top: -6,

@@ -4,13 +4,15 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { useAchievementStore } from '../store/achievementStore';
 import { useDiscoveryPopupStore } from '../store/discoveryPopupStore';
+import { useRecapStore } from '../store/recapStore';
 
 /** 뱃지 획득·레벨업 축하 토스트. 큐의 맨 앞을 잠깐 띄우고 자동 종료.
- *  발견 팝업(더 높은 레이어)이 떠 있는 동안은 대기 — 가려진 채 소진되는 것 방지. */
+ *  발견 팝업/리캡(더 높은 레이어)이 떠 있는 동안은 대기 — 가려진 채 소진되는 것 방지. */
 export default function CelebrationOverlay() {
   const item = useAchievementStore((s) => s.queue[0]);
   const dismiss = useAchievementStore((s) => s.dismiss);
-  const popupActive = useDiscoveryPopupStore((s) => s.phase != null);
+  const recapPlaying = useRecapStore((s) => s.playing);
+  const popupActive = useDiscoveryPopupStore((s) => s.phase != null) || recapPlaying;
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {

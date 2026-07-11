@@ -23,6 +23,12 @@ export function tileCenterCoord(lat: number, lng: number): [number, number] {
   return [cLng, cLat];
 }
 
+/** 타일 ID → 중심 좌표. 탐험 일지(별자리)에서 타일 시퀀스를 점으로 투영할 때 사용. */
+export function cellCenter(tileId: string): { lat: number; lng: number } {
+  const [lat, lng] = cellToLatLng(tileId);
+  return { lat, lng };
+}
+
 /** 현재 위치에서 밝힐 타일들 (현재 타일 + gridDisk(k)). */
 export function revealTilesFor(lat: number, lng: number): string[] {
   const tile = coordToTile(lat, lng);

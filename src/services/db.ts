@@ -231,6 +231,15 @@ export function insertVisitedTiles(tileIds: string[]): string[] {
   return fresh;
 }
 
+/** since 이후 처음 밝힌 타일들(시간순) — 탐험 일지(별자리 리캡)용. 화면 층에서만 호출. */
+export function getVisitedTilesSince(since: number): { tileId: string; ts: number }[] {
+  const rows = db.getAllSync<{ tile_id: string; first_visited_at: number }>(
+    'SELECT tile_id, first_visited_at FROM visited_tiles WHERE first_visited_at > ? ORDER BY first_visited_at ASC',
+    since
+  );
+  return rows.map((r) => ({ tileId: r.tile_id, ts: r.first_visited_at }));
+}
+
 export function getAllVisitedTileIds(): string[] {
   const rows = db.getAllSync<{ tile_id: string }>(
     'SELECT tile_id FROM visited_tiles'

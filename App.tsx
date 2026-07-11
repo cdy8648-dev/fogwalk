@@ -12,6 +12,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import CelebrationOverlay from './src/components/CelebrationOverlay';
 import DiscoveryOverlayHost from './src/components/discovery/DiscoveryOverlayHost';
+import RecapOverlay from './src/components/recap/RecapOverlay';
 import { COLORS } from './src/constants/colors';
 import { hydrateCountry, refreshCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
@@ -19,6 +20,7 @@ import { setTrackingDeferral } from './src/services/gps';
 import { checkBadges, flushPendingBadgePopups } from './src/services/badges';
 import { flushPendingDiscoveries } from './src/services/discovery';
 import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
+import { checkRecap } from './src/services/recap';
 import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
 import { useLandmarkStore } from './src/store/landmarkStore';
@@ -81,6 +83,7 @@ export default function App() {
     checkBadges('photo');
     flushPendingDiscoveries(); // 백그라운드/이전 세션 발견 → 요약 카드
     flushPendingBadgePopups(); // 백그라운드/이전 세션 뱃지 획득 → 보상 카드 (발견 뒤에 이어짐)
+    checkRecap(); // 탐험 일지(별자리) 도착 확인 — 편지함 뱃지 + 도착 토스트
     void migrateDiscoveryDisplayNames(); // 현지어로 저장된 발견 이름 → 유저 언어로 보강(백그라운드)
     setReady(true);
   }, []);
@@ -95,6 +98,7 @@ export default function App() {
         refreshProgressStore();
         flushPendingDiscoveries(); // 백그라운드 발견 → 요약 카드
         flushPendingBadgePopups(); // 백그라운드 뱃지 획득 → 보상 카드
+        checkRecap(); // 탐험 일지 도착 확인
         void refreshCountry(); // 해외 도착 등 먼 이동 시 국가 선제 감지
       }
     });
@@ -125,6 +129,7 @@ export default function App() {
       </NavigationContainer>
       <CelebrationOverlay />
       <DiscoveryOverlayHost />
+      <RecapOverlay />
     </>
   );
 }
