@@ -65,6 +65,39 @@ export function CategoryCoin({
   );
 }
 
+/** 배경 없는 순수 글리프 — 지도 마커용(그림만 올라감).
+ *  아이보리 글리프가 밝은 지도에서 묻히지 않게 콘텐츠 알파 그림자(iOS)로 가독성 확보. */
+export function CategoryGlyphFlat({
+  icon,
+  size,
+  style,
+}: {
+  icon: string;
+  size: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const xml = MARKER_GLYPH[icon];
+  if (!xml) return <View style={[{ width: size, height: size }, style]} />;
+  return (
+    <View
+      style={[
+        {
+          width: size,
+          height: size,
+          // 배경 없는 뷰의 iOS 그림자는 렌더된 픽셀 알파를 따라감 → 글리프 모양 그림자
+          shadowColor: '#000',
+          shadowOpacity: 0.55,
+          shadowRadius: 2.5,
+          shadowOffset: { width: 0, height: 1 },
+        },
+        style,
+      ]}
+    >
+      <SvgXml xml={xml} width={size} height={size} />
+    </View>
+  );
+}
+
 interface GlyphProps {
   icon: string;
   size: number; // 배경원 지름

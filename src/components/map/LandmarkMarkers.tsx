@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, TouchableOpacity } from 'react-native';
 import { CircleLayer, MarkerView, ShapeSource } from '@rnmapbox/maps';
 
 import { COLORS } from '../../constants/colors';
 import { CATEGORY_ICON } from '../../constants/categoryIcons';
-import { landmarkDisplayName, rarityColor, rarityLabel } from '../../constants/landmarks';
-import { CategoryGlyph } from '../CategoryIcon';
+import { landmarkDisplayName, rarityLabel } from '../../constants/landmarks';
+import { CategoryGlyphFlat } from '../CategoryIcon';
 import { useLandmarkStore } from '../../store/landmarkStore';
 
 interface Props {
@@ -83,13 +83,12 @@ export default function LandmarkMarkers({ full, showSubway, showCommon, showRare
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => Alert.alert(landmarkDisplayName(lm), rarityLabel(lm.rarity))}
+            hitSlop={6}
           >
-            {/* 글리프 마커 (에셋 규칙: 네이비 배경원 + 등급색 링) — 전설은 링 더 두껍게 */}
-            <CategoryGlyph
+            {/* 배경 없는 순수 글리프 — 지도에 그림만. 등급 위계는 전설 크기 업으로 */}
+            <CategoryGlyphFlat
               icon={CATEGORY_ICON[lm.category] ?? 'detail-pin'}
-              size={30}
-              ringColor={rarityColor(lm.rarity)}
-              style={lm.rarity === 'legendary' ? styles.legendary : undefined}
+              size={lm.rarity === 'legendary' ? 32 : 26}
             />
           </TouchableOpacity>
         </MarkerView>
@@ -98,6 +97,3 @@ export default function LandmarkMarkers({ full, showSubway, showCommon, showRare
   );
 }
 
-const styles = StyleSheet.create({
-  legendary: { borderWidth: 3 }, // 전설은 링 더 두껍게(색은 rarityColor=골드)
-});
