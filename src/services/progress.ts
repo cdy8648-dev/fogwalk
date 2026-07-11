@@ -6,9 +6,7 @@ import { haversineMeters } from '../utils/distance';
 import { modeWeight } from '../utils/mode';
 import { levelProgress, xpForMovement } from '../utils/xp';
 import { checkBadges } from './badges';
-import { attributeTiles, ensureCountry } from './country';
-import { checkLandmarkDiscoveries } from './discovery';
-import { ensureLandmarksFetched } from './landmarks';
+import { attributeTiles } from './country';
 import {
   getDailyStatsByDate,
   getProgress,
@@ -96,15 +94,9 @@ export function recordMovement(
     upsertDailyStats(today, segment, newTiles);
   }
 
-  // 새 지역이면 랜드마크 OSM 조회(비동기, 캐싱)
-  void ensureLandmarksFetched(lat, lng);
-
-  // 여권: 신규 타일을 현재 국가 + 권역(시/도)에 적립 (판별은 비동기로 캐시 갱신)
-  void ensureCountry(lat, lng);
+  // 여권: 신규 타일을 캐시된 국가/권역에 적립 (국가 재판별·OSM 조회·발견 체크는
+  // locationPipeline 담당 — 백그라운드 네트워크 금지 정책)
   if (newTiles > 0) attributeTiles(newTiles);
-
-  // 랜드마크 발견 체크 (근처 미발견 → 발견 + 안개 뻥 + 보상)
-  checkLandmarkDiscoveries(lat, lng);
 }
 
 /** DB의 진행도를 userStore(표시용)로 반영. 앱 시작/포그라운드 복귀/이동 후 호출. */

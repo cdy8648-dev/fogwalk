@@ -1,8 +1,13 @@
 import * as TaskManager from 'expo-task-manager';
 
 import { CONFIG } from '../constants/config';
+import { getSetting } from '../services/db';
 import { centerBreadcrumbFence, getBreadcrumbFix, GEOFENCE_TASK } from '../services/gps';
 import { processFixes } from '../services/locationPipeline';
+
+// 본추적(locationTask)이 최근에 픽스를 처리했으면 브레드크럼은 중복 — GPS 원샷 낭비 방지.
+// 차량 주행 시 250m마다(시간당 240회) 추가 GPS 조회를 하던 것이 배터리 가중 요인이었다.
+const TRACKING_ALIVE_MS = 3 * 60_000;
 
 /**
  * 브레드크럼 지오펜스 태스크.
@@ -16,6 +21,10 @@ TaskManager.defineTask(GEOFENCE_TASK, async ({ error }) => {
     return;
   }
   try {
+    // 본추적이 살아있으면(최근 픽스 있음) 스킵 — 종료/중단된 경우에만 브레드크럼 가동
+    const lastFixAt = Number(getSetting('last_fix_at') ?? 0);
+    if (Date.now() - lastFixAt < TRACKING_ALIVE_MS) return;
+
     const fix = await getBreadcrumbFix();
     processFixes([fix], CONFIG.FENCE_ACCURACY_MAX_M);
     await centerBreadcrumbFence(fix.lat, fix.lng);

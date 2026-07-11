@@ -1,9 +1,19 @@
+import { AppState } from 'react-native';
+
 import { CONFIG } from '../constants/config';
 import { useMapStore } from '../store/mapStore';
 import { haversineMeters } from '../utils/distance';
 import { pathRevealTiles, revealTilesFor } from '../utils/h3';
-import { getProgress, insertVisitedTiles } from './db';
+import { ensureCountry } from './country';
+import { getProgress, insertVisitedTiles, setSetting } from './db';
+import { checkLandmarkDiscoveries } from './discovery';
+import { centerBreadcrumbFence } from './gps';
+import { ensureLandmarksFetched } from './landmarks';
 import { recordMovement, refreshProgressStore } from './progress';
+
+// 브레드크럼 펜스를 이동에 맞춰 따라 옮김(반경 초과 시만) — GPS 조회 없는 재등록이라 저비용.
+// 본추적 생존 중 펜스가 수십 km 뒤에 남으면, 이후 앱 종료 시 이탈 이벤트가 영영 안 온다.
+let fenceCenter: { lat: number; lng: number } | null = null;
 
 /**
  * 위치 픽스 공용 파이프라인 — 백그라운드 태스크 / 포그라운드 watch / 지오펜스 브레드크럼이
@@ -45,10 +55,28 @@ export function processFixes(
     }
 
     const fresh = insertVisitedTiles([...new Set(tiles)]);
-    recordMovement(f.lat, f.lng, f.speed, fresh.length); // 거리·스트릭·XP·발견·국가적립
+    recordMovement(f.lat, f.lng, f.speed, fresh.length); // 거리·스트릭·XP·국가적립(캐시)
+    checkLandmarkDiscoveries(f.lat, f.lng); // 근접 발견 (인덱스드 bbox — 저비용)
     if (fresh.length) freshAll.push(...fresh);
     prev = { lat: f.lat, lng: f.lng };
     last = prev;
+  }
+
+  if (last) {
+    // 🔋 네트워크(OSM 랜드마크 수집·국가 역지오코딩)는 포그라운드에서만.
+    // 백그라운드 주행 중 셀마다 Overpass를 부르던 것이 배터리/발열 주범이었다.
+    // 밀린 지역은 앱을 열고 이동할 때 자연 수집되고, 국가는 refreshCountry가 보정.
+    if (AppState.currentState === 'active') {
+      void ensureLandmarksFetched(last.lat, last.lng);
+      void ensureCountry(last.lat, last.lng);
+    }
+    // 지오펜스 브레드크럼 중복 방지용 — 본추적 생존 신호
+    setSetting('last_fix_at', String(Date.now()));
+    // 펜스 추종 — 종료 대비 브레드크럼이 항상 현재 위치 주변에서 대기하도록
+    if (!fenceCenter || haversineMeters(fenceCenter, last) > CONFIG.FENCE_RADIUS_M) {
+      fenceCenter = last;
+      centerBreadcrumbFence(last.lat, last.lng).catch(() => {}); // 권한 없으면 조용히 무시
+    }
   }
 
   // 스토어 반영 — 포그라운드면 화면 갱신, 백그라운드면 무해

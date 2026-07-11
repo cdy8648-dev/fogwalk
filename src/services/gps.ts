@@ -90,16 +90,34 @@ export async function reverseAddress(lat: number, lng: number): Promise<string |
  * activityType=Fitness + pausesUpdatesAutomatically → iOS가 정지 감지 시 GPS를
  * 자동 일시정지하고 이동 재개 시 다시 켠다 = "걸을 때만 GPS" (배터리 절감).
  */
-export async function startBackgroundTracking(): Promise<void> {
-  const already = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK);
-  if (already) return;
+// 공통 추적 옵션 + 전달 배칭(deferral)만 프로파일로 갈아끼움
+async function startUpdates(deferMs: number): Promise<void> {
   await Location.startLocationUpdatesAsync(LOCATION_TASK, {
     accuracy: Location.Accuracy.High,
     activityType: Location.ActivityType.Fitness,
     pausesUpdatesAutomatically: true,
     distanceInterval: CONFIG.GPS_DISTANCE_INTERVAL_M,
+    // 배달 배칭 — 픽스(15m 간격)는 그대로 쌓되 JS 깨움을 주기당 1회로 묶는다.
+    // 차량 주행 시 초당 1회 깨어나던 발열 대책. 경로 점 자체는 배치로 다 오므로 정밀도 동일.
+    ...(deferMs > 0 ? { deferredUpdatesInterval: deferMs } : {}),
     showsBackgroundLocationIndicator: true, // 파란 표시줄로 GPS on/off 시각 확인 가능
   });
+}
+
+export async function startBackgroundTracking(): Promise<void> {
+  const already = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK);
+  if (already) return;
+  await startUpdates(0); // 시작은 앱이 열린 상태 — 즉시 전달(지도 실시간)
+}
+
+/**
+ * 전달 프로파일 전환 — 포그라운드=즉시(지도 점 실시간), 백그라운드=배칭(발열 대책).
+ * startLocationUpdatesAsync 재호출은 기존 태스크의 옵션 갱신으로 동작한다.
+ */
+export async function setTrackingDeferral(background: boolean): Promise<void> {
+  const started = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK);
+  if (!started) return;
+  await startUpdates(background ? CONFIG.BG_DEFER_INTERVAL_MS : 0);
 }
 
 /** 백그라운드 추적 중지. */

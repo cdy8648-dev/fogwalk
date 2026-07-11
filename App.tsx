@@ -15,6 +15,7 @@ import DiscoveryOverlayHost from './src/components/discovery/DiscoveryOverlayHos
 import { COLORS } from './src/constants/colors';
 import { hydrateCountry, refreshCountry } from './src/services/country';
 import { initDatabase } from './src/services/db';
+import { setTrackingDeferral } from './src/services/gps';
 import { checkBadges, flushPendingBadgePopups } from './src/services/badges';
 import { flushPendingDiscoveries } from './src/services/discovery';
 import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
@@ -87,6 +88,8 @@ export default function App() {
   // 포그라운드 복귀 시, 백그라운드에서 쌓인 타일·진행도를 반영
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
+      // 위치 전달 프로파일: 포그라운드=즉시(지도 실시간), 백그라운드=60s 배칭(발열 대책)
+      void setTrackingDeferral(next !== 'active');
       if (next === 'active') {
         useMapStore.getState().hydrate();
         refreshProgressStore();
