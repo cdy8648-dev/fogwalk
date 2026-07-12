@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><radialGradient id="tg-heroic" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#8B7CFF" stop-opacity=".55"></stop><stop offset="60%" stop-color="#8B7CFF" stop-opacity=".22"></stop><stop offset="100%" stop-color="#8B7CFF" stop-opacity="0"></stop></radialGradient></defs>
+<circle cx="100" cy="100" r="86" fill="url(#tg-heroic)"></circle>
+
+<path fill="none" stroke="#1D2748" stroke-width="6" stroke-linecap="round" d="M48,62 L152,88"></path>
+<rect fill="#1D2748" x="96" y="72" width="8" height="24" rx="4"></rect>
+<circle fill="#8B7CFF" cx="100" cy="76" r="7"></circle>
+<rect fill="#1D2748" x="72" y="94" width="56" height="48" rx="13"></rect>
+<rect fill="#8B7CFF" x="81" y="103" width="38" height="18" rx="6"></rect>
+</svg>

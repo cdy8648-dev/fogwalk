@@ -1,24 +1,40 @@
 import { useMemo } from 'react';
 import { Alert, TouchableOpacity } from 'react-native';
-import { CircleLayer, MarkerView, ShapeSource } from '@rnmapbox/maps';
+import { MarkerView } from '@rnmapbox/maps';
 
-import { COLORS } from '../../constants/colors';
 import { CATEGORY_ICON } from '../../constants/categoryIcons';
 import { landmarkDisplayName, rarityLabel } from '../../constants/landmarks';
-import { CategoryGlyphFlat } from '../CategoryIcon';
+import { MapMarkerGlyph, MapStar } from '../CategoryIcon';
 import { useLandmarkStore } from '../../store/landmarkStore';
+import type { Landmark } from '../../types';
 
 interface Props {
-  full: boolean; // true=이모지 핀, false=점 (줌아웃)
+  full: boolean; // true=글리프(줌인), false=별(줌아웃)
+  mid: boolean; // 별 단계: true=star-glow(가까운 줌), false=star-dot(먼 줌)
   showSubway: boolean; // false면 지하철 마커 숨김 (줌아웃 시 가장 먼저)
   showCommon: boolean; // false면 일반(common) 랜드마크 숨김
   showRare: boolean; // false면 희귀(rare) 숨김
   showEpic: boolean; // false면 영웅(epic)도 숨김 → 전설만 남음
 }
 
-/** 발견한 랜드마크. 줌인=카테고리 이모지 핀, 줌아웃=점(가벼움). 색은 희귀도별.
- *  줌아웃 단계별로 지하철→일반→희귀→영웅 순으로 사라지고 결국 전설만 남는다. */
-export default function LandmarkMarkers({ full, showSubway, showCommon, showRare, showEpic }: Props) {
+// 전설만 마커를 조금 키워 위계 강조(등급색은 SVG 글로우에 내장).
+function glyphSize(lm: Landmark): number {
+  return lm.rarity === 'legendary' ? 50 : 44;
+}
+
+/**
+ * 발견한 랜드마크 마커.
+ * 줌인=배경 없는 카테고리 글리프(등급 글로우 내장), 줌아웃=별자리 별(등급색).
+ * 줌아웃 단계별로 지하철→일반→희귀→영웅 순으로 사라지고 결국 전설만 남는다.
+ */
+export default function LandmarkMarkers({
+  full,
+  mid,
+  showSubway,
+  showCommon,
+  showRare,
+  showEpic,
+}: Props) {
   const discovered = useLandmarkStore((s) => s.discovered);
   const landmarks = useMemo(
     () =>
@@ -33,43 +49,7 @@ export default function LandmarkMarkers({ full, showSubway, showCommon, showRare
     [discovered, showSubway, showCommon, showRare, showEpic]
   );
 
-  const dotShape = useMemo(
-    () => ({
-      type: 'FeatureCollection' as const,
-      features: landmarks.map((lm) => ({
-        type: 'Feature' as const,
-        properties: { rarity: lm.rarity ?? 'common' },
-        geometry: { type: 'Point' as const, coordinates: [lm.lng, lm.lat] },
-      })),
-    }),
-    [landmarks]
-  );
-
-  if (!full) {
-    return (
-      <ShapeSource id="lm-dots" shape={dotShape}>
-        <CircleLayer
-          id="lm-dots-layer"
-          style={{
-            circleRadius: 4,
-            circleColor: [
-              'match',
-              ['get', 'rarity'],
-              'legendary',
-              COLORS.gold,
-              'epic',
-              COLORS.violet,
-              'rare',
-              COLORS.teal,
-              'rgba(255,255,255,0.75)', // 일반 = 희미한 흰 점 (별빛 규칙)
-            ],
-            circleStrokeColor: COLORS.ink,
-            circleStrokeWidth: 1,
-          }}
-        />
-      </ShapeSource>
-    );
-  }
+  const starSize = mid ? 14 : 8;
 
   return (
     <>
@@ -79,21 +59,25 @@ export default function LandmarkMarkers({ full, showSubway, showCommon, showRare
           id={`lm-${lm.osmId}`}
           coordinate={[lm.lng, lm.lat]}
           anchor={{ x: 0.5, y: 0.5 }}
+          allowOverlap={!full} // 줌아웃 별은 겹쳐도 표시(밀도), 줌인 글리프는 declutter
         >
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => Alert.alert(landmarkDisplayName(lm), rarityLabel(lm.rarity))}
-            hitSlop={6}
-          >
-            {/* 배경 없는 순수 글리프 — 지도에 그림만. 등급 위계는 전설 크기 업으로 */}
-            <CategoryGlyphFlat
-              icon={CATEGORY_ICON[lm.category] ?? 'detail-pin'}
-              size={lm.rarity === 'legendary' ? 32 : 26}
-            />
-          </TouchableOpacity>
+          {full ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => Alert.alert(landmarkDisplayName(lm), rarityLabel(lm.rarity))}
+              hitSlop={10}
+            >
+              <MapMarkerGlyph
+                icon={CATEGORY_ICON[lm.category] ?? 'detail-pin'}
+                rarity={lm.rarity}
+                size={glyphSize(lm)}
+              />
+            </TouchableOpacity>
+          ) : (
+            <MapStar rarity={lm.rarity} variant={mid ? 'glow' : 'dot'} size={starSize} />
+          )}
         </MarkerView>
       ))}
     </>
   );
 }
-

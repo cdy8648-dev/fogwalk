@@ -338,6 +338,7 @@ export default function MapScreen() {
         )}
         <LandmarkMarkers
           full={vis.thumbs}
+          mid={vis.photos} // 별 단계: photos줌(≥11)=glow, 미만=dot
           showSubway={vis.subway}
           showCommon={vis.common}
           showRare={vis.rare}

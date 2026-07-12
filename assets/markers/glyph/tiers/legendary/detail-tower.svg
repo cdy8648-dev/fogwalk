@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><radialGradient id="tg-legendary" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#E0A458" stop-opacity=".55"></stop><stop offset="60%" stop-color="#E0A458" stop-opacity=".22"></stop><stop offset="100%" stop-color="#E0A458" stop-opacity="0"></stop></radialGradient></defs>
+<circle cx="100" cy="100" r="86" fill="url(#tg-legendary)"></circle>
+
+<circle fill="#E0A458" cx="100" cy="50" r="7"></circle>
+<rect fill="#1D2748" x="96" y="56" width="8" height="16" rx="4"></rect>
+<ellipse fill="#1D2748" cx="100" cy="86" rx="27" ry="13"></ellipse>
+<rect fill="#E0A458" x="80" y="82" width="40" height="7" rx="3.5"></rect>
+<path fill="#1D2748" d="M91,98 L84,142 L116,142 L109,98 Z"></path>
+</svg>

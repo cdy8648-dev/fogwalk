@@ -2,7 +2,62 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 import { GLYPH_BG } from '../constants/categoryIcons';
-import { MARKER_COIN, MARKER_GLYPH } from '../constants/markerSvgs';
+import { MAP_GLYPH, MARKER_COIN, MARKER_GLYPH } from '../constants/markerSvgs';
+
+// 앱 등급(rarity) → 디자이너 등급 폴더. common/undefined = 루트('').
+const TIER_DIR: Record<string, string> = {
+  legendary: 'legendary/',
+  epic: 'heroic/', // 앱은 'epic', 에셋 폴더는 'heroic'
+  rare: 'rare/',
+};
+
+/**
+ * 지도 발견 마커 — 배경 없는 글리프를 라이트 지도에 직접. 등급 글로우는 SVG 내장.
+ * common은 글로우가 없어 그림자로 가독성 확보(밝은 지도에서 묻힘 방지).
+ */
+export function MapMarkerGlyph({
+  icon,
+  rarity,
+  size,
+}: {
+  icon: string; // 'detail-palace' 등
+  rarity?: string;
+  size: number;
+}) {
+  const dir = TIER_DIR[rarity ?? ''] ?? '';
+  const xml = MAP_GLYPH[dir + icon] ?? MAP_GLYPH[icon];
+  if (!xml) return <View style={{ width: size, height: size }} />;
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        shadowColor: '#000',
+        shadowOpacity: 0.4,
+        shadowRadius: 2.5,
+        shadowOffset: { width: 0, height: 1 },
+      }}
+    >
+      <SvgXml xml={xml} width={size} height={size} />
+    </View>
+  );
+}
+
+/** 줌아웃 별 마커 — 별자리 컨셉. variant: 'glow'(가까운 줌) / 'dot'(먼 줌). 등급색 SVG 내장. */
+export function MapStar({
+  rarity,
+  variant,
+  size,
+}: {
+  rarity?: string;
+  variant: 'dot' | 'glow';
+  size: number;
+}) {
+  const dir = TIER_DIR[rarity ?? ''] ?? '';
+  const xml = MAP_GLYPH[`${dir}star-${variant}`] ?? MAP_GLYPH[`star-${variant}`];
+  if (!xml) return <View style={{ width: size, height: size }} />;
+  return <SvgXml xml={xml} width={size} height={size} />;
+}
 
 /**
  * 발견 카테고리 아이콘 (assets/markers 3D 클레이 코인 세트).
@@ -61,39 +116,6 @@ export function CategoryCoin({
         height={svgSize}
         style={{ marginLeft: offset, marginTop: offset }}
       />
-    </View>
-  );
-}
-
-/** 배경 없는 순수 글리프 — 지도 마커용(그림만 올라감).
- *  아이보리 글리프가 밝은 지도에서 묻히지 않게 콘텐츠 알파 그림자(iOS)로 가독성 확보. */
-export function CategoryGlyphFlat({
-  icon,
-  size,
-  style,
-}: {
-  icon: string;
-  size: number;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const xml = MARKER_GLYPH[icon];
-  if (!xml) return <View style={[{ width: size, height: size }, style]} />;
-  return (
-    <View
-      style={[
-        {
-          width: size,
-          height: size,
-          // 배경 없는 뷰의 iOS 그림자는 렌더된 픽셀 알파를 따라감 → 글리프 모양 그림자
-          shadowColor: '#000',
-          shadowOpacity: 0.55,
-          shadowRadius: 2.5,
-          shadowOffset: { width: 0, height: 1 },
-        },
-        style,
-      ]}
-    >
-      <SvgXml xml={xml} width={size} height={size} />
     </View>
   );
 }

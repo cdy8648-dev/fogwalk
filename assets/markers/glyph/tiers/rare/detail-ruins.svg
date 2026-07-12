@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><radialGradient id="tg-rare" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#5BC0BE" stop-opacity=".55"></stop><stop offset="60%" stop-color="#5BC0BE" stop-opacity=".22"></stop><stop offset="100%" stop-color="#5BC0BE" stop-opacity="0"></stop></radialGradient></defs>
+<circle cx="100" cy="100" r="86" fill="url(#tg-rare)"></circle>
+
+<rect fill="#1D2748" x="58" y="62" width="15" height="14" rx="2"></rect>
+<rect fill="#1D2748" x="81" y="62" width="15" height="14" rx="2"></rect>
+<rect fill="#1D2748" x="104" y="62" width="15" height="14" rx="2"></rect>
+<rect fill="#1D2748" x="127" y="62" width="15" height="14" rx="2"></rect>
+<rect fill="#1D2748" x="54" y="74" width="92" height="66" rx="4"></rect>
+<path fill="#5BC0BE" d="M82,140 L82,114 A18,18 0 0 1 118,114 L118,140 Z"></path>
+</svg>

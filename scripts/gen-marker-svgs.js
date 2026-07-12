@@ -62,7 +62,40 @@ function processDir(dir, prefixTag, stripFilters) {
 const coins = processDir(SRC, 'mc', true);
 const glyphs = processDir(path.join(SRC, 'glyph'), 'mg', false);
 
-const banner = `// AUTO-GENERATED from assets/markers/icons — 편집 금지(재생성: node scripts/gen-marker-svgs.js).
+// 지도 마커 전용 글리프(assets/markers/glyph) — 등급별 폴더 + 줌아웃 별.
+// 키: '<tier>/<name>' (common은 tier 없이 name). filter-* 는 제외(지도 마커 아님).
+// 등급 글로우 gradient id(tg-legendary 등)가 파일마다 중복 → 등급+이름으로 네임스페이스.
+function processMapGlyphs() {
+  const base = path.join(ROOT, 'assets', 'markers', 'glyph');
+  const tiers = [
+    ['', base],
+    ['legendary/', path.join(base, 'tiers', 'legendary')],
+    ['heroic/', path.join(base, 'tiers', 'heroic')],
+    ['rare/', path.join(base, 'tiers', 'rare')],
+  ];
+  const entries = [];
+  for (const [prefix, dir] of tiers) {
+    if (!fs.existsSync(dir)) continue;
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => /^(detail-|star-)/.test(f) && f.endsWith('.svg'))
+      .sort();
+    for (const f of files) {
+      const name = f.replace(/\.svg$/, '');
+      const key = prefix + name;
+      let xml = fs.readFileSync(path.join(dir, f), 'utf8').trim();
+      xml = namespaceIds(xml, `gm${key.replace(/[^a-z0-9]/gi, '')}_`);
+      xml = fixRgbaStops(xml);
+      xml = xml.replace(/\r?\n/g, '');
+      entries.push(`  '${key}': ${JSON.stringify(xml)},`);
+    }
+  }
+  return entries;
+}
+
+const mapGlyphs = processMapGlyphs();
+
+const banner = `// AUTO-GENERATED from assets/markers — 편집 금지(재생성: node scripts/gen-marker-svgs.js).
 // 코인: 드롭섀도 필터 제거됨(래퍼가 RN shadow로 재현), id 네임스페이스 처리.
 /* eslint-disable */
 export const MARKER_COIN: Record<string, string> = {
@@ -72,7 +105,14 @@ ${coins.join('\n')}
 export const MARKER_GLYPH: Record<string, string> = {
 ${glyphs.join('\n')}
 };
+
+// 지도 마커(라이트 지도 위 직접) — 등급 글로우 내장. 키 '<tier>/<name>'(common=name).
+export const MAP_GLYPH: Record<string, string> = {
+${mapGlyphs.join('\n')}
+};
 `;
 
 fs.writeFileSync(OUT, banner);
-console.log(`wrote ${OUT} (coins ${coins.length}, glyphs ${glyphs.length})`);
+console.log(
+  `wrote ${OUT} (coins ${coins.length}, glyphs ${glyphs.length}, mapGlyphs ${mapGlyphs.length})`
+);

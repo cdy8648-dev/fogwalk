@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+
+<circle fill="#8B7CFF" fill-opacity=".13" cx="100" cy="100" r="66"></circle>
+<circle fill="none" stroke="#8B7CFF" stroke-opacity=".35" stroke-width="4" cx="100" cy="100" r="66"></circle>
+<path fill="#8B7CFF" transform="translate(100 100) scale(0.72) translate(-100 -100)" d="M100,34 C105,79 112,88 160,100 C112,112 105,121 100,166 C95,121 88,112 40,100 C88,88 95,79 100,34 Z"></path>
+<path fill="#8B7CFF" fill-opacity=".85" d="M148,52 l3,8 8,3 -8,3 -3,8 -3,-8 -8,-3 8,-3 Z"></path>
+<path fill="#8B7CFF" fill-opacity=".7" d="M52,140 l2.5,7 7,2.5 -7,2.5 -2.5,7 -2.5,-7 -7,-2.5 7,-2.5 Z"></path>
+</svg>

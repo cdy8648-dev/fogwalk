@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<defs><radialGradient id="tg-heroic" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#8B7CFF" stop-opacity=".55"></stop><stop offset="60%" stop-color="#8B7CFF" stop-opacity=".22"></stop><stop offset="100%" stop-color="#8B7CFF" stop-opacity="0"></stop></radialGradient></defs>
+<circle cx="100" cy="100" r="86" fill="url(#tg-heroic)"></circle>
+
+<circle fill="#1D2748" cx="92" cy="86" r="30"></circle>
+<circle fill="#8B7CFF" cx="122" cy="102" r="17"></circle>
+<rect fill="#1D2748" x="86" y="110" width="12" height="28" rx="4"></rect>
+<rect fill="#1D2748" x="58" y="138" width="84" height="8" rx="4"></rect>
+</svg>
