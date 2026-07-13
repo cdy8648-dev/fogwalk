@@ -32,28 +32,30 @@ interface Pack {
 }
 
 let pack: Pack | null = null;
-let cellMap: Map<string, number> | null = null;
 
 function load(): Pack {
-  if (!pack) {
-    // 지연 로드 — 0.9MB JSON 파싱을 첫 사용 시점으로 미룸
-    pack = require('../constants/regionPacks/kr.json') as Pack;
-    cellMap = new Map(Object.entries(pack.cells));
-  }
+  // 지연 로드 — 0.9MB JSON 파싱을 첫 사용 시점으로 미룸. require 캐시된 object를
+  // 그대로 조회(Map 재생성 없음) → 백그라운드 깨움마다 드는 비용 제거.
+  if (!pack) pack = require('../constants/regionPacks/kr.json') as Pack;
   return pack;
 }
 
-/** 타일(res10) → 지역. fine→coarse 부모 순회(compact 구조상 모호성 없음). 팩 밖이면 null. */
+/** 타일 → 지역 인덱스(fine→coarse 부모 순회). 팩 밖이면 -1. */
+function tileToL2Idx(p: Pack, tile: string): number {
+  for (let res = p.resMax; res >= p.resMin; res--) {
+    const idx = p.cells[cellToParent(tile, res)];
+    if (idx != null) return idx;
+  }
+  return -1;
+}
+
+/** 타일(res10) → 지역. compact 구조상 모호성 없음. 팩 밖이면 null. */
 export function lookupTile(tile: string): { l1: string; l2: string } | null {
   const p = load();
-  for (let res = p.resMax; res >= p.resMin; res--) {
-    const idx = cellMap!.get(cellToParent(tile, res));
-    if (idx != null) {
-      const l2 = p.level2[idx];
-      return { l1: p.level1[l2.l1].key, l2: l2.name };
-    }
-  }
-  return null;
+  const idx = tileToL2Idx(p, tile);
+  if (idx < 0) return null;
+  const l2 = p.level2[idx];
+  return { l1: p.level1[l2.l1].key, l2: l2.name };
 }
 
 /**
@@ -66,12 +68,8 @@ export function attributeRevealedTiles(tiles: string[]): void {
   const byL2 = new Map<number, number>();
   let miss = 0;
   for (const t of tiles) {
-    let idx: number | undefined;
-    for (let res = p.resMax; res >= p.resMin; res--) {
-      idx = cellMap!.get(cellToParent(t, res));
-      if (idx != null) break;
-    }
-    if (idx == null) miss++;
+    const idx = tileToL2Idx(p, t);
+    if (idx < 0) miss++;
     else byL2.set(idx, (byL2.get(idx) ?? 0) + 1);
   }
 
@@ -99,12 +97,8 @@ export function rebuildKRStatsOnce(): void {
   let krTotal = 0;
   const p = load();
   for (const { tileId, ts } of all) {
-    let idx: number | undefined;
-    for (let res = p.resMax; res >= p.resMin; res--) {
-      idx = cellMap!.get(cellToParent(tileId, res));
-      if (idx != null) break;
-    }
-    if (idx == null) continue;
+    const idx = tileToL2Idx(p, tileId);
+    if (idx < 0) continue;
     krTotal++;
     const cur = agg.get(idx);
     if (!cur) agg.set(idx, { n: 1, first: ts });
