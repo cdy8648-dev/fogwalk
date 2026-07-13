@@ -4,6 +4,7 @@ import { CONFIG } from '../constants/config';
 import { getSetting } from '../services/db';
 import { centerBreadcrumbFence, getBreadcrumbFix, GEOFENCE_TASK } from '../services/gps';
 import { processFixes } from '../services/locationPipeline';
+import { wakeIfSleeping } from '../services/trackingSleep';
 
 // 본추적(locationTask)이 최근에 픽스를 처리했으면 브레드크럼은 중복 — GPS 원샷 낭비 방지.
 // 차량 주행 시 250m마다(시간당 240회) 추가 GPS 조회를 하던 것이 배터리 가중 요인이었다.
@@ -21,6 +22,9 @@ TaskManager.defineTask(GEOFENCE_TASK, async ({ error }) => {
     return;
   }
   try {
+    // 정지 슬립으로 GPS를 꺼뒀다면 — 움직이기 시작했다는 신호이니 본추적 재개
+    await wakeIfSleeping(false);
+
     // 본추적이 살아있으면(최근 픽스 있음) 스킵 — 종료/중단된 경우에만 브레드크럼 가동
     const lastFixAt = Number(getSetting('last_fix_at') ?? 0);
     if (Date.now() - lastFixAt < TRACKING_ALIVE_MS) return;

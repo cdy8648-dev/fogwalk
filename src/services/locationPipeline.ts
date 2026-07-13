@@ -10,6 +10,7 @@ import { checkLandmarkDiscoveries } from './discovery';
 import { centerBreadcrumbFence } from './gps';
 import { ensureLandmarksFetched } from './landmarks';
 import { recordMovement, refreshProgressStore } from './progress';
+import { noteFixForSleep } from './trackingSleep';
 
 // 브레드크럼 펜스를 이동에 맞춰 따라 옮김(반경 초과 시만) — GPS 조회 없는 재등록이라 저비용.
 // 본추적 생존 중 펜스가 수십 km 뒤에 남으면, 이후 앱 종료 시 이탈 이벤트가 영영 안 온다.
@@ -72,6 +73,8 @@ export function processFixes(
     }
     // 지오펜스 브레드크럼 중복 방지용 — 본추적 생존 신호
     setSetting('last_fix_at', String(Date.now()));
+    // 정지 슬립 판정(백그라운드 정지 지속 시 GPS 종료 — 수면 배터리 대책)
+    noteFixForSleep(last.lat, last.lng);
     // 펜스 추종 — 종료 대비 브레드크럼이 항상 현재 위치 주변에서 대기하도록
     if (!fenceCenter || haversineMeters(fenceCenter, last) > CONFIG.FENCE_RADIUS_M) {
       fenceCenter = last;

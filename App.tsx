@@ -21,6 +21,7 @@ import { checkBadges, flushPendingBadgePopups } from './src/services/badges';
 import { flushPendingDiscoveries } from './src/services/discovery';
 import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
 import { checkRecap } from './src/services/recap';
+import { wakeIfSleeping } from './src/services/trackingSleep';
 import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
 import { useLandmarkStore } from './src/store/landmarkStore';
@@ -83,7 +84,7 @@ export default function App() {
     checkBadges('photo');
     flushPendingDiscoveries(); // 백그라운드/이전 세션 발견 → 요약 카드
     flushPendingBadgePopups(); // 백그라운드/이전 세션 뱃지 획득 → 보상 카드 (발견 뒤에 이어짐)
-    checkRecap(); // 탐험 일지(별자리) 도착 확인 — 편지함 뱃지 + 도착 토스트
+    void checkRecap(); // 탐험 일지(별자리) 도착 확인 — 편지함 뱃지 + 도착 토스트
     void migrateDiscoveryDisplayNames(); // 현지어로 저장된 발견 이름 → 유저 언어로 보강(백그라운드)
     setReady(true);
   }, []);
@@ -91,14 +92,17 @@ export default function App() {
   // 포그라운드 복귀 시, 백그라운드에서 쌓인 타일·진행도를 반영
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
-      // 위치 전달 프로파일: 포그라운드=즉시(지도 실시간), 백그라운드=60s 배칭(발열 대책)
-      void setTrackingDeferral(next !== 'active');
+      // 정지 슬립 해제(있다면) → 전달 프로파일 전환: 포그라운드=즉시, 백그라운드=60s 배칭
+      void (async () => {
+        await wakeIfSleeping(next === 'active');
+        await setTrackingDeferral(next !== 'active');
+      })().catch(() => {});
       if (next === 'active') {
         useMapStore.getState().hydrate();
         refreshProgressStore();
         flushPendingDiscoveries(); // 백그라운드 발견 → 요약 카드
         flushPendingBadgePopups(); // 백그라운드 뱃지 획득 → 보상 카드
-        checkRecap(); // 탐험 일지 도착 확인
+        void checkRecap(); // 탐험 일지 도착 확인
         void refreshCountry(); // 해외 도착 등 먼 이동 시 국가 선제 감지
       }
     });

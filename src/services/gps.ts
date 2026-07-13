@@ -126,6 +126,13 @@ export async function stopBackgroundTracking(): Promise<void> {
   if (already) await Location.stopLocationUpdatesAsync(LOCATION_TASK);
 }
 
+/** 슬립 해제 재시작 — 꺼져 있을 때만. foreground=즉시 전달, 아니면 배칭 프로파일. */
+export async function resumeTracking(foreground: boolean): Promise<void> {
+  const started = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK);
+  if (started) return;
+  await startUpdates(foreground ? 0 : CONFIG.BG_DEFER_INTERVAL_MS);
+}
+
 // ── 브레드크럼 지오펜스 ─────────────────────────────────────────
 // 일반 백그라운드 추적은 앱이 (강제)종료되면 끝. 지오펜스 이탈/진입은 종료된 앱도
 // iOS가 다시 깨워줘서, 그 짧은 시간에 좌표 1점을 기록하고 펜스를 새 위치로 옮긴다.

@@ -117,11 +117,22 @@ function RecapShow({ data }: { data: RecapData }) {
   const { width: W, height: H } = useWindowDimensions();
   const close = useRecapStore((s) => s.close);
   const skyH = H * 0.52;
-  const project = useProjection(data.points, W, skyH);
+  // 세그먼트(외출 단위) — 투영·점등은 전체 평탄화 기준, 선은 세그먼트 안에서만
+  const flat = useMemo(() => data.segments.flat(), [data.segments]);
+  const segOffsets = useMemo(() => {
+    const out: number[] = [];
+    let acc = 0;
+    for (const seg of data.segments) {
+      out.push(acc);
+      acc += seg.length;
+    }
+    return out;
+  }, [data.segments]);
+  const project = useProjection(flat, W, skyH);
 
   const [visible, setVisible] = useState(1); // 점등된 점 수
   const [phase, setPhase] = useState<'draw' | 'stats'>('draw');
-  const done = visible >= data.points.length;
+  const done = visible >= flat.length;
 
   // 별자리 점등 타이머
   useEffect(() => {
@@ -151,12 +162,8 @@ function RecapShow({ data }: { data: RecapData }) {
     }))
   ).current;
 
-  const shown = data.points.slice(0, visible);
+  const shown = flat.slice(0, visible);
   const currentTs = shown[shown.length - 1]?.ts ?? 0;
-  const polyPoints = shown.map((p) => {
-    const { x, y } = project(p);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
 
   const heroLm = data.landmarks[0]; // 최고 등급 발견(자막용)
 
@@ -170,7 +177,7 @@ function RecapShow({ data }: { data: RecapData }) {
       {/* 하늘 영역 탭 → 빨리감기 */}
       <Pressable
         style={StyleSheet.absoluteFill}
-        onPress={() => phase === 'draw' && setVisible(data.points.length)}
+        onPress={() => phase === 'draw' && setVisible(flat.length)}
       />
 
       {/* 헤더 */}
@@ -191,29 +198,40 @@ function RecapShow({ data }: { data: RecapData }) {
           <Twinkle key={i} {...t} />
         ))}
         <Svg width={W} height={skyH}>
-          {/* 경로 글로우 + 본선 */}
-          {shown.length >= 2 && (
-            <>
-              <Polyline
-                points={polyPoints}
-                fill="none"
-                stroke={COLORS.lime}
-                strokeWidth={5}
-                strokeOpacity={0.14}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-              <Polyline
-                points={polyPoints}
-                fill="none"
-                stroke="#F4EFE6"
-                strokeWidth={1.4}
-                strokeOpacity={0.6}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            </>
-          )}
+          {/* 경로 글로우 + 본선 — 세그먼트(외출) 안에서만 선을 긋는다 */}
+          {data.segments.map((seg, si) => {
+            const count = Math.max(0, Math.min(visible - segOffsets[si], seg.length));
+            if (count < 2) return null;
+            const pts = seg
+              .slice(0, count)
+              .map((p) => {
+                const { x, y } = project(p);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+              })
+              .join(' ');
+            return (
+              <G key={`seg-${si}`}>
+                <Polyline
+                  points={pts}
+                  fill="none"
+                  stroke={COLORS.lime}
+                  strokeWidth={5}
+                  strokeOpacity={0.14}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                <Polyline
+                  points={pts}
+                  fill="none"
+                  stroke="#F4EFE6"
+                  strokeWidth={1.4}
+                  strokeOpacity={0.6}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </G>
+            );
+          })}
           {/* 별점 */}
           {shown.map((p, i) => {
             const { x, y } = project(p);
