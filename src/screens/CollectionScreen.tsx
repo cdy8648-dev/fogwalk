@@ -14,6 +14,7 @@ import { FONT } from '../constants/fonts';
 import { CategoryCoin, CategoryGlyph } from '../components/CategoryIcon';
 import { CATEGORY_ICON, FILTER_ICON } from '../constants/categoryIcons';
 import { landmarkDisplayName, rarityColor, rarityLabel } from '../constants/landmarks';
+import { dedupLandmarks } from '../utils/landmarkDedup';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { getAllCountryStats } from '../services/db';
 import { useLandmarkStore } from '../store/landmarkStore';
@@ -60,7 +61,8 @@ export default function CollectionScreen() {
   const nav = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const photos = usePhotoStore((s) => s.photos);
-  const landmarks = useLandmarkStore((s) => s.discovered);
+  const discovered = useLandmarkStore((s) => s.discovered);
+  const landmarks = useMemo(() => dedupLandmarks(discovered), [discovered]);
   const fogVersion = useMapStore((s) => s.fogVersion);
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);

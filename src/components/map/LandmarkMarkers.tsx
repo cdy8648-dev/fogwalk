@@ -7,6 +7,7 @@ import { landmarkDisplayName, rarityLabel } from '../../constants/landmarks';
 import { MapMarkerGlyph, MapStar } from '../CategoryIcon';
 import { useLandmarkStore } from '../../store/landmarkStore';
 import type { Landmark } from '../../types';
+import { dedupLandmarks } from '../../utils/landmarkDedup';
 
 interface Props {
   full: boolean; // true=글리프(줌인), false=별(줌아웃)
@@ -38,7 +39,7 @@ export default function LandmarkMarkers({
   const discovered = useLandmarkStore((s) => s.discovered);
   const landmarks = useMemo(
     () =>
-      discovered.filter((l) => {
+      dedupLandmarks(discovered).filter((l) => {
         if (l.category === 'subway') return showSubway;
         const r = l.rarity ?? 'common';
         if (r === 'legendary') return true;
@@ -49,7 +50,8 @@ export default function LandmarkMarkers({
     [discovered, showSubway, showCommon, showRare, showEpic]
   );
 
-  const starSize = mid ? 14 : 8;
+  // 줌아웃 별 (내부 글로우 링이 뷰박스 66%라 실제 별은 더 작아 보임 → 넉넉히)
+  const starSize = mid ? 22 : 13;
 
   return (
     <>

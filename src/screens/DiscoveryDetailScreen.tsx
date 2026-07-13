@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { CategoryCoin, CategoryGlyph } from '../components/CategoryIcon';
 import EmptyHint from '../components/ui/EmptyHint';
+import { dedupLandmarks } from '../utils/landmarkDedup';
 import { CATEGORY_ICON, FILTER_ICON } from '../constants/categoryIcons';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
@@ -33,7 +34,8 @@ function matches(lm: Landmark, f: DiscoveryFilter): boolean {
 type Props = NativeStackScreenProps<CollectionStackParamList, 'DiscoveryDetail'>;
 
 export default function DiscoveryDetailScreen({ route }: Props) {
-  const landmarks = useLandmarkStore((s) => s.discovered);
+  const discovered = useLandmarkStore((s) => s.discovered);
+  const landmarks = useMemo(() => dedupLandmarks(discovered), [discovered]);
   const [filter, setFilter] = useState<DiscoveryFilter>(route.params?.filter ?? 'all');
 
   const shown = landmarks.filter((lm) => matches(lm, filter));
