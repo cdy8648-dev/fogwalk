@@ -21,13 +21,13 @@ const P = {
 };
 
 export interface RegionRowData {
-  name: string; // 서울특별시
+  name: string; // 서울 (H3 팩 정규화 키)
   en: string | null; // SEOUL (한국 외 null)
-  pct: number | null; // 면적 대비 달성률 (미상 null)
+  pct: number | null; // 달성률 (KR=팩 타일 기준, 미상 null)
   pctText: string | null; // '0.04%'
   tiles: number;
   remainingTiles: number | null; // pct≥80 코멘트용
-  subs: { region: string; tiles: number }[]; // 시/구, 칸수 내림차순
+  subs: { region: string; tiles: number; pctText: string | null }[]; // 시/군/구, 칸수 내림차순
 }
 
 interface Props {
@@ -120,7 +120,8 @@ export default function RegionStampRow({ data, top, rotate, barRatio, expanded, 
             <View style={styles.subSummaryRow}>
               {subSummary.map((s) => (
                 <Text key={s.region} style={styles.subSummary} numberOfLines={1}>
-                  {s.region} <Text style={styles.subSummaryNum}>{abbrev(s.tiles)}</Text>
+                  {s.region}{' '}
+                  <Text style={styles.subSummaryNum}>{s.pctText ?? abbrev(s.tiles)}</Text>
                 </Text>
               ))}
             </View>
@@ -138,7 +139,10 @@ export default function RegionStampRow({ data, top, rotate, barRatio, expanded, 
               <Text style={styles.subName} numberOfLines={1}>
                 {s.region}
               </Text>
-              <Text style={styles.subNum}>{abbrev(s.tiles)}칸</Text>
+              <Text style={styles.subNum}>
+                {s.pctText ? `${s.pctText} · ` : ''}
+                {abbrev(s.tiles)}칸
+              </Text>
             </View>
           ))}
         </View>

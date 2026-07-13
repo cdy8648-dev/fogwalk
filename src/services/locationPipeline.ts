@@ -10,6 +10,7 @@ import { checkLandmarkDiscoveries } from './discovery';
 import { centerBreadcrumbFence } from './gps';
 import { ensureLandmarksFetched } from './landmarks';
 import { recordMovement, refreshProgressStore } from './progress';
+import { attributeRevealedTiles } from './regionPack';
 import { noteFixForSleep } from './trackingSleep';
 
 // 브레드크럼 펜스를 이동에 맞춰 따라 옮김(반경 초과 시만) — GPS 조회 없는 재등록이라 저비용.
@@ -56,7 +57,8 @@ export function processFixes(
     }
 
     const fresh = insertVisitedTiles([...new Set(tiles)]);
-    recordMovement(f.lat, f.lng, f.speed, fresh.length); // 거리·스트릭·XP·국가적립(캐시)
+    recordMovement(f.lat, f.lng, f.speed, fresh.length); // 거리·스트릭·XP
+    if (fresh.length) attributeRevealedTiles(fresh); // 여권 적립 — H3 팩 O(1)/타일
     checkLandmarkDiscoveries(f.lat, f.lng); // 근접 발견 (인덱스드 bbox — 저비용)
     if (fresh.length) freshAll.push(...fresh);
     prev = { lat: f.lat, lng: f.lng };

@@ -1,7 +1,7 @@
 import { useMapStore } from '../store/mapStore';
-import { attributeTiles } from './country';
 import { getProgress, insertVisitedTiles, updateProgress } from './db';
 import { refreshProgressStore } from './progress';
+import { attributeRevealedTiles } from './regionPack';
 
 /**
  * 잉크 소비 도메인. 잉크로 안개 타일을 밝힌다(연필 핀에서).
@@ -15,7 +15,7 @@ export function clearFogWithInk(tiles: string[], cost: number): 'ok' | 'no-ink' 
   const fresh = insertVisitedTiles(tiles);
   if (fresh.length > 0) {
     useMapStore.getState().addVisitedTiles(fresh); // fogVersion 증가 → 안개 즉시 갱신
-    attributeTiles(fresh.length); // 여권(국가/시도/시구) 적립
+    attributeRevealedTiles(fresh); // 여권 적립 — H3 팩 판정
   }
   updateProgress({ ink: p.ink - cost });
   refreshProgressStore(); // HUD 잉크 뱃지 갱신

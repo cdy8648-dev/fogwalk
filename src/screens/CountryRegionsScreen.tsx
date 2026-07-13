@@ -20,6 +20,7 @@ import {
 } from '../constants/regionAreas';
 import type { CollectionStackParamList } from '../navigation/CollectionStack';
 import { getAllCountryStats, getRegionStats, getSubregionStats } from '../services/db';
+import { l1TotalTiles, l2TotalTiles } from '../services/regionPack';
 import { useMapStore } from '../store/mapStore';
 import { haversineMeters } from '../utils/distance';
 import { COLORS } from '../constants/colors';
@@ -63,12 +64,17 @@ export default function CountryRegionsScreen({ route }: Props) {
   }, [nav]);
 
   // 지역 행 데이터: 달성률·영문명·하위 시(칸수 내림차순) 붙여서 진행률 내림차순 정렬.
+  // KR은 H3 팩 분모(타일 단위 — 분자와 같은 통화)로 계산, 그 외는 면적(km²) 폴백.
   const rows: RegionRowData[] = useMemo(
     () =>
       getRegionStats(code)
         .map((r) => {
+          const packTotal = code === 'KR' ? l1TotalTiles(r.region) : null;
           const area = regionAreaKm2(code, r.region);
-          const pct = completionPct(r.tiles, area);
+          const pct =
+            packTotal != null && packTotal > 0
+              ? (r.tiles / packTotal) * 100
+              : completionPct(r.tiles, area);
           return {
             name: r.region,
             en: regionEnName(code, r.region),
@@ -76,8 +82,23 @@ export default function CountryRegionsScreen({ route }: Props) {
             pctText: pct != null ? formatPct(pct) : null,
             tiles: r.tiles,
             remainingTiles:
-              area != null ? Math.max(0, Math.round(area / TILE_AREA_KM2) - r.tiles) : null,
-            subs: [...getSubregionStats(code, r.region)].sort((a, b) => b.tiles - a.tiles),
+              packTotal != null
+                ? Math.max(0, packTotal - r.tiles)
+                : area != null
+                  ? Math.max(0, Math.round(area / TILE_AREA_KM2) - r.tiles)
+                  : null,
+            subs: [...getSubregionStats(code, r.region)]
+              .sort((a, b) => b.tiles - a.tiles)
+              .map((s) => {
+                const subTotal = code === 'KR' ? l2TotalTiles(s.region) : null;
+                const subPct =
+                  subTotal != null && subTotal > 0 ? (s.tiles / subTotal) * 100 : null;
+                return {
+                  region: s.region,
+                  tiles: s.tiles,
+                  pctText: subPct != null ? formatPct(subPct) : null,
+                };
+              }),
           };
         })
         .sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.tiles - a.tiles),

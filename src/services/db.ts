@@ -722,7 +722,8 @@ export function getAllCountryStats(): CountryStat[] {
 export function upsertRegionTiles(
   countryCode: string,
   region: string,
-  addTiles: number
+  addTiles: number,
+  firstVisitedAt: number = Date.now() // 소급 재계산 시 실제 최초 방문 시각 지정
 ): void {
   db.runSync(
     `INSERT INTO region_stats (country_code, region, tiles, first_visited_at)
@@ -731,7 +732,7 @@ export function upsertRegionTiles(
     countryCode,
     region,
     addTiles,
-    Date.now()
+    firstVisitedAt
   );
 }
 
@@ -757,7 +758,8 @@ export function upsertSubregionTiles(
   countryCode: string,
   region: string,
   subregion: string,
-  addTiles: number
+  addTiles: number,
+  firstVisitedAt: number = Date.now()
 ): void {
   db.runSync(
     `INSERT INTO subregion_stats (country_code, region, subregion, tiles, first_visited_at)
@@ -767,6 +769,25 @@ export function upsertSubregionTiles(
     region,
     subregion,
     addTiles,
+    firstVisitedAt
+  );
+}
+
+/** 특정 국가의 시/도·시/군/구 통계 초기화 — H3 팩 소급 재계산용. */
+export function clearCountryRegionStats(countryCode: string): void {
+  db.runSync('DELETE FROM region_stats WHERE country_code = ?', countryCode);
+  db.runSync('DELETE FROM subregion_stats WHERE country_code = ?', countryCode);
+}
+
+/** 국가 타일 수를 정확값으로 설정(가산 아님) — 소급 재계산용. */
+export function setCountryTiles(code: string, name: string, tiles: number): void {
+  db.runSync(
+    `INSERT INTO country_stats (code, name, tiles, first_visited_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(code) DO UPDATE SET tiles = excluded.tiles`,
+    code,
+    name,
+    tiles,
     Date.now()
   );
 }

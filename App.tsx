@@ -21,6 +21,7 @@ import { checkBadges, flushPendingBadgePopups } from './src/services/badges';
 import { flushPendingDiscoveries } from './src/services/discovery';
 import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
 import { checkRecap } from './src/services/recap';
+import { rebuildKRStatsOnce } from './src/services/regionPack';
 import { wakeIfSleeping } from './src/services/trackingSleep';
 import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
 import { useAchievementStore } from './src/store/achievementStore';
@@ -68,6 +69,7 @@ export default function App() {
 
   useEffect(() => {
     initDatabase(); // DB 준비
+    rebuildKRStatsOnce(); // H3 팩 도입 1회: 과거 KR 적립을 정확한 시군구로 재집계
     hydrateCountry(); // 마지막 국가 복원(즉시 적립 가능)
     useMapStore.getState().hydrate(); // DB → Set 복원
     useAchievementStore.getState().hydrate(); // DB → 해금 뱃지 복원(중복알림 방지)

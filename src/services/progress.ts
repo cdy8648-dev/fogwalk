@@ -6,7 +6,6 @@ import { haversineMeters } from '../utils/distance';
 import { modeWeight } from '../utils/mode';
 import { levelProgress, xpForMovement } from '../utils/xp';
 import { checkBadges } from './badges';
-import { attributeTiles } from './country';
 import {
   getDailyStatsByDate,
   getProgress,
@@ -93,10 +92,7 @@ export function recordMovement(
   if (segment > 0 || newTiles > 0) {
     upsertDailyStats(today, segment, newTiles);
   }
-
-  // 여권: 신규 타일을 캐시된 국가/권역에 적립 (국가 재판별·OSM 조회·발견 체크는
-  // locationPipeline 담당 — 백그라운드 네트워크 금지 정책)
-  if (newTiles > 0) attributeTiles(newTiles);
+  // 여권 적립·발견 체크·OSM 조회는 locationPipeline 담당(타일 ID 단위 H3 팩 판정)
 }
 
 /** DB의 진행도를 userStore(표시용)로 반영. 앱 시작/포그라운드 복귀/이동 후 호출. */

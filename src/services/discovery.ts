@@ -9,8 +9,8 @@ import { useMapStore } from '../store/mapStore';
 import type { Landmark } from '../types';
 import { haversineMeters } from '../utils/distance';
 import { coordToTile, dilateTiles } from '../utils/h3';
-import { attributeTiles } from './country';
 import { checkBadges } from './badges';
+import { attributeRevealedTiles } from './regionPack';
 import { upgradeDiscoveryName } from './landmarkNames';
 import {
   getProgress,
@@ -67,7 +67,7 @@ function discover(lm: Landmark, now: number): void {
   const fresh = insertVisitedTiles(burst);
   if (fresh.length) {
     useMapStore.getState().addVisitedTiles(fresh);
-    attributeTiles(fresh.length);
+    attributeRevealedTiles(fresh); // 여권 적립 — H3 팩 판정
   }
 
   // 보상: 희귀도/유형 XP
