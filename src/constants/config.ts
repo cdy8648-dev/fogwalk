@@ -82,8 +82,8 @@ export const CONFIG = {
   PLACE_MEMO_MAX: 120,
 
   // 해외 지역팩 다운로드 (첫 방문 국가의 ADM1 팩을 GitHub raw에서 받아 로컬 캐시)
-  // 호스트: 공개 리포 raw. 브랜치는 팩을 커밋한 곳(기본 main). packs/<cc>.json + manifest.json.
-  REGION_PACK_HOST: 'https://raw.githubusercontent.com/cdy8648-dev/fogwalk/main/packs',
+  // 호스트: 공개 리포 raw. 브랜치는 팩을 커밋한 곳(리포 기본 브랜치=master). packs/<cc>.json + manifest.json.
+  REGION_PACK_HOST: 'https://raw.githubusercontent.com/cdy8648-dev/fogwalk/master/packs',
   // 이 크기(원본 JSON 바이트) 미만이면 첫 방문 시 무음 자동 다운로드. 이상이면 사용자 탭 유도
   // (진짜 대국=미국·중국만 해당. gzip 전송이라 통신량 자체는 작지만, 큰 파일 파싱·저장 인지).
   REGION_PACK_AUTO_MAX_BYTES: 1_000_000,
