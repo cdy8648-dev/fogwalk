@@ -64,12 +64,12 @@ export default function CountryRegionsScreen({ route }: Props) {
   }, [nav]);
 
   // 지역 행 데이터: 달성률·영문명·하위 시(칸수 내림차순) 붙여서 진행률 내림차순 정렬.
-  // KR은 H3 팩 분모(타일 단위 — 분자와 같은 통화)로 계산, 그 외는 면적(km²) 폴백.
+  // 팩 보유국(KR·다운로드한 해외)은 H3 팩 분모(타일 단위 — 분자와 같은 통화)로, 그 외는 면적(km²) 폴백.
   const rows: RegionRowData[] = useMemo(
     () =>
       getRegionStats(code)
         .map((r) => {
-          const packTotal = code === 'KR' ? l1TotalTiles(r.region) : null;
+          const packTotal = l1TotalTiles(code, r.region);
           const area = regionAreaKm2(code, r.region);
           const pct =
             packTotal != null && packTotal > 0
@@ -90,7 +90,7 @@ export default function CountryRegionsScreen({ route }: Props) {
             subs: [...getSubregionStats(code, r.region)]
               .sort((a, b) => b.tiles - a.tiles)
               .map((s) => {
-                const subTotal = code === 'KR' ? l2TotalTiles(s.region) : null;
+                const subTotal = l2TotalTiles(code, s.region);
                 const subPct =
                   subTotal != null && subTotal > 0 ? (s.tiles / subTotal) * 100 : null;
                 return {

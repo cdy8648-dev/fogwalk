@@ -24,13 +24,13 @@ export const CATEGORY_ICON: Record<LandmarkCategory, string> = {
   other: 'detail-pin',
 };
 
-/** 발견 상세 필터 칩용 코인 (현행 필터 체계 기준). */
+/** 발견 필터 칩·타일용 코인 — 전체 + 4대분류(건축·문화/자연/교통/기타). */
 export const FILTER_ICON: Record<DiscoveryFilter, string> = {
   all: 'filter-all',
-  park: 'detail-park',
-  landmark: 'filter-culture',
-  peak: 'detail-mountain',
-  subway: 'detail-metro',
+  culture: 'filter-culture',
+  nature: 'filter-nature',
+  transport: 'filter-transport',
+  etc: 'filter-etc',
 };
 
 /** 글리프 배경원 색 (에셋 README 규칙 — 라이트 배경 단독 사용 금지). */

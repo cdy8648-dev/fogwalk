@@ -1,0 +1,62 @@
+{
+  "AU": {
+    "bytes": 636306,
+    "regions": 9
+  },
+  "CN": {
+    "bytes": 1474420,
+    "regions": 34
+  },
+  "DE": {
+    "bytes": 194777,
+    "regions": 16
+  },
+  "ES": {
+    "bytes": 214497,
+    "regions": 19
+  },
+  "FR": {
+    "bytes": 217266,
+    "regions": 13
+  },
+  "GB": {
+    "bytes": 132680,
+    "regions": 4
+  },
+  "ID": {
+    "bytes": 847301,
+    "regions": 34
+  },
+  "JP": {
+    "bytes": 364914,
+    "regions": 47
+  },
+  "MY": {
+    "bytes": 141080,
+    "regions": 16
+  },
+  "PH": {
+    "bytes": 271052,
+    "regions": 17
+  },
+  "SG": {
+    "bytes": 2948,
+    "regions": 5
+  },
+  "TH": {
+    "bytes": 401357,
+    "regions": 77
+  },
+  "TW": {
+    "bytes": 54922,
+    "regions": 22
+  },
+  "US": {
+    "bytes": 1810424,
+    "regions": 56
+  },
+  "VN": {
+    "bytes": 279316,
+    "regions": 64
+  }
+}

@@ -28,6 +28,8 @@ import PhotoMarkers from '../components/map/PhotoMarkers';
 import PlaceMarkers from '../components/map/PlaceMarkers';
 import PlaceFloatingCard from '../components/place/PlaceFloatingCard';
 import PlaceEditorSheet from '../components/place/PlaceEditorSheet';
+import { PlaceIcon } from '../components/place/PlaceIcon';
+import RegionPackChip from '../components/map/RegionPackChip';
 import PhotoViewer from '../components/ui/PhotoViewer';
 import Tape from '../components/ui/Tape';
 import { COLORS } from '../constants/colors';
@@ -380,7 +382,7 @@ export default function MapScreen() {
             }}
           >
             <View style={styles.movePin}>
-              <Text style={styles.movePinEmoji}>{movingPlace.emoji}</Text>
+              <PlaceIcon value={movingPlace.emoji} size={26} />
             </View>
           </PointAnnotation>
         )}
@@ -578,13 +580,14 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* 대형 해외 지역팩 보류 칩 (이동 중이 아닐 때만 — 위치 겹침 방지) */}
+      {!movingPlace && <RegionPackChip />}
+
       {/* 위치 이동 확인 바 */}
       {movingPlace && (
         <View style={[styles.moveBar, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
           <View style={styles.moveBarCard}>
-            <Text style={styles.moveBarText}>
-              {movingPlace.emoji} 핀을 끌어서 위치를 조정하세요
-            </Text>
+            <Text style={styles.moveBarText}>핀을 끌어서 위치를 조정하세요</Text>
             <View style={styles.moveBarBtns}>
               <TouchableOpacity
                 style={[styles.moveBtn, styles.moveBtnPrimary]}
@@ -762,13 +765,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.land, // 밝은 배경 — 잉크색 글리프 가독성
     borderWidth: 2.5,
     borderColor: COLORS.lime, // 이동 중 = 라임 (확정 전 강조)
     alignItems: 'center',
     justifyContent: 'center',
   },
-  movePinEmoji: { fontSize: 19 },
   moveBar: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   moveBarCard: {
     backgroundColor: COLORS.surface,

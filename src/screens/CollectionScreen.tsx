@@ -13,7 +13,14 @@ import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
 import { CategoryCoin, CategoryGlyph } from '../components/CategoryIcon';
 import { CATEGORY_ICON, FILTER_ICON } from '../constants/categoryIcons';
-import { landmarkDisplayName, rarityColor, rarityLabel } from '../constants/landmarks';
+import {
+  CATEGORY_GROUP,
+  DISCOVERY_GROUPS,
+  GROUP_LABEL,
+  landmarkDisplayName,
+  rarityColor,
+  rarityLabel,
+} from '../constants/landmarks';
 import { dedupLandmarks } from '../utils/landmarkDedup';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { getAllCountryStats } from '../services/db';
@@ -69,20 +76,14 @@ export default function CollectionScreen() {
 
   const countries = useMemo(() => getAllCountryStats(), [fogVersion]);
 
-  const parkCount = landmarks.filter((l) => l.category === 'park').length;
-  const peakCount = landmarks.filter((l) => l.category === 'peak').length;
-  const subwayCount = landmarks.filter((l) => l.category === 'subway').length;
-  const discTiles: { name: string; count: number; rot: number; filter: DiscoveryFilter }[] = [
-    { name: '공원', count: parkCount, rot: -1.5, filter: 'park' },
-    {
-      name: '랜드마크',
-      count: landmarks.length - parkCount - peakCount - subwayCount,
-      rot: 1.5,
-      filter: 'landmark',
-    },
-    { name: '산', count: peakCount, rot: -1, filter: 'peak' },
-    { name: '지하철', count: subwayCount, rot: 1, filter: 'subway' },
-  ];
+  const ROT = [-1.5, 1.5, -1, 1];
+  const discTiles: { name: string; count: number; rot: number; filter: DiscoveryFilter }[] =
+    DISCOVERY_GROUPS.map((g, i) => ({
+      name: GROUP_LABEL[g],
+      count: landmarks.filter((l) => CATEGORY_GROUP[l.category] === g).length,
+      rot: ROT[i],
+      filter: g,
+    }));
 
   const colA = photos.filter((_, i) => i % 2 === 0);
   const colB = photos.filter((_, i) => i % 2 === 1);

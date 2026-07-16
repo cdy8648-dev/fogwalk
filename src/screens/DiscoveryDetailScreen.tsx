@@ -8,7 +8,14 @@ import { dedupLandmarks } from '../utils/landmarkDedup';
 import { CATEGORY_ICON, FILTER_ICON } from '../constants/categoryIcons';
 import { COLORS } from '../constants/colors';
 import { FONT } from '../constants/fonts';
-import { landmarkDisplayName, rarityColor, rarityLabel } from '../constants/landmarks';
+import {
+  CATEGORY_GROUP,
+  DISCOVERY_GROUPS,
+  GROUP_LABEL,
+  landmarkDisplayName,
+  rarityColor,
+  rarityLabel,
+} from '../constants/landmarks';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { useLandmarkStore } from '../store/landmarkStore';
 import type { Landmark } from '../types';
@@ -16,19 +23,12 @@ import { formatDate } from '../utils/date';
 
 const FILTERS: { key: DiscoveryFilter; label: string }[] = [
   { key: 'all', label: '전체' },
-  { key: 'park', label: '공원' },
-  { key: 'landmark', label: '랜드마크' },
-  { key: 'peak', label: '산' },
-  { key: 'subway', label: '지하철' },
+  ...DISCOVERY_GROUPS.map((g) => ({ key: g, label: GROUP_LABEL[g] })),
 ];
 
 function matches(lm: Landmark, f: DiscoveryFilter): boolean {
   if (f === 'all') return true;
-  if (f === 'park') return lm.category === 'park';
-  if (f === 'peak') return lm.category === 'peak';
-  if (f === 'subway') return lm.category === 'subway';
-  // 'landmark' = 공원·산·지하철 외 나머지
-  return lm.category !== 'park' && lm.category !== 'peak' && lm.category !== 'subway';
+  return CATEGORY_GROUP[lm.category] === f;
 }
 
 type Props = NativeStackScreenProps<CollectionStackParamList, 'DiscoveryDetail'>;

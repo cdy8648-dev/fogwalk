@@ -14,7 +14,8 @@ import CelebrationOverlay from './src/components/CelebrationOverlay';
 import DiscoveryOverlayHost from './src/components/discovery/DiscoveryOverlayHost';
 import RecapOverlay from './src/components/recap/RecapOverlay';
 import { COLORS } from './src/constants/colors';
-import { hydrateCountry, refreshCountry } from './src/services/country';
+import { getCurrentCountry, hydrateCountry, refreshCountry } from './src/services/country';
+import { ensurePackForCountry, loadCachedPacks } from './src/services/regionPackDownload';
 import { initDatabase } from './src/services/db';
 import { setTrackingDeferral } from './src/services/gps';
 import { checkBadges, flushPendingBadgePopups } from './src/services/badges';
@@ -69,8 +70,14 @@ export default function App() {
 
   useEffect(() => {
     initDatabase(); // DB 준비
+    loadCachedPacks(); // 캐시된 해외 지역팩 등록(다음 적립부터 오프라인 정확 판정)
     rebuildKRStatsOnce(); // H3 팩 도입 1회: 과거 KR 적립을 정확한 시군구로 재집계
     hydrateCountry(); // 마지막 국가 복원(즉시 적립 가능)
+    // 복원된 국가가 해외인데 팩이 없으면 확보 시도(소형 자동 / 대형 보류 칩)
+    void (async () => {
+      const c = getCurrentCountry();
+      if (c) await ensurePackForCountry(c.code, c.name);
+    })();
     useMapStore.getState().hydrate(); // DB → Set 복원
     useAchievementStore.getState().hydrate(); // DB → 해금 뱃지 복원(중복알림 방지)
     backfillInkOnce(); // 잉크 도입 1회: 기존 거리에서 소급 지급
@@ -105,7 +112,12 @@ export default function App() {
         flushPendingDiscoveries(); // 백그라운드 발견 → 요약 카드
         flushPendingBadgePopups(); // 백그라운드 뱃지 획득 → 보상 카드
         void checkRecap(); // 탐험 일지 도착 확인
-        void refreshCountry(); // 해외 도착 등 먼 이동 시 국가 선제 감지
+        // 해외 도착 등 먼 이동 시 국가 선제 감지 → 새 국가면 지역팩 확보(포그라운드에서만)
+        void (async () => {
+          await refreshCountry();
+          const c = getCurrentCountry();
+          if (c) await ensurePackForCountry(c.code, c.name);
+        })();
       }
     });
     return () => sub.remove();

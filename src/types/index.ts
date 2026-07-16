@@ -33,6 +33,9 @@ export type LandmarkCategory =
   | 'port'
   | 'other';
 
+/** 발견 상위 4대분류 — 세부 카테고리를 묶는 그룹(필터/타일용). */
+export type DiscoveryGroup = 'culture' | 'nature' | 'transport' | 'etc';
+
 export interface Achievement {
   id: string;
   type: AchievementType;

@@ -8,8 +8,10 @@ import PassportDetailScreen from '../screens/PassportDetailScreen';
 import CountryRegionsScreen from '../screens/CountryRegionsScreen';
 import DiscoveryDetailScreen from '../screens/DiscoveryDetailScreen';
 
-// 발견 상세에서 처음 선택할 카테고리 필터 (콜라주 타일 탭 시 전달).
-export type DiscoveryFilter = 'all' | 'park' | 'landmark' | 'peak' | 'subway';
+import type { DiscoveryGroup } from '../types';
+
+// 발견 상세에서 처음 선택할 필터 (콜라주 타일 탭 시 전달). 4대분류 + 전체.
+export type DiscoveryFilter = 'all' | DiscoveryGroup;
 
 export type CollectionStackParamList = {
   CollectionHome: undefined;
