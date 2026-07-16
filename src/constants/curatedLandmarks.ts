@@ -4,6 +4,7 @@ import { TW_CURATED } from './curated/tw';
 import { TH_CURATED } from './curated/th';
 import { VN_CURATED } from './curated/vn';
 import { SG_CURATED } from './curated/sg';
+import { HK_CURATED } from './curated/hk';
 
 /**
  * 큐레이션 랜드마크 화이트리스트 — 국가별 파일의 인덱스 + 매칭 로직.
@@ -32,7 +33,7 @@ export interface CuratedLandmark {
 }
 
 /** 전체 큐레이션 — 국가별 파일을 여기에 합친다. */
-export const CURATED_LANDMARKS: CuratedLandmark[] = [...KR_CURATED, ...JP_CURATED, ...TW_CURATED, ...TH_CURATED, ...VN_CURATED, ...SG_CURATED];
+export const CURATED_LANDMARKS: CuratedLandmark[] = [...KR_CURATED, ...JP_CURATED, ...TW_CURATED, ...TH_CURATED, ...VN_CURATED, ...SG_CURATED, ...HK_CURATED];
 
 /** QID → 큐레이션 (OSM wikidata 태그 매칭, 최우선). */
 export const CURATED_BY_QID: Record<string, CuratedLandmark> = Object.fromEntries(
