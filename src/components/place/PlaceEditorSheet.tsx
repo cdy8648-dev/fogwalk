@@ -16,10 +16,10 @@ import {
 import { COLORS } from '../../constants/colors';
 import { CONFIG } from '../../constants/config';
 import { FONT } from '../../constants/fonts';
+import { DEFAULT_PLACE_ICON, PLACE_ICON_IDS, resolvePlaceIcon } from '../../constants/placeIcons';
 import { pickPlacePhoto, type PlaceDraft } from '../../services/places';
 import type { Place } from '../../types';
-
-const EMOJIS = ['🚩', '🏠', '❤️', '⭐', '🍜', '☕', '🌳', '🏞️', '🎣', '⛺', '🏋️', '🐶', '📚', '🎨', '🛒', '🎵'];
+import { PlaceIcon } from './PlaceIcon';
 
 interface Props {
   visible: boolean;
@@ -36,7 +36,8 @@ interface Props {
  * 주소는 저장 시 서비스가 역지오코딩으로 채운다(폼에서 입력받지 않음).
  */
 export default function PlaceEditorSheet({ visible, editing, ink, onSave, onClose }: Props) {
-  const [emoji, setEmoji] = useState(EMOJIS[0]);
+  // 저장 컬럼명은 레거시로 emoji지만 값은 아이콘 id('place-flag' 등).
+  const [emoji, setEmoji] = useState<string>(DEFAULT_PLACE_ICON);
   const [name, setName] = useState('');
   const [memo, setMemo] = useState('');
   // undefined=기존 유지, null=제거, string=새 임시 URI
@@ -45,7 +46,7 @@ export default function PlaceEditorSheet({ visible, editing, ink, onSave, onClos
   // 열릴 때마다 초기화 (수정이면 기존 값 채움)
   useEffect(() => {
     if (!visible) return;
-    setEmoji(editing?.emoji ?? EMOJIS[0]);
+    setEmoji(resolvePlaceIcon(editing?.emoji));
     setName(editing?.name ?? '');
     setMemo(editing?.memo ?? '');
     setPhoto(undefined);
@@ -77,16 +78,16 @@ export default function PlaceEditorSheet({ visible, editing, ink, onSave, onClos
               <Text style={styles.subtitle}>밝힌 땅에 잉크로 나만의 라벨을 남겨요</Text>
             )}
 
-            {/* 이모지 선택 */}
+            {/* 아이콘 선택 */}
             <View style={styles.emojiGrid}>
-              {EMOJIS.map((e) => (
+              {PLACE_ICON_IDS.map((id) => (
                 <TouchableOpacity
-                  key={e}
-                  style={[styles.emojiCell, emoji === e && styles.emojiCellOn]}
-                  onPress={() => setEmoji(e)}
+                  key={id}
+                  style={[styles.emojiCell, emoji === id && styles.emojiCellOn]}
+                  onPress={() => setEmoji(id)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.emojiText}>{e}</Text>
+                  <PlaceIcon value={id} size={28} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -185,14 +186,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.fogLight,
-    borderWidth: 1.5,
+    backgroundColor: COLORS.land, // 밝은 배경 — 잉크색 글리프가 지도(아이보리)에서처럼 읽히게
+    borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emojiCellOn: { borderColor: COLORS.violet, backgroundColor: 'rgba(139,124,255,0.15)' },
-  emojiText: { fontSize: 20 },
+  emojiCellOn: { borderColor: COLORS.violet },
   input: {
     backgroundColor: COLORS.fogLight,
     borderRadius: 12,

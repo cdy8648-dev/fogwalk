@@ -62,6 +62,11 @@ function processDir(dir, prefixTag, stripFilters) {
 const coins = processDir(SRC, 'mc', true);
 const glyphs = processDir(path.join(SRC, 'glyph'), 'mg', false);
 
+// 나만의 장소 아이콘 (assets/markers/place/place-*.svg) — 배경 없는 플랫 글리프.
+// 키: 파일명 슬러그('place-flag' 등). id/필터 없음이지만 안전하게 동일 처리.
+const PLACE_SRC = path.join(ROOT, 'assets', 'markers', 'place');
+const places = fs.existsSync(PLACE_SRC) ? processDir(PLACE_SRC, 'mp', false) : [];
+
 // 지도 마커 전용 글리프(assets/markers/glyph) — 등급별 폴더 + 줌아웃 별.
 // 키: '<tier>/<name>' (common은 tier 없이 name). filter-* 는 제외(지도 마커 아님).
 // 등급 글로우 gradient id(tg-legendary 등)가 파일마다 중복 → 등급+이름으로 네임스페이스.
@@ -110,9 +115,14 @@ ${glyphs.join('\n')}
 export const MAP_GLYPH: Record<string, string> = {
 ${mapGlyphs.join('\n')}
 };
+
+// 나만의 장소 아이콘 — 키 'place-<slug>'. 지도 핀 + 에디터 선택 그리드에 렌더.
+export const PLACE_ICON: Record<string, string> = {
+${places.join('\n')}
+};
 `;
 
 fs.writeFileSync(OUT, banner);
 console.log(
-  `wrote ${OUT} (coins ${coins.length}, glyphs ${glyphs.length}, mapGlyphs ${mapGlyphs.length})`
+  `wrote ${OUT} (coins ${coins.length}, glyphs ${glyphs.length}, mapGlyphs ${mapGlyphs.length}, places ${places.length})`
 );

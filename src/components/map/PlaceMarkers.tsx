@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Easing, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { CircleLayer, MarkerView, ShapeSource } from '@rnmapbox/maps';
 
 import { COLORS } from '../../constants/colors';
 import { usePlaceStore } from '../../store/placeStore';
 import type { Place } from '../../types';
+import { PlaceIcon } from '../place/PlaceIcon';
 
 interface Props {
   visible: boolean; // 줌 게이트 (많이 축소하면 숨김 — 사진 마커와 동일)
@@ -110,7 +111,9 @@ export default function PlaceMarkers({
             accessibilityLabel={`나만의 장소 ${p.name}`}
           >
             {selectedId === p.id && <PulseRing />}
-            <Text style={styles.emoji}>{p.emoji}</Text>
+            <View style={styles.iconWrap}>
+              <PlaceIcon value={p.emoji} size={34} />
+            </View>
             <View style={styles.tail} />
           </TouchableOpacity>
         </MarkerView>
@@ -129,12 +132,12 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: PINK,
   },
-  // 배경 없는 이모지 — 밝은 지도에서도 읽히도록 진한 그림자
-  emoji: {
-    fontSize: 30,
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowRadius: 4,
-    textShadowOffset: { width: 0, height: 1 },
+  // 배경 없는 글리프 — 밝은 지도에서도 읽히도록 그림자
+  iconWrap: {
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 2.5,
+    shadowOffset: { width: 0, height: 1 },
   },
   // 이모지 아래 화살표(꼬리)
   tail: {

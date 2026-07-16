@@ -17,6 +17,7 @@ import { POPUP } from '../../constants/popup';
 import { removePlace } from '../../services/places';
 import type { Place } from '../../types';
 import GlassPanel from '../ui/GlassPanel';
+import { PlaceIcon } from './PlaceIcon';
 
 interface Props {
   place: Place;
@@ -59,8 +60,8 @@ export default function PlaceFloatingCard({ place, onEdit, onClose }: Props) {
 
   const onShare = () => {
     const lines = [
-      `${place.emoji} ${place.name}`,
-      place.address ? `📍 ${place.address}` : null,
+      `📍 ${place.name}`,
+      place.address ? place.address : null,
       place.memo || null,
       '',
       '— FogWalk에서 밝힌 나만의 장소',
@@ -102,7 +103,7 @@ export default function PlaceFloatingCard({ place, onEdit, onClose }: Props) {
               <Image source={{ uri: place.photoUri }} style={styles.polaroidImg} />
             ) : (
               <View style={[styles.polaroidImg, styles.polaroidEmpty]}>
-                <Text style={styles.polaroidEmoji}>{place.emoji}</Text>
+                <PlaceIcon value={place.emoji} size={48} />
               </View>
             )}
           </View>
@@ -111,7 +112,10 @@ export default function PlaceFloatingCard({ place, onEdit, onClose }: Props) {
               <View style={styles.myBadge}>
                 <Text style={styles.myBadgeText}>♥ MY</Text>
               </View>
-              <Text style={styles.cat}>{place.emoji} 내 장소</Text>
+              <View style={styles.catRow}>
+                <PlaceIcon value={place.emoji} size={14} />
+                <Text style={styles.cat}>내 장소</Text>
+              </View>
             </View>
             <Text style={styles.name} numberOfLines={1}>
               {place.name}
@@ -194,10 +198,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
   },
   polaroidImg: { flex: 1, borderRadius: 3, width: '100%' },
-  polaroidEmpty: { backgroundColor: '#1C2135', alignItems: 'center', justifyContent: 'center' },
-  polaroidEmoji: { fontSize: 24 },
+  polaroidEmpty: { backgroundColor: COLORS.paper, alignItems: 'center', justifyContent: 'center' },
   headText: { flex: 1, minWidth: 0, paddingTop: 2 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   myBadge: {
     backgroundColor: 'rgba(255,107,181,0.14)',
     borderWidth: 1,
