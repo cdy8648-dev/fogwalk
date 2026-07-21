@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,7 +25,6 @@ import { dedupLandmarks } from '../utils/landmarkDedup';
 import type { CollectionStackParamList, DiscoveryFilter } from '../navigation/CollectionStack';
 import { getAllCountryStats } from '../services/db';
 import { useLandmarkStore } from '../store/landmarkStore';
-import { useMapStore } from '../store/mapStore';
 import { usePhotoStore } from '../store/photoStore';
 import type { Photo } from '../types';
 import { abbrev } from '../utils/format';
@@ -70,11 +69,17 @@ export default function CollectionScreen() {
   const photos = usePhotoStore((s) => s.photos);
   const discovered = useLandmarkStore((s) => s.discovered);
   const landmarks = useMemo(() => dedupLandmarks(discovered), [discovered]);
-  const fogVersion = useMapStore((s) => s.fogVersion);
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
 
-  const countries = useMemo(() => getAllCountryStats(), [fogVersion]);
+  // 여권 국가 통계 — 탭에 들어올 때(포커스)마다 1회 조회. 배경 탭에서 타일 배치마다
+  // DB를 읽던 fogVersion 반응 방식 대신, 실제로 볼 때만 최신값을 가져온다(저비용·예측가능).
+  const [countries, setCountries] = useState<ReturnType<typeof getAllCountryStats>>([]);
+  useFocusEffect(
+    useCallback(() => {
+      setCountries(getAllCountryStats());
+    }, [])
+  );
 
   const ROT = [-1.5, 1.5, -1, 1];
   const discTiles: { name: string; count: number; rot: number; filter: DiscoveryFilter }[] =
@@ -141,7 +146,12 @@ export default function CollectionScreen() {
             >
               <Text style={styles.ppFlag}>{codeToFlag(c.code)}</Text>
               <View style={styles.ppSpacer} />
-              <Text style={styles.ppNum} numberOfLines={1}>
+              <Text
+                style={styles.ppNum}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
                 {abbrev(c.tiles)}
               </Text>
               <Text style={styles.ppUnit}>칸 밝힘</Text>
