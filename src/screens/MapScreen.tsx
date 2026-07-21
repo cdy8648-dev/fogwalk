@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { Camera, MapView, PointAnnotation } from '@rnmapbox/maps';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, type ParamListBase } from '@react-navigation/native';
@@ -35,7 +36,7 @@ import MapStatusCard from '../components/map/MapStatusCard';
 import { COLORS } from '../constants/colors';
 import { CONFIG } from '../constants/config';
 import { FONT } from '../constants/fonts';
-import { getMapStyle } from '../constants/mapStyles';
+import { MAP_STYLES } from '../constants/mapStyles';
 import { useTracking } from '../hooks/useTracking';
 import { capturePhotoAt } from '../services/photos';
 import { createPlace, movePlace, updatePlaceInfo, type PlaceDraft } from '../services/places';
@@ -121,7 +122,10 @@ export default function MapScreen() {
   const statusLocation = _country
     ? { flag: codeToFlag(_country.code), label: _region ?? _country.name }
     : null;
-  const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
+  // 지도 스타일 모드(explore=라벨 최소 / detail=상세). settingsStore가 SQLite로 영속.
+  const mapStyleMode = useSettingsStore((s) => s.mapStyleMode);
+  const toggleMapStyle = useSettingsStore((s) => s.toggleMapStyle);
+  const styleURL = MAP_STYLES[mapStyleMode];
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
   // 우상단 햄버거 메뉴 (잉크 수납)
@@ -288,6 +292,11 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
+      {/*
+        styleURL 변경 시 Mapbox가 스타일을 리로드한다. 아래 커스텀 레이어(FogLayer·마커·
+        LocationMarker)는 모두 MapView의 선언형 children이라 @rnmapbox가 스타일 리로드 후
+        자동으로 재적용한다 → 별도 onDidFinishLoadingStyle 재적용 불필요. 런타임 카메라도 유지됨.
+      */}
       <MapView
         style={styles.map}
         styleURL={styleURL}
@@ -391,6 +400,26 @@ export default function MapScreen() {
         )}
         <LocationMarker />
       </MapView>
+
+      {/* 우측 하단 지도 모드 토글 (explore 라벨최소 ↔ detail 상세). 재시작 후 선택 유지. */}
+      <View style={[styles.styleToggleWrap, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.styleToggle}
+          activeOpacity={0.85}
+          onPress={toggleMapStyle}
+          accessibilityLabel={
+            mapStyleMode === 'detail' ? '지도 상세 라벨 끄기' : '지도 상세 라벨 켜기'
+          }
+        >
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.menuTint} />
+          <Ionicons
+            name={mapStyleMode === 'detail' ? 'layers' : 'layers-outline'}
+            size={22}
+            color={mapStyleMode === 'detail' ? COLORS.lime : COLORS.violet}
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* 상단 탐험 통계 오버레이 (시안 1c 칩 콜라주) — 날씨는 데이터 소스 도입 전이라 미표시 */}
       <MapStatusCard todayTiles={todayNewTiles} totalTiles={tiles} location={statusLocation} weather={weather} />
@@ -645,6 +674,22 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(15,17,32,0.45)',
+  },
+  // 우측 하단 지도 모드 토글 — 햄버거 메뉴와 동일한 글래스 레시피
+  styleToggleWrap: { position: 'absolute', right: 16, alignItems: 'flex-end' },
+  styleToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: COLORS.violet,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
   },
   menuBars: { gap: 4 },
   menuBar: { width: 18, height: 2, borderRadius: 1, backgroundColor: COLORS.violet },

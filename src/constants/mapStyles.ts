@@ -1,28 +1,19 @@
-export interface MapStylePreset {
-  id: string;
-  label: string;
-  styleURL: string; // 'mapbox://styles/mapbox/...' 또는 커스텀 'mapbox://styles/<계정>/<id>'
-}
-
 /**
- * 사용 가능한 지도 스타일 단일 진실 소스.
- * 새 커스텀 스타일은 여기에 한 줄 추가하면 끝.
+ * 지도 스타일 = 두 모드. "나만의 커스텀 지도"를 위해 라벨을 최소화한다.
+ *  - explore: 기본. 국가/주요도시 정도만 보이는 탐험 모드(라벨 최소).
+ *  - detail : 도로·지명 등 상세 라벨 정보 보기 모드.
+ * 커스텀 스타일(Mapbox Studio)에서 라벨 레이어를 정리한 두 스타일 URL만 관리.
  */
-export const MAP_STYLES: MapStylePreset[] = [
-  // 커스텀(아이보리 베이스 · POI/상점 라벨 정리) — 기본 스타일
-  {
-    id: 'ivory',
-    label: '아이보리 탐험',
-    styleURL: 'mapbox://styles/chadyoung/cmqp80yuc007x01rg6irz0c09',
-  },
-  { id: 'street', label: '기본', styleURL: 'mapbox://styles/mapbox/streets-v12' },
-  { id: 'light', label: '라이트', styleURL: 'mapbox://styles/mapbox/light-v11' },
-  { id: 'dark', label: '다크', styleURL: 'mapbox://styles/mapbox/dark-v11' },
-];
+export const MAP_STYLES = {
+  explore: 'mapbox://styles/chadyoung/cmqp80yuc007x01rg6irz0c09',
+  detail: 'mapbox://styles/chadyoung/cmrup7fpf00fb01qt66p21tgh',
+} as const;
 
-export const DEFAULT_MAP_STYLE_ID = 'ivory';
+export type MapStyleMode = keyof typeof MAP_STYLES;
 
-/** id로 프리셋 조회. 없으면 첫 번째(안전 폴백). */
-export function getMapStyle(id: string): MapStylePreset {
-  return MAP_STYLES.find((s) => s.id === id) ?? MAP_STYLES[0];
+export const DEFAULT_MAP_STYLE_MODE: MapStyleMode = 'explore';
+
+/** 저장값을 안전한 모드로 정규화 (구버전 'ivory' 등 알 수 없는 값 → explore). */
+export function normalizeMapStyleMode(v: string | null | undefined): MapStyleMode {
+  return v === 'detail' ? 'detail' : 'explore';
 }
