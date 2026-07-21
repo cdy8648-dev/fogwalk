@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+
+<line x1="140.0" y1="100.0" x2="154.0" y2="100.0" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line><line x1="128.3" y1="128.3" x2="138.2" y2="138.2" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line><line x1="100.0" y1="140.0" x2="100.0" y2="154.0" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line><line x1="71.7" y1="128.3" x2="61.8" y2="138.2" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line><line x1="60.0" y1="100.0" x2="46.0" y2="100.0" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line><line x1="71.7" y1="71.7" x2="61.8" y2="61.8" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line><line x1="100.0" y1="60.0" x2="100.0" y2="46.0" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line><line x1="128.3" y1="71.7" x2="138.2" y2="61.8" stroke="#FFB830" stroke-width="9" stroke-linecap="round"></line>
+<circle fill="#FFB830" cx="100" cy="100" r="34"></circle>
+<path fill="#FFFFFF" opacity="0.28" d="M78,84 A30,30 0 0 1 122,80 A26,26 0 0 0 78,84 Z"></path>
+</svg>

@@ -12,16 +12,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import CelebrationOverlay from './src/components/CelebrationOverlay';
 import DiscoveryOverlayHost from './src/components/discovery/DiscoveryOverlayHost';
-import RecapOverlay from './src/components/recap/RecapOverlay';
 import { COLORS } from './src/constants/colors';
 import { getCurrentCountry, hydrateCountry, refreshCountry } from './src/services/country';
 import { ensurePackForCountry, loadCachedPacks } from './src/services/regionPackDownload';
+import { refreshWeather } from './src/services/weather';
 import { initDatabase } from './src/services/db';
 import { setTrackingDeferral } from './src/services/gps';
 import { checkBadges, flushPendingBadgePopups } from './src/services/badges';
 import { flushPendingDiscoveries } from './src/services/discovery';
 import { migrateDiscoveryDisplayNames } from './src/services/landmarkNames';
-import { checkRecap } from './src/services/recap';
 import { rebuildKRStatsOnce } from './src/services/regionPack';
 import { wakeIfSleeping } from './src/services/trackingSleep';
 import { backfillInkOnce, refreshProgressStore } from './src/services/progress';
@@ -93,8 +92,8 @@ export default function App() {
     checkBadges('photo');
     flushPendingDiscoveries(); // 백그라운드/이전 세션 발견 → 요약 카드
     flushPendingBadgePopups(); // 백그라운드/이전 세션 뱃지 획득 → 보상 카드 (발견 뒤에 이어짐)
-    void checkRecap(); // 탐험 일지(별자리) 도착 확인 — 편지함 뱃지 + 도착 토스트
     void migrateDiscoveryDisplayNames(); // 현지어로 저장된 발견 이름 → 유저 언어로 보강(백그라운드)
+    void refreshWeather(); // 상태 카드 날씨 — 포그라운드 1회(TTL 캐시), 실패 시 조용히 무시
     setReady(true);
   }, []);
 
@@ -111,7 +110,7 @@ export default function App() {
         refreshProgressStore();
         flushPendingDiscoveries(); // 백그라운드 발견 → 요약 카드
         flushPendingBadgePopups(); // 백그라운드 뱃지 획득 → 보상 카드
-        void checkRecap(); // 탐험 일지 도착 확인
+        void refreshWeather(); // 날씨 갱신(포그라운드·TTL 캐시)
         // 해외 도착 등 먼 이동 시 국가 선제 감지 → 새 국가면 지역팩 확보(포그라운드에서만)
         void (async () => {
           await refreshCountry();
@@ -147,7 +146,6 @@ export default function App() {
       </NavigationContainer>
       <CelebrationOverlay />
       <DiscoveryOverlayHost />
-      <RecapOverlay />
     </>
   );
 }

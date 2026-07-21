@@ -31,7 +31,7 @@ import PlaceEditorSheet from '../components/place/PlaceEditorSheet';
 import { PlaceIcon } from '../components/place/PlaceIcon';
 import RegionPackChip from '../components/map/RegionPackChip';
 import PhotoViewer from '../components/ui/PhotoViewer';
-import Tape from '../components/ui/Tape';
+import MapStatusCard from '../components/map/MapStatusCard';
 import { COLORS } from '../constants/colors';
 import { CONFIG } from '../constants/config';
 import { FONT } from '../constants/fonts';
@@ -41,11 +41,13 @@ import { capturePhotoAt } from '../services/photos';
 import { createPlace, movePlace, updatePlaceInfo, type PlaceDraft } from '../services/places';
 import { useMapStore } from '../store/mapStore';
 import { useMapUiStore } from '../store/mapUiStore';
-import { useRecapStore } from '../store/recapStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useUserStore } from '../store/userStore';
+import { useWeatherStore } from '../store/weatherStore';
 import type { Photo, Place } from '../types';
 import { abbrev } from '../utils/format';
+import { codeToFlag } from '../utils/flag';
+import { getCurrentCountry, getCurrentRegion } from '../services/country';
 import { clearFogWithInk } from '../services/ink';
 import { fogClassAt, grayRegionAt, tileCenterCoord } from '../utils/h3';
 
@@ -111,16 +113,18 @@ export default function MapScreen() {
   const hasLocation = useMapStore((s) => s.currentLocation != null);
   const tiles = useMapStore((s) => s.visitedTileIds.size);
   const todayNewTiles = useUserStore((s) => s.todayNewTiles);
-  const streak = useUserStore((s) => s.streak);
-  const level = useUserStore((s) => s.level);
   const ink = useUserStore((s) => Math.floor(s.ink)); // 정수 비용과 floor(x)≥c ⟺ x≥c 로 판정 동일
-  // 탐험 일지(별자리 리캡) — 도착 시 편지함에 뱃지, 탭하면 재생
-  const recapReady = useRecapStore((s) => s.data != null);
-  const playRecap = useRecapStore((s) => s.play);
+  const weather = useWeatherStore((s) => s.data); // 상태 카드 날씨 칩 (없으면 미렌더)
+  // 상태 카드 위치 칩 — 이미 추적 중인 국가/시도(비반응형 getter). 카드가 이동 시 자주 리렌더돼 갱신.
+  const _country = getCurrentCountry();
+  const _region = getCurrentRegion();
+  const statusLocation = _country
+    ? { flag: codeToFlag(_country.code), label: _region ?? _country.name }
+    : null;
   const styleURL = getMapStyle(useSettingsStore((s) => s.mapStyleId)).styleURL;
 
   const [viewerPhotos, setViewerPhotos] = useState<Photo[]>([]);
-  // 우상단 햄버거 메뉴 (잉크·편지함 수납)
+  // 우상단 햄버거 메뉴 (잉크 수납)
   const [menuOpen, setMenuOpen] = useState(false);
   // 롱프레스로 찍는 연필 핀 좌표([lng, lat]) + 그 위치의 대상 판별(팝업용). 드래그로 이동.
   const [pinCoord, setPinCoord] = useState<[number, number] | null>(null);
@@ -340,7 +344,6 @@ export default function MapScreen() {
         )}
         <LandmarkMarkers
           full={vis.thumbs}
-          mid={vis.photos} // 별 단계: photos줌(≥11)=glow, 미만=dot
           showSubway={vis.subway}
           showCommon={vis.common}
           showRare={vis.rare}
@@ -389,22 +392,10 @@ export default function MapScreen() {
         <LocationMarker />
       </MapView>
 
-      {/* 상단 탐험 통계 오버레이 — 탭바와 같은 글래스모피즘 (테잎 + 살짝 기울임 유지) */}
-      <View style={[styles.statCard, { top: insets.top + 20 }]} pointerEvents="none">
-        <View style={styles.statGlass}>
-          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={styles.statTint} />
-          <Text style={styles.statLabel}>내가 밝힌 땅</Text>
-          <Text style={styles.statValue}>{abbrev(tiles)} 칸</Text>
-          <Text style={styles.statSub}>
-            Lv {level} · 오늘 {abbrev(todayNewTiles)}칸 · 🔥 {streak}일
-          </Text>
-        </View>
-        {/* 테잎은 글래스 클립(overflow) 밖 — 카드 위에 걸치도록 나중에 그림 */}
-        <Tape width={58} height={18} color="rgba(200,245,96,0.5)" style={styles.statTapePos} />
-      </View>
+      {/* 상단 탐험 통계 오버레이 (시안 1c 칩 콜라주) — 날씨는 데이터 소스 도입 전이라 미표시 */}
+      <MapStatusCard todayTiles={todayNewTiles} totalTiles={tiles} location={statusLocation} weather={weather} />
 
-      {/* 우상단 햄버거 메뉴 — 잉크·편지함 수납 (탭바·카드와 같은 글래스 레시피) */}
+      {/* 우상단 햄버거 메뉴 — 잉크 수납 (탭바·카드와 같은 글래스 레시피) */}
       <View style={[styles.menuWrap, { top: insets.top + 20 }]}>
         <TouchableOpacity
           style={styles.menuButton}
@@ -423,7 +414,6 @@ export default function MapScreen() {
               <View style={styles.menuBar} />
             </View>
           )}
-          {recapReady && !menuOpen && <View style={styles.mailDot} />}
         </TouchableOpacity>
 
         {menuOpen && (
@@ -450,26 +440,6 @@ export default function MapScreen() {
               <View style={styles.inkBadge}>
                 <Text style={styles.inkBadgeText}>{abbrev(ink)}</Text>
               </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              activeOpacity={0.85}
-              onPress={() => {
-                setMenuOpen(false);
-                if (recapReady) {
-                  playRecap(); // 탐험 일지(별자리 리캡) 재생
-                } else {
-                  Alert.alert('편지함', '아직 새 소식이 없어요 💌\n더 걸으면 탐험 일지가 도착해요!');
-                }
-              }}
-              accessibilityLabel={recapReady ? '탐험 일지 도착' : '편지함'}
-            >
-              <Image
-                source={require('../../assets/mail.png')}
-                style={styles.menuIcon}
-                resizeMode="contain"
-              />
-              {recapReady && <View style={styles.mailDot} />}
             </TouchableOpacity>
           </View>
         )}
@@ -692,18 +662,6 @@ const styles = StyleSheet.create({
   },
   menuItem: { width: 48, height: 48 },
   menuIcon: { width: 48, height: 48 },
-  // 탐험 일지 도착 표시 (핫핑크 점 + 흰 테두리)
-  mailDot: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 11,
-    height: 11,
-    borderRadius: 5.5,
-    backgroundColor: COLORS.hotpink,
-    borderWidth: 1.5,
-    borderColor: '#F4EFE6',
-  },
   inkBadge: {
     position: 'absolute',
     top: -6,
@@ -798,39 +756,6 @@ const styles = StyleSheet.create({
   moveBtnPrimary: { backgroundColor: COLORS.lime, borderColor: COLORS.lime },
   moveBtnPrimaryText: { color: COLORS.ink, fontSize: 13, fontWeight: '800' },
   moveBtnText: { color: COLORS.text, fontSize: 13, fontWeight: '700' },
-  // 바깥: 위치/기울임/그림자만 (overflow:hidden 이 그림자·테잎을 자르지 않도록 분리)
-  statCard: {
-    position: 'absolute',
-    left: 16,
-    borderRadius: 16,
-    transform: [{ rotate: '-2.5deg' }],
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  // 안쪽: 탭바와 동일한 글래스 레시피 (블러 + 틴트 + 네온퍼플 보더)
-  statGlass: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: COLORS.violet,
-  },
-  statTint: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(15,17,32,0.45)',
-  },
-  statTapePos: { position: 'absolute', top: -9, alignSelf: 'center' },
-  statLabel: { color: COLORS.muted, fontSize: 12, marginBottom: 2 },
-  statValue: { color: COLORS.lime, fontSize: 22, fontFamily: FONT.display },
-  statSub: { color: COLORS.text, fontSize: 12, marginTop: 4 },
   deniedWrap: {
     position: 'absolute',
     top: 0,

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  body { margin:0; background:#07080e; font-family:'Pretendard',sans-serif; }
+  a { color:#C8F560; text-decoration:none; }
+  a:hover { color:#5BC0BE; }
+</style>
+</helmet>
+
+<section style="display:flex; flex-direction:column; gap:28px; padding:56px 64px 96px;">
+  <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
+    <div style="font-family:'DM Mono',monospace; font-size:12px; letter-spacing:.25em; color:#7C8294;">TURN 1</div>
+    <div style="font-size:22px; font-weight:800; color:#F4EFE6;">"내가 밝힌 땅" 상태 카드 — 3시안</div>
+    <div style="font-size:14px; color:#8A90A6;"><a href="#1a">1a</a> 메타 상단 행 / <a href="#1b">1b</a> 2단 분리 / <a href="#1c">1c</a> 칩 콜라주 · 각각 폴백 상태 포함</div>
+  </div>
+
+  <div style="display:flex; gap:44px; align-items:flex-start; flex-wrap:wrap;">
+
+    <!-- ── 1a 메타 상단 행 ── -->
+    <div id="1a" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="background:#C8F560; color:#0D0F1A; font-family:'Space Grotesk'; font-weight:700; font-size:13px; padding:3px 10px; border-radius:999px;">1a</div>
+        <div style="font-size:14px; font-weight:600; color:#E2E5EE;">메타 상단 행 — 현재 구조 발전형</div>
+      </div>
+      <div style="width:340px; height:300px; background:#EDEAE0; border-radius:20px; position:relative; overflow:hidden;">
+        <div style="position:absolute; left:-30px; top:170px; width:160px; height:130px; background:#C3CCAD; border-radius:55% 45% 60% 50%; opacity:.7;"></div>
+        <div style="position:absolute; right:-40px; top:40px; width:130px; height:110px; background:#9DB8B5; border-radius:50% 60% 45% 55%; opacity:.5;"></div>
+        <div style="position:absolute; left:0; right:0; top:120px; height:9px; background:#DAD5C4; transform:rotate(-6deg);"></div>
+        <!-- 카드 -->
+        <div style="position:absolute; left:22px; top:24px; transform:rotate(-2.5deg); background:rgba(13,15,26,.82); backdrop-filter:blur(14px); border:1.5px solid #8B7CFF; border-radius:16px; padding:12px 16px 14px; box-shadow:0 10px 28px rgba(13,15,26,.35);">
+          <div style="position:absolute; top:-9px; right:18px; transform:rotate(6deg); width:56px; height:18px; background:rgba(200,245,96,.55); box-shadow:0 2px 5px rgba(0,0,0,.2);"></div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; color:#E2E5EE; font-weight:600;">🇰🇷 서울</div>
+            <div style="width:3px; height:3px; border-radius:50%; background:#7C8294;"></div>
+            <div style="font-size:12px; color:#E2E5EE;">☀️ <span style="font-family:'Space Grotesk'; font-weight:600;">24°</span></div>
+          </div>
+          <div style="font-size:11px; color:#7C8294; margin-top:8px;">오늘 밝힌 땅</div>
+          <div style="display:flex; align-items:baseline; gap:4px; margin-top:1px;">
+            <div style="font-family:'Space Grotesk'; font-weight:700; font-size:30px; color:#C8F560; line-height:1;">120</div>
+            <div style="font-size:14px; color:#C8F560; font-weight:700;">칸</div>
+          </div>
+          <div style="font-size:12px; color:#7C8294; margin-top:6px;">지금까지 <span style="font-family:'Space Grotesk'; font-weight:600; color:#E2E5EE;">12.3K</span>칸</div>
+        </div>
+      </div>
+      <!-- 폴백 -->
+      <div style="width:340px; background:#EDEAE0; border-radius:16px; padding:18px; display:flex; align-items:center; gap:14px;">
+        <div style="transform:rotate(-2.5deg); background:rgba(13,15,26,.82); border:1.5px solid #8B7CFF; border-radius:14px; padding:10px 14px 12px;">
+          <div style="font-size:11px; color:#7C8294;">오늘 밝힌 땅</div>
+          <div style="display:flex; align-items:baseline; gap:3px; margin-top:1px;">
+            <div style="font-family:'Space Grotesk'; font-weight:700; font-size:24px; color:#C8F560; line-height:1;">120</div>
+            <div style="font-size:12px; color:#C8F560; font-weight:700;">칸</div>
+          </div>
+          <div style="font-size:11px; color:#7C8294; margin-top:5px;">지금까지 <span style="font-family:'Space Grotesk'; font-weight:600; color:#E2E5EE;">12.3K</span>칸</div>
+        </div>
+        <div style="font-size:12px; color:#6B6455; line-height:1.5;">폴백: 메타 행 자체를 제거 —<br>3줄 코어만 남음 (레이아웃 시프트 없음)</div>
+      </div>
+    </div>
+
+    <!-- ── 1b 2단 분리 ── -->
+    <div id="1b" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="background:#C8F560; color:#0D0F1A; font-family:'Space Grotesk'; font-weight:700; font-size:13px; padding:3px 10px; border-radius:999px;">1b</div>
+        <div style="font-size:14px; font-weight:600; color:#E2E5EE;">2단 분리 — 히어로 블록 + 메타 스트립</div>
+      </div>
+      <div style="width:340px; height:300px; background:#EDEAE0; border-radius:20px; position:relative; overflow:hidden;">
+        <div style="position:absolute; right:-30px; bottom:-20px; width:170px; height:140px; background:#C3CCAD; border-radius:55% 45% 60% 50%; opacity:.7;"></div>
+        <div style="position:absolute; left:0; right:0; top:170px; height:9px; background:#DAD5C4; transform:rotate(5deg);"></div>
+        <div style="position:absolute; left:22px; top:24px; transform:rotate(-2.5deg); background:rgba(13,15,26,.82); backdrop-filter:blur(14px); border:1.5px solid #8B7CFF; border-radius:16px; overflow:hidden; box-shadow:0 10px 28px rgba(13,15,26,.35);">
+          <div style="position:absolute; top:-8px; left:-14px; transform:rotate(-38deg); width:52px; height:16px; background:rgba(200,245,96,.55); box-shadow:0 2px 5px rgba(0,0,0,.2);"></div>
+          <div style="padding:13px 16px 11px;">
+            <div style="font-size:11px; color:#7C8294;">오늘 밝힌 땅</div>
+            <div style="display:flex; align-items:baseline; gap:4px; margin-top:1px;">
+              <div style="font-family:'Space Grotesk'; font-weight:700; font-size:32px; color:#C8F560; line-height:1;">120</div>
+              <div style="font-size:14px; color:#C8F560; font-weight:700;">칸</div>
+              <div style="font-size:12px; color:#7C8294; margin-left:7px;">누적 <span style="font-family:'Space Grotesk'; font-weight:600; color:#E2E5EE;">12.3K</span></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:8px 16px; background:rgba(139,124,255,.13); border-top:1px solid rgba(139,124,255,.35);">
+            <div style="font-size:12px; color:#E2E5EE; font-weight:600;">🇰🇷 서울</div>
+            <div style="font-size:12px; color:#E2E5EE;">☀️ <span style="font-family:'Space Grotesk'; font-weight:600;">24°</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="width:340px; background:#EDEAE0; border-radius:16px; padding:18px; display:flex; align-items:center; gap:14px;">
+        <div style="transform:rotate(-2.5deg); background:rgba(13,15,26,.82); border:1.5px solid #8B7CFF; border-radius:14px; overflow:hidden;">
+          <div style="padding:11px 14px 9px;">
+            <div style="font-size:11px; color:#7C8294;">오늘 밝힌 땅</div>
+            <div style="display:flex; align-items:baseline; gap:3px;">
+              <div style="font-family:'Space Grotesk'; font-weight:700; font-size:26px; color:#C8F560; line-height:1;">120</div>
+              <div style="font-size:12px; color:#C8F560; font-weight:700;">칸</div>
+            </div>
+          </div>
+          <div style="padding:6px 14px; background:rgba(139,124,255,.13); border-top:1px solid rgba(139,124,255,.35); font-size:11px; color:#7C8294;">📍 위치 확인 중…</div>
+        </div>
+        <div style="font-size:12px; color:#6B6455; line-height:1.5;">폴백: 메타 스트립에<br>"📍 위치 확인 중…" 단일 문구</div>
+      </div>
+    </div>
+
+    <!-- ── 1c 칩 콜라주 ── -->
+    <div id="1c" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="background:#C8F560; color:#0D0F1A; font-family:'Space Grotesk'; font-weight:700; font-size:13px; padding:3px 10px; border-radius:999px;">1c</div>
+        <div style="font-size:14px; font-weight:600; color:#E2E5EE;">칩 콜라주 — 위치·날씨를 스티커로</div>
+      </div>
+      <div style="width:340px; height:300px; background:#EDEAE0; border-radius:20px; position:relative; overflow:hidden;">
+        <div style="position:absolute; left:-40px; bottom:30px; width:150px; height:130px; background:#9DB8B5; border-radius:50% 60% 45% 55%; opacity:.5;"></div>
+        <div style="position:absolute; left:0; right:0; top:140px; height:9px; background:#DAD5C4; transform:rotate(-4deg);"></div>
+        <div style="position:absolute; left:22px; top:38px;">
+          <div style="transform:rotate(-2.5deg); background:rgba(13,15,26,.82); backdrop-filter:blur(14px); border:1.5px solid #8B7CFF; border-radius:16px; padding:14px 18px 13px; box-shadow:0 10px 28px rgba(13,15,26,.35);">
+            <div style="font-size:11px; color:#7C8294;">오늘 밝힌 땅</div>
+            <div style="display:flex; align-items:baseline; gap:4px; margin-top:1px;">
+              <div style="font-family:'Space Grotesk'; font-weight:700; font-size:34px; color:#C8F560; line-height:1;">120</div>
+              <div style="font-size:15px; color:#C8F560; font-weight:700;">칸</div>
+            </div>
+            <div style="font-size:12px; color:#7C8294; margin-top:6px;">지금까지 <span style="font-family:'Space Grotesk'; font-weight:600; color:#E2E5EE;">12.3K</span>칸</div>
+          </div>
+          <!-- 칩 스티커 -->
+          <div style="position:absolute; top:-13px; right:-18px; transform:rotate(4deg); display:flex; align-items:center; gap:5px; background:#0F1120; border:1.5px solid #5BC0BE; border-radius:999px; padding:4px 11px; box-shadow:0 4px 12px rgba(13,15,26,.4); font-size:11px; color:#E2E5EE;">☀️ <span style="font-family:'Space Grotesk'; font-weight:600;">24°</span></div>
+          <div style="position:absolute; bottom:-12px; left:-14px; transform:rotate(-4deg); display:flex; align-items:center; gap:5px; background:#0F1120; border:1.5px solid #FF6BB5; border-radius:999px; padding:4px 11px; box-shadow:0 4px 12px rgba(13,15,26,.4); font-size:11px; color:#E2E5EE; font-weight:600;">🇰🇷 서울</div>
+        </div>
+      </div>
+      <div style="width:340px; background:#EDEAE0; border-radius:16px; padding:18px; display:flex; align-items:center; gap:14px;">
+        <div style="transform:rotate(-2.5deg); background:rgba(13,15,26,.82); border:1.5px solid #8B7CFF; border-radius:14px; padding:11px 15px 10px;">
+          <div style="font-size:11px; color:#7C8294;">오늘 밝힌 땅</div>
+          <div style="display:flex; align-items:baseline; gap:3px;">
+            <div style="font-family:'Space Grotesk'; font-weight:700; font-size:26px; color:#C8F560; line-height:1;">120</div>
+            <div style="font-size:12px; color:#C8F560; font-weight:700;">칸</div>
+          </div>
+          <div style="font-size:11px; color:#7C8294; margin-top:5px;">지금까지 <span style="font-family:'Space Grotesk'; font-weight:600; color:#E2E5EE;">12.3K</span>칸</div>
+        </div>
+        <div style="font-size:12px; color:#6B6455; line-height:1.5;">폴백: 칩 미부착 —<br>코어 카드만 (칩은 데이터 도착 시<br>스프링으로 붙음)</div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>
