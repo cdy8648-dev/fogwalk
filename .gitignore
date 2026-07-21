@@ -41,3 +41,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# 디자인 핸드오프(캔버스 export) — 레퍼런스용, 앱 산출물 아님
+design_handoff_*/
