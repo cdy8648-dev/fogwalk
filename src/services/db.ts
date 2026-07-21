@@ -231,7 +231,7 @@ export function insertVisitedTiles(tileIds: string[]): string[] {
   return fresh;
 }
 
-/** since 이후 처음 밝힌 타일들(시간순) — 탐험 일지(별자리 리캡)용. 화면 층에서만 호출. */
+/** since 이후 처음 밝힌 타일들(시간순) — KR 재집계 등 소급 계산용. 화면 층에서만 호출. */
 export function getVisitedTilesSince(since: number): { tileId: string; ts: number }[] {
   const rows = db.getAllSync<{ tile_id: string; first_visited_at: number }>(
     'SELECT tile_id, first_visited_at FROM visited_tiles WHERE first_visited_at > ? ORDER BY first_visited_at ASC',

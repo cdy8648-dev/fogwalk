@@ -62,13 +62,6 @@ export const CONFIG = {
   STATIONARY_RADIUS_M: 100,
   SLEEP_AFTER_MS: 10 * 60_000,
 
-  // 탐험 일지(별자리 리캡): 마지막 열람 이후 신규 타일이 이 이상이면 편지함에 도착
-  RECAP_MIN_TILES: 30,
-  RECAP_MAX_POINTS: 80, // 별자리 점 다운샘플 상한(연출 성능)
-  // 별자리 선 분리: 연속 점이 이 거리/시간 이상 벌어지면 다른 외출로 보고 선을 끊는다
-  RECAP_GAP_SPLIT_M: 400,
-  RECAP_GAP_SPLIT_MS: 20 * 60_000,
-
   // 잉크(소비형 통화): 걸어서 번다(모드 가중 → 운전은 적게). 지도 라벨/공개에 사용.
   INK_PER_KM: 1, // 가중 1km당 잉크 (튜닝 가능)
 
