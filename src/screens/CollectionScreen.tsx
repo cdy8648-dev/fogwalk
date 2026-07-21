@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import BadgeStepper from '../components/BadgeStepper';
+import TierProgressCard from '../components/TierProgressCard';
 import Polaroid from '../components/Polaroid';
 import EmptyHint from '../components/ui/EmptyHint';
 import PhotoViewer from '../components/ui/PhotoViewer';
@@ -117,14 +117,14 @@ export default function CollectionScreen() {
       <Text style={styles.kicker}>COLLECTION</Text>
       <Text style={styles.title}>모아둔 것들</Text>
 
-      {/* 뱃지 — 거리 진화 */}
+      {/* 뱃지 — 등급 승급 (밝힌 칸) */}
       <SectionHead
         label="뱃지"
         color={COLORS.lime}
         rotate={-2}
         onPress={() => nav.navigate('BadgeDetail')}
       />
-      <BadgeStepper />
+      <TierProgressCard />
 
       {/* 여권 */}
       <SectionHead
