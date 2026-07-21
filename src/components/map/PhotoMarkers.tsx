@@ -5,6 +5,7 @@ import { latLngToCell } from 'h3-js';
 
 import { COLORS } from '../../constants/colors';
 import { CONFIG } from '../../constants/config';
+import { MARKER_DOT, PHOTO_COLOR } from '../../constants/markerStyle';
 import { usePhotoStore } from '../../store/photoStore';
 import type { Photo } from '../../types';
 
@@ -57,10 +58,10 @@ export default function PhotoMarkers({ thumbnails, visible, onSelect }: Props) {
         <CircleLayer
           id="photo-dots-layer"
           style={{
-            circleRadius: 5,
-            circleColor: COLORS.lime,
-            circleStrokeColor: COLORS.ink,
-            circleStrokeWidth: 1.5,
+            circleRadius: MARKER_DOT.radius,
+            circleColor: PHOTO_COLOR,
+            circleStrokeColor: MARKER_DOT.strokeColor,
+            circleStrokeWidth: MARKER_DOT.strokeWidth,
           }}
         />
       </ShapeSource>

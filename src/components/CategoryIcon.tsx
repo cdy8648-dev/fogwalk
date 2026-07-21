@@ -43,21 +43,6 @@ export function MapMarkerGlyph({
   );
 }
 
-/** 줌아웃 별 마커 — 별자리 컨셉. variant: 'glow'(가까운 줌) / 'dot'(먼 줌). 등급색 SVG 내장. */
-export function MapStar({
-  rarity,
-  variant,
-  size,
-}: {
-  rarity?: string;
-  variant: 'dot' | 'glow';
-  size: number;
-}) {
-  const dir = TIER_DIR[rarity ?? ''] ?? '';
-  const xml = MAP_GLYPH[`${dir}star-${variant}`] ?? MAP_GLYPH[`star-${variant}`];
-  if (!xml) return <View style={{ width: size, height: size }} />;
-  return <SvgXml xml={xml} width={size} height={size} />;
-}
 
 /**
  * 발견 카테고리 아이콘 (assets/markers 3D 클레이 코인 세트).
